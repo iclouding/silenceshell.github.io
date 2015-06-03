@@ -1,0 +1,221 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta name="baidu-site-verification" content="mFmscoluqW" />
+  <meta charset="utf-8">
+  
+  <title>Ambari简介 | 伊布</title>
+  <meta name="author" content="hubt@dtdream.com">
+  
+  <meta name="description" content="1 介绍之前搭建hadoop平台（参加前一篇blog），采用的是手动安装、修改配置文件的方法。这样可以大致了解hadoop基本的部署过程，但是实际生产过程中不可能采用这种全手工的方法，后续还涉及到安装HBase/Hive/Spark/Storm之类的上层应用，以及管理监控平台，过程相对繁琐一些。面对这些问题，就需要一个优秀的分布式集群管理工具了。目前了解到业界自动化部署+管理监控工具里，比较有名的是Hortonworks的ambari，以及cloudera的cloudera manager。">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="Ambari简介"/>
+  <meta property="og:site_name" content="伊布"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  <link href="/github.ico" rel="icon" type="image/x-ico">
+  <link rel="alternate" href="/atom.xml" title="伊布" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+
+
+  <script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+var option = {
+  engineKey: 'f3e1951e888b8a117845'
+};
+(function(w,d,t,u,n,s,e){
+  s = d.createElement(t);
+  s.src = u;
+  s.async = 1;
+  w[n] = function(r){
+    w[n].opts = r;
+  };
+  e = d.getElementsByTagName(t)[0];
+  e.parentNode.insertBefore(s, e);
+})(window,document,'script','//tinysou-cdn.b0.upaiyun.com/ts.js','_ts');
+_ts(option);
+</script>
+
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="alignleft">
+  <h1><a href="/">伊布</a></h1>
+  <h2><a href="/"></a></h2>
+</div>
+<nav id="main-nav" class="alignright">
+  <ul>
+    
+      <li><a href="/">Home</a></li>
+    
+      <li><a href="/archives">Archives</a></li>
+    
+      <li><a href="/About">About</a></li>
+    
+	<li> <a href="/atom.xml">RSS</a> </li>
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div></header>
+  <div id="content" class="inner">
+    <div id="main-col" class="alignleft"><div id="wrapper"><article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-04-30T03:10:59.000Z"><a href="/2015/04/30/ambari/">2015-04-30</a></time>
+      
+      
+  
+    <h1 class="title">Ambari简介</h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h3 id="1_介绍">1 介绍</h3><p>之前搭建hadoop平台（参加<a href="http://silenceshell.github.io/2015/04/24/hadoop-setup/" target="_blank" rel="external">前一篇blog</a>），采用的是手动安装、修改配置文件的方法。这样可以大致了解hadoop基本的部署过程，但是实际生产过程中不可能采用这种全手工的方法，后续还涉及到安装HBase/Hive/Spark/Storm之类的上层应用，以及管理监控平台，过程相对繁琐一些。<br>面对这些问题，就需要一个优秀的分布式集群管理工具了。目前了解到业界自动化部署+管理监控工具里，比较有名的是Hortonworks的<a href="http://ambari.apache.org/" target="_blank" rel="external">ambari</a>，以及cloudera的<a href="http://www.cloudera.com/content/cloudera/en/downloads/cloudera_manager/cm-5-4-0.html" target="_blank" rel="external">cloudera manager</a>。<br><a id="more"></a><br>简单上两张图对比下管理界面：<br>ambari:<br><img src="http://7xir15.com1.z0.glb.clouddn.com/ambari.png" alt=""><br>cloudera manager(官网上的图，后面等安装了CDH版本后再详细介绍吧 - -)：<br><img src="http://www.cloudera.com/content/dam/cloudera/product-assets/manager-screenshots/manager-screenshot-3.jpg" alt=""></p>
+<h3 id="2_架构详解">2 架构详解</h3><p><strong>暂时还没有深入了解，先挖个坑在这。</strong><br>感兴趣的同学可以先看CSDN上的一篇<a href="http://blog.csdn.net/shifenglov/article/details/42803283" target="_blank" rel="external">文章</a>，介绍的比较仔细。<br>简单来说，ambari利用了一些优秀的开源软件，做到了集群部署(puppet)、监控(Ganglia/nagios)、管理能力。</p>
+<h3 id="3_安装">3 安装</h3><p>我用的是3台阿里云的ECS，centos6.5系统，直接从hortonworks官方源拖的。ambari将安装做的已经非常好了，无奈受限于网络状况，安装过程中可能会出现失败的情况，retry就好了。吐槽一下ECS，不知道阿里的网络带宽是怎么限制的，实际使用起来有时效果比较糟糕，同一个地址下载可能一台几十KB，另一台可以达到3MB/s。<br>下面简单写一下安装过程吧，网上教程搜一下很多，这儿就只说一下坑。<br><em>建议直接参考<a href="https://cwiki.apache.org/confluence/display/AMBARI/Installation+Guide+for+Ambari+2.0.0" target="_blank" rel="external">官方的安装说明</a></em></p>
+<h4 id="3-1_配置ssh免认证登陆、hosts">3.1 配置ssh免认证登陆、hosts</h4><p>请参考前一篇blog。</p>
+<h4 id="3-2_下载官方yum源">3.2 下载官方yum源</h4><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">For Redhat<span class="regexp">/CentOS/</span><span class="string">Oracle:</span></span><br><span class="line">  cd <span class="regexp">/etc/</span>yum.repos.d/</span><br><span class="line">  wget &lt;ambari-repo-url&gt;</span><br></pre></td></tr></table></figure>
+<p><strong>坑</strong>：网上的教程多数还是基于1.x版本的，写blog的时候官方已经发布到了2.0.0（跳过了1.8/1.9）。<br>下载的repo url决定了使用的ambari版本，建议安装的时候去官网上找一下最新版本的repo url。<br>另，如果空间富裕的话，建议找一台虚机做一个官方源的镜像，后面安装会顺畅很多。</p>
+<h4 id="3-3_install,_setup,_and_start_ambari-server">3.3 install, setup, and start ambari-server</h4><p>步骤简单，<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">yum <span class="operator"><span class="keyword">install</span> ambari-<span class="keyword">server</span></span><br><span class="line">ambari-<span class="keyword">server</span> setup</span><br><span class="line">ambari-<span class="keyword">server</span> <span class="keyword">start</span></span></span><br></pre></td></tr></table></figure></p>
+<p>安装完毕后访问<code>http://&lt;ambari-server-host&gt;:8080</code>，有ambari的登陆界面，密码是admin/admin。<br><img src="http://7xir15.com1.z0.glb.clouddn.com/ambari登陆.PNG" alt=""></p>
+<h4 id="3-4_安装hadoop/spark等服务">3.4 安装hadoop/spark等服务</h4><p>ambari提供了一个安装向导，按着来就行，具体可以参照chinaunix上的一篇<a href="http://blog.chinaunix.net/uid-26230811-id-4023821.html" target="_blank" rel="external">blog</a>，注意他用的是古老的1.4。<br>几个坑：</p>
+<ul>
+<li>如果使用的是自己的镜像，需要在向导里就先修改为实际的镜像地址（需要关闭验证）。不要妄想这儿不改，等到安装各个服务的时候跑到<code>/etc/yum.repos.d/</code>里去改，安装向导会强行覆盖的。</li>
+<li>如果用的是比较老的比如1.4的版本，注册这一步可能会提示用的版本不匹配。<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Cluster</span> primary <span class="type">OS</span> <span class="class"><span class="keyword">type</span> <span class="title">is</span> <span class="title">redhat6</span> <span class="title">and</span> <span class="title">local</span> <span class="title">OS</span> <span class="title">type</span> <span class="title">is</span> <span class="title">centos5</span> <span class="title">Local</span> <span class="title">OS</span> <span class="title">is</span> <span class="title">not</span> <span class="title">compatible</span> <span class="keyword"><span class="keyword">with</span></span> <span class="title">cluster</span> <span class="title">primary</span> <span class="title">OS</span>. <span class="title">Please</span> <span class="title">perform</span> <span class="title">manual</span> <span class="title">bootstrap</span> <span class="title">on</span> <span class="title">this</span> <span class="title">host</span>.</span></span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>是安装脚本问题(<a href="https://issues.apache.org/jira/secure/attachment/12620503/AMBARI-4101.patch" target="_blank" rel="external">AMBARI-4101</a>)，可以按patch修改<code>os_type_check.sh</code>。我的办法是强行修改current_os与cluster一致。当然，直接上2.0吧，新版本已经改了这个bug了。</p>
+<ul>
+<li>要求输入各主机名列表时，务必使用FQDN格式（即<code>www.google.com</code>之类），不能直接使用benzema/bale这种。</li>
+<li>向导要求提供的是私钥，跟ssh免认证登陆不同（Q:为什么要私钥？）</li>
+<li>如果安装各个服务的时候，失败的实在太多，可以先把包下载下来，手动安装。ambari retry对于已经安装过的只会检查。</li>
+<li>如果不幸，你先安装了低版本的ambari，没关系，ambari是支持升级的，具体参考<a href="http://docs.hortonworks.com/HDPDocuments/Ambari-2.0.0.0/Ambari_Doc_Suite/Ambari_Upgrade_v20.pdf" target="_blank" rel="external">官方指导文档</a>。如果不幸升级失败了，可以ambari-server reset全部复位掉。</li>
+<li>想起来再补</li>
+</ul>
+<h3 id="4_验证">4 验证</h3><h4 id="4-1_验证HDFS">4.1 验证HDFS</h4><p>登陆到HDFS的master控制台<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@ty10 ~]<span class="comment"># hadoop fs -ls /</span></span><br><span class="line">Found <span class="number">8</span> items</span><br><span class="line">drwxrwxrwt   - yarn   hadoop          <span class="number">0</span> <span class="number">2015</span>-<span class="number">04</span>-<span class="number">29</span> <span class="number">15</span>:<span class="number">42</span> /app-logs</span><br><span class="line">drwxr-xr-x   - hdfs   hdfs            <span class="number">0</span> <span class="number">2015</span>-<span class="number">04</span>-<span class="number">28</span> <span class="number">15</span>:<span class="number">55</span> /apps</span><br><span class="line">drwxr-xr-x   - hdfs   hdfs            <span class="number">0</span> <span class="number">2015</span>-<span class="number">04</span>-<span class="number">28</span> <span class="number">15</span>:<span class="number">50</span> /hdp</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<h4 id="4-2_验证spark_on_yarn">4.2 验证spark on yarn</h4><p>到安装spark client的主机上跑一下spark的示例应用：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">spark-submit --class org.apache.spark.examples.SparkPi     --master yarn-cluster      --num-executors <span class="number">3</span>      --driver-memory <span class="number">2</span>g     --executor-memory <span class="number">2</span>g     --executor-cores <span class="number">1</span>        lib/spark-examples*.jar    <span class="number">10</span></span><br></pre></td></tr></table></figure></p>
+<p>yarn上查看application：<br><img src="http://7xir15.com1.z0.glb.clouddn.com/ambari_spark_e1.PNG" alt=""></p>
+<p>spark上查看任务：<br><img src="http://7xir15.com1.z0.glb.clouddn.com/ambari_spark_ui.PNG" alt=""></p>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+  
+  <div class="tags">
+    <a href="/tags/ambari/">ambari</a>
+  </div>
+
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+<section id="comment">
+	<div class="ds-thread"></div>
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"silenceshell"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+</section>
+
+</div></div>
+    <aside id="sidebar" class="alignright">
+  <div class="search">
+<form>
+    <input type="text" id="ts-search-input"  name="word" maxlength="20"  class="search-form-input" placeholder="Search">
+</form>
+</div>
+
+  
+
+  
+<div class="widget tag">
+  <h3 class="title">標籤</h3>
+  <ul class="entry">
+  
+    <li><a href="/tags/ambari/">ambari</a><small>1</small></li>
+  
+    <li><a href="/tags/hadoop/">hadoop</a><small>9</small></li>
+  
+    <li><a href="/tags/hdfs/">hdfs</a><small>1</small></li>
+  
+    <li><a href="/tags/hive/">hive</a><small>1</small></li>
+  
+    <li><a href="/tags/mesos/">mesos</a><small>1</small></li>
+  
+    <li><a href="/tags/python/">python</a><small>2</small></li>
+  
+    <li><a href="/tags/spark/">spark</a><small>1</small></li>
+  
+    <li><a href="/tags/sqoop/">sqoop</a><small>1</small></li>
+  
+    <li><a href="/tags/storm/">storm</a><small>1</small></li>
+  
+    <li><a href="/tags/tez/">tez</a><small>1</small></li>
+  
+    <li><a href="/tags/yarn/">yarn</a><small>2</small></li>
+  
+  </ul>
+</div>
+
+</aside>
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="alignleft">
+  
+  &copy; 2015 hubt@dtdream.com
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="//libs.baidu.com/jquery/2.0.3/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+</body>
+</html>

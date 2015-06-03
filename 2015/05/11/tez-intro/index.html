@@ -1,0 +1,216 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta name="baidu-site-verification" content="mFmscoluqW" />
+  <meta charset="utf-8">
+  
+  <title>笔记：DAG计算框架Tez | 伊布</title>
+  <meta name="author" content="hubt@dtdream.com">
+  
+  <meta name="description" content="1 介绍目前的问题：如果作业由多个MR任务完成，则必然经过多次完整的Map—shuffer—Reduce，中间节点的数据多次写入HDFS，浪费IO读写。（可以将HDFS理解为多个任务之间的共享存储。）Tez的引入可以较小的代价的解决这一问题。">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="笔记：DAG计算框架Tez"/>
+  <meta property="og:site_name" content="伊布"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  <link href="/github.ico" rel="icon" type="image/x-ico">
+  <link rel="alternate" href="/atom.xml" title="伊布" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+
+
+  <script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+var option = {
+  engineKey: 'f3e1951e888b8a117845'
+};
+(function(w,d,t,u,n,s,e){
+  s = d.createElement(t);
+  s.src = u;
+  s.async = 1;
+  w[n] = function(r){
+    w[n].opts = r;
+  };
+  e = d.getElementsByTagName(t)[0];
+  e.parentNode.insertBefore(s, e);
+})(window,document,'script','//tinysou-cdn.b0.upaiyun.com/ts.js','_ts');
+_ts(option);
+</script>
+
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="alignleft">
+  <h1><a href="/">伊布</a></h1>
+  <h2><a href="/"></a></h2>
+</div>
+<nav id="main-nav" class="alignright">
+  <ul>
+    
+      <li><a href="/">Home</a></li>
+    
+      <li><a href="/archives">Archives</a></li>
+    
+      <li><a href="/About">About</a></li>
+    
+	<li> <a href="/atom.xml">RSS</a> </li>
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div></header>
+  <div id="content" class="inner">
+    <div id="main-col" class="alignleft"><div id="wrapper"><article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-05-11T01:17:45.000Z"><a href="/2015/05/11/tez-intro/">2015-05-11</a></time>
+      
+      
+  
+    <h1 class="title">笔记：DAG计算框架Tez</h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h3 id="1_介绍">1 介绍</h3><p>目前的问题：如果作业由多个MR任务完成，则必然经过多次完整的Map—shuffer—Reduce，中间节点的数据多次写入HDFS，浪费IO读写。（可以将HDFS理解为多个任务之间的共享存储。）Tez的引入可以较小的代价的解决这一问题。<br><a id="more"></a><br>Tez采用了DAG（有向无环图）来组织MR任务。<br>核心思想：将Map任务和Reduce任务进一步拆分，Map任务拆分为Input-Processor-Sort-Merge-Output，Reduce任务拆分为Input-Shuffer-Sort-Merge-Process-output，Tez将若干小任务灵活重组，形成一个大的DAG作业。<br>Tez与oozie不同：oozie只能以MR任务为整体来管理、组织，本质上仍然是多个MR任务的执行，不能解决上面提到的多个任务之间硬盘IO冗余的问题。<br>Tez只是一个Client，部署很方便。<br>目前Hive使用了Tez（Hive是一个将用户的SQL请求翻译为MR任务，最终查询HDFS的工具）。下图对一个典型的join动作的两种方案做了对比。<br><img src="http://hortonworks.com/wp-content/uploads/2013/02/pighivetez.png" alt="Hive+Tez"></p>
+<h3 id="2_数据处理引擎">2 数据处理引擎</h3><h4 id="2-1_6种应用程序接口：">2.1 6种应用程序接口：</h4><ul>
+<li>Input:解析输入数据，输出key/value</li>
+<li>Output:将key/value写入到HDFS</li>
+<li>Parititioner:数据分片</li>
+<li>Processor:计算单元抽象</li>
+<li>Task:Input-&gt;Processor-&gt;Output</li>
+</ul>
+<h4 id="2-2_数据处理引擎">2.2 数据处理引擎</h4><p>略。</p>
+<h3 id="3_DAG编程模型">3 DAG编程模型</h3><p>Tez通过有向无环图组织任务。一个DAG由若干Vertex(顶点，即处理逻辑，例如Map/Reduce)和连接Vertex的Edge（定义了Vertex之间的通信方式，例如Shuffle）组成。<br>以Tez的wordcount中的createDAG为例：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//定义2个Vertex</span></span><br><span class="line">Vertex tokenizerVertex = Vertex.create(TOKENIZER, ProcessorDescriptor.create(</span><br><span class="line">    TokenProcessor.class.getName())).addDataSource(INPUT, dataSource);</span><br><span class="line">    <span class="comment">//TokenProcessor为Vertex的处理逻辑</span></span><br><span class="line">Vertex summationVertex = Vertex.create(SUMMATION,</span><br><span class="line">    ProcessorDescriptor.create(SumProcessor.class.getName()), numPartitions)</span><br><span class="line">    .addDataSink(OUTPUT, dataSink);</span><br><span class="line">    <span class="comment">//SumProcessor为Vertex的处理逻辑</span></span><br><span class="line"></span><br><span class="line">DAG dag = DAG.create(<span class="string">"WordCount"</span>);</span><br><span class="line">dag.addVertex(tokenizerVertex)	<span class="comment">//DAG</span></span><br><span class="line">    .addVertex(summationVertex)</span><br><span class="line">    .addEdge(	<span class="comment">//定义连接token和summation的Edge</span></span><br><span class="line">        Edge.create(tokenizerVertex, summationVertex, edgeConf.createDefaultEdgeProperty()));</span><br></pre></td></tr></table></figure></p>
+<p>上面定义的两个Processor可以分别类比Map Task和Reduce Task，定义的Edge可以类比Shuffle。</p>
+<h3 id="4_Tez带来的优化技术">4 Tez带来的优化技术</h3><p>1 Application Master Pool<br>初始化AM池。Tez先将作业提交到AMPoolServer服务上。AMPoolServer服务启动时就申请多个AM，Tez提交作业会优先使用缓冲池资源。<br>2 Container Pool<br>AM启动时会预先申请多个Container。<br>3 Container重用</p>
+<h3 id="5_总结">5 总结</h3><p>相对oozie组织MR任务的方案，Tez带来3个提升：</p>
+<ul>
+<li>避免了中间结果读写HDFS，减少磁盘+网络的开销</li>
+<li>Map结果数据量较小时可以写入内存（MPv1版本，Map的结果必须写入硬盘）</li>
+<li>减少作业启动时间（AM池、Container池）<br>2.x的hadoop将Hive新版本将Tez引入作为自己的数据处理引擎，号称性能提升极大。<br>相对于Tez，Spark引入了RDD（弹性分布式数据集），使得频繁使用的数据集可以做到不同任务之间重用和共享，更优越一些。</li>
+</ul>
+<h3 id="6_示例">6 示例</h3><p>Ambari把hadoop安装到了/usr/hdp。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cd</span> /usr/hdp/current/tez-client/</span><br><span class="line">$ su hdfs</span><br><span class="line">$ hadoop fs -ls /tmp</span><br><span class="line">-rw-r--r--   <span class="number">3</span> hdfs      hdfs       <span class="number">1974</span> <span class="number">2015</span>-<span class="number">04</span>-<span class="number">29</span> <span class="number">20</span>:<span class="number">38</span> /tmp/ida50a5665_date382915</span><br><span class="line">-rw-r--r--   <span class="number">3</span> hdfs      hdfs       <span class="number">1974</span> <span class="number">2015</span>-<span class="number">04</span>-<span class="number">30</span> <span class="number">13</span>:<span class="number">59</span> /tmp/ida50a5665_date593015</span><br><span class="line">$ hadoop jar tez-examples-<span class="number">0.5</span>.<span class="number">2.2</span>.<span class="number">2.4</span>.<span class="number">2</span>-<span class="number">2</span>.jar  wordcount /tmp/ida50a5665_date382915 /tmp/aaa</span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">21</span> INFO client.RMProxy: Connecting to ResourceManager at ronaldo7.dtdream.com/<span class="number">10.165</span>.<span class="number">101.86</span>:<span class="number">8050</span></span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">22</span> INFO client.TezClient: Submitting DAG application with id: application_1430310917645_0011</span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">23</span> INFO client.TezClient: Submitting DAG to YARN, applicationId=application_1430310917645_0011, dagName=WordCount</span><br><span class="line"><span class="comment">#向YARN提交DAG任务。DAG作为AM。</span></span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">23</span> INFO impl.YarnClientImpl: Submitted application application_1430310917645_0011</span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">23</span> INFO client.RMProxy: Connecting to ResourceManager at ronaldo7.dtdream.com/<span class="number">10.165</span>.<span class="number">101.86</span>:<span class="number">8050</span></span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">23</span> INFO client.DAGClientImpl: Waiting <span class="keyword">for</span> DAG to start running</span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">28</span> INFO client.DAGClientImpl: DAG initialized: CurrentState=Running</span><br><span class="line"><span class="comment">#DAG开始运行，一共2个task</span></span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">28</span> INFO client.DAGClientImpl: DAG: State: RUNNING Progress: <span class="number">0</span>% TotalTasks: <span class="number">2</span> Succeeded: <span class="number">0</span> Running: <span class="number">0</span> Failed: <span class="number">0</span> Killed: <span class="number">0</span></span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">28</span> INFO client.DAGClientImpl: 	VertexStatus: VertexName: Tokenizer Progress: <span class="number">0</span>% TotalTasks: <span class="number">1</span> Succeeded: <span class="number">0</span> Running: <span class="number">0</span> Failed: <span class="number">0</span> Killed: <span class="number">0</span></span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">28</span> INFO client.DAGClientImpl: 	VertexStatus: VertexName: Summation Progress: <span class="number">0</span>% TotalTasks: <span class="number">1</span> Succeeded: <span class="number">0</span> Running: <span class="number">0</span> Failed: <span class="number">0</span> Killed: <span class="number">0</span></span><br><span class="line"><span class="comment">#先运行Tokenizer(Vertex)</span></span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">32</span> INFO client.DAGClientImpl: DAG: State: RUNNING Progress: <span class="number">50</span>% TotalTasks: <span class="number">2</span> Succeeded: <span class="number">1</span> Running: <span class="number">1</span> Failed: <span class="number">0</span> Killed: <span class="number">0</span></span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">32</span> INFO client.DAGClientImpl: 	VertexStatus: VertexName: Tokenizer Progress: <span class="number">100</span>% TotalTasks: <span class="number">1</span> Succeeded: <span class="number">1</span> Running: <span class="number">0</span> Failed: <span class="number">0</span> Killed: <span class="number">0</span></span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">32</span> INFO client.DAGClientImpl: 	VertexStatus: VertexName: Summation Progress: <span class="number">0</span>% TotalTasks: <span class="number">1</span> Succeeded: <span class="number">0</span> Running: <span class="number">1</span> Failed: <span class="number">0</span> Killed: <span class="number">0</span></span><br><span class="line"><span class="comment">#再运行Summation(Vertex)</span></span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">32</span> INFO client.DAGClientImpl: DAG: State: SUCCEEDED Progress: <span class="number">100</span>% TotalTasks: <span class="number">2</span> Succeeded: <span class="number">2</span> Running: <span class="number">0</span> Failed: <span class="number">0</span> Killed: <span class="number">0</span></span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">32</span> INFO client.DAGClientImpl: 	VertexStatus: VertexName: Tokenizer Progress: <span class="number">100</span>% TotalTasks: <span class="number">1</span> Succeeded: <span class="number">1</span> Running: <span class="number">0</span> Failed: <span class="number">0</span> Killed: <span class="number">0</span></span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">32</span> INFO client.DAGClientImpl: 	VertexStatus: VertexName: Summation Progress: <span class="number">100</span>% TotalTasks: <span class="number">1</span> Succeeded: <span class="number">1</span> Running: <span class="number">0</span> Failed: <span class="number">0</span> Killed: <span class="number">0</span></span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">10</span>:<span class="number">06</span>:<span class="number">32</span> INFO client.DAGClientImpl: DAG completed. FinalState=SUCCEEDED</span><br></pre></td></tr></table></figure></p>
+<p>示例代码将结果写到了两个文件中：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ hadoop fs -ls /tmp/aaa/</span><br><span class="line">Found <span class="number">3</span> items</span><br><span class="line">-rw-r--r--   <span class="number">3</span> hdfs hdfs          <span class="number">0</span> <span class="number">2015</span>-<span class="number">05</span>-<span class="number">09</span> <span class="number">09</span>:<span class="number">35</span> /tmp/aaa/_SUCCESS</span><br><span class="line">-rw-r--r--   <span class="number">3</span> hdfs hdfs       <span class="number">2090</span> <span class="number">2015</span>-<span class="number">05</span>-<span class="number">08</span> <span class="number">14</span>:<span class="number">44</span> /tmp/aaa/part-r-<span class="number">00000</span></span><br><span class="line">-rw-r--r--   <span class="number">3</span> hdfs hdfs       <span class="number">2090</span> <span class="number">2015</span>-<span class="number">05</span>-<span class="number">09</span> <span class="number">09</span>:<span class="number">35</span> /tmp/aaa/part-v001-o000-<span class="number">00000</span></span><br><span class="line">$ hadoop fs -cat /tmp/aaa/part-v001-o000-<span class="number">00000</span></span><br><span class="line">Daemon:/:/sbin/nologin	<span class="number">1</span></span><br><span class="line">HTTPFS:/var/run/hadoop/httpfs:/bin/bash	<span class="number">1</span></span><br><span class="line">SSH:/var/empty/sshd:/sbin/nologin	<span class="number">1</span></span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<p>参考：<br><a href="http://tez.apache.org/" target="_blank" rel="external">Tez官方网站</a><br><a href="http://dongxicheng.org/mapreduce-nextgen/apache-tez/" target="_blank" rel="external">Apache Tez：一个运行在YARN之上支持DAG作业的计算框架</a>， 董西成<br><a href="http://zcdeng.iteye.com/blog/1897208" target="_blank" rel="external">Apache Tez DAG计算应用框架</a><br><a href="https://issues.apache.org/jira/secure/attachment/12588887/Tez%20Design%20v1.1.pdf" target="_blank" rel="external">Tez Design</a></p>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+  
+  <div class="tags">
+    <a href="/tags/hadoop/">hadoop</a>, <a href="/tags/tez/">tez</a>
+  </div>
+
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+<section id="comment">
+	<div class="ds-thread"></div>
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"silenceshell"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+</section>
+
+</div></div>
+    <aside id="sidebar" class="alignright">
+  <div class="search">
+<form>
+    <input type="text" id="ts-search-input"  name="word" maxlength="20"  class="search-form-input" placeholder="Search">
+</form>
+</div>
+
+  
+
+  
+<div class="widget tag">
+  <h3 class="title">標籤</h3>
+  <ul class="entry">
+  
+    <li><a href="/tags/ambari/">ambari</a><small>1</small></li>
+  
+    <li><a href="/tags/hadoop/">hadoop</a><small>9</small></li>
+  
+    <li><a href="/tags/hdfs/">hdfs</a><small>1</small></li>
+  
+    <li><a href="/tags/hive/">hive</a><small>1</small></li>
+  
+    <li><a href="/tags/mesos/">mesos</a><small>1</small></li>
+  
+    <li><a href="/tags/python/">python</a><small>2</small></li>
+  
+    <li><a href="/tags/spark/">spark</a><small>1</small></li>
+  
+    <li><a href="/tags/sqoop/">sqoop</a><small>1</small></li>
+  
+    <li><a href="/tags/storm/">storm</a><small>1</small></li>
+  
+    <li><a href="/tags/tez/">tez</a><small>1</small></li>
+  
+    <li><a href="/tags/yarn/">yarn</a><small>2</small></li>
+  
+  </ul>
+</div>
+
+</aside>
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="alignleft">
+  
+  &copy; 2015 hubt@dtdream.com
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="//libs.baidu.com/jquery/2.0.3/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+</body>
+</html>

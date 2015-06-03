@@ -1,0 +1,205 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta name="baidu-site-verification" content="mFmscoluqW" />
+  <meta charset="utf-8">
+  
+  <title>python学习作业（一） | 伊布</title>
+  <meta name="author" content="hubt@dtdream.com">
+  
+  <meta name="description" content="这个系列记录Python小组学习过程中完成的作业，python用的很不熟，希望做作业的过程中有进步。">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="python学习作业（一）"/>
+  <meta property="og:site_name" content="伊布"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  <link href="/github.ico" rel="icon" type="image/x-ico">
+  <link rel="alternate" href="/atom.xml" title="伊布" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+
+
+  <script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+var option = {
+  engineKey: 'f3e1951e888b8a117845'
+};
+(function(w,d,t,u,n,s,e){
+  s = d.createElement(t);
+  s.src = u;
+  s.async = 1;
+  w[n] = function(r){
+    w[n].opts = r;
+  };
+  e = d.getElementsByTagName(t)[0];
+  e.parentNode.insertBefore(s, e);
+})(window,document,'script','//tinysou-cdn.b0.upaiyun.com/ts.js','_ts');
+_ts(option);
+</script>
+
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="alignleft">
+  <h1><a href="/">伊布</a></h1>
+  <h2><a href="/"></a></h2>
+</div>
+<nav id="main-nav" class="alignright">
+  <ul>
+    
+      <li><a href="/">Home</a></li>
+    
+      <li><a href="/archives">Archives</a></li>
+    
+      <li><a href="/About">About</a></li>
+    
+	<li> <a href="/atom.xml">RSS</a> </li>
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div></header>
+  <div id="content" class="inner">
+    <div id="main-col" class="alignleft"><div id="wrapper"><article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-05-06T07:45:47.000Z"><a href="/2015/05/06/python-homework-1/">2015-05-06</a></time>
+      
+      
+  
+    <h1 class="title">python学习作业（一）</h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>这个系列记录Python小组学习过程中完成的作业，python用的很不熟，希望做作业的过程中有进步。<br><a id="more"></a><br>本次作业题目：<br>代码                       城市<br>CHXX0008                  北京<br>CHXX0044                  杭州<br>CHXX0116                  上海<br>CHXX0502                  海口<br>CHXX0037                  广州</p>
+<p>任意输入上表内的城市名字，与今天的时间差(明天、后天、大后天)），输出中文天气情况。<br>天气数据从yahoo网站获取，不同城市输入不同代码，如杭州从这个网址获取：<br><a href="http://xml.weather.yahoo.com/forecastrss?u=c&amp;p=CHXX0044" target="_blank" rel="external">http://xml.weather.yahoo.com/forecastrss?u=c&amp;p=CHXX0044</a></p>
+<p>用到的几个点：</p>
+<ul>
+<li>使用requests库读取网页</li>
+<li>使用beatifulSoup解析（正则表达式）</li>
+<li>使用有道翻译的API做英译中。API需要注册一下:<a href="http://fanyi.youdao.com/openapi?path=data-mode" target="_blank" rel="external">注册地址</a><br>申请成功后会提供API key和keyfroom，也会提示url的使用方法。我这里的doctype使用了json。<br>API key：12345678<br>keyfrom：dtdream</li>
+<li>使用json解析有道翻译的返回结果</li>
+</ul>
+<p>中文编码出了点问题，可以通过<code>#coding=utf-8</code>搞定。<br>代码如下：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python</span></span><br><span class="line"><span class="comment">#coding=utf-8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"><span class="keyword">import</span> bs4</span><br><span class="line"><span class="keyword">import</span> json</span><br><span class="line"><span class="keyword">import</span> urllib</span><br><span class="line"></span><br><span class="line">citycodeArr = &#123;<span class="string">'北京'</span> : <span class="string">'CHXX0008'</span>, <span class="string">'杭州'</span> : <span class="string">'CHXX0044'</span>, <span class="string">'上海'</span> : <span class="string">'CHXX0116'</span>, <span class="string">'海口'</span> : <span class="string">'CHXX0502'</span>, <span class="string">'广州'</span> : <span class="string">'CHXX0037'</span>, <span class="string">'唐&gt;山'</span> : <span class="string">'CHXX0131'</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">trans</span><span class="params">(string)</span>:</span></span><br><span class="line">  url = <span class="string">'http://fanyi.youdao.com/openapi.do?keyfrom=dtdream&amp;key=1972884851&amp;type=data&amp;doctype=json&amp;version=1.1&amp;q='</span>+string</span><br><span class="line">  <span class="keyword">try</span>:</span><br><span class="line">    page = urllib.urlopen(url)</span><br><span class="line">    jsonStr = page.read()</span><br><span class="line">    trans_res = json.loads(jsonStr)</span><br><span class="line">    new = trans_res[<span class="string">u"translation"</span>]</span><br><span class="line">    print(new[<span class="number">0</span>])</span><br><span class="line">  <span class="keyword">except</span> Error:</span><br><span class="line">    print(<span class="string">"出错了"</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">checkWeather</span><span class="params">()</span>:</span></span><br><span class="line">  city = raw_input(<span class="string">"城市? "</span>)</span><br><span class="line">  after =input(<span class="string">"几天后? "</span>)</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (city <span class="keyword">not</span> <span class="keyword">in</span> citycodeArr) <span class="keyword">or</span> (after &gt; <span class="number">4</span>):</span><br><span class="line">    print(<span class="string">"超出预报范围"</span>)</span><br><span class="line">    <span class="keyword">return</span> -<span class="number">1</span></span><br><span class="line">  citycode = citycodeArr[city]</span><br><span class="line">  reqUrl = <span class="string">"http://xml.weather.yahoo.com/forecastrss?u=c&amp;p="</span> + citycode</span><br><span class="line"></span><br><span class="line">  response = requests.get(reqUrl)</span><br><span class="line">  soup = bs4.BeautifulSoup(response.text)</span><br><span class="line">  weatherAll = soup.find_all(re.compile(<span class="string">"yweather:forecast"</span>))</span><br><span class="line">  trans(weatherAll[after].get(<span class="string">'text'</span>))</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">  checkWeather()</span><br></pre></td></tr></table></figure></p>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+  
+  <div class="tags">
+    <a href="/tags/python/">python</a>
+  </div>
+
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+<section id="comment">
+	<div class="ds-thread"></div>
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"silenceshell"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+</section>
+
+</div></div>
+    <aside id="sidebar" class="alignright">
+  <div class="search">
+<form>
+    <input type="text" id="ts-search-input"  name="word" maxlength="20"  class="search-form-input" placeholder="Search">
+</form>
+</div>
+
+  
+
+  
+<div class="widget tag">
+  <h3 class="title">標籤</h3>
+  <ul class="entry">
+  
+    <li><a href="/tags/ambari/">ambari</a><small>1</small></li>
+  
+    <li><a href="/tags/hadoop/">hadoop</a><small>9</small></li>
+  
+    <li><a href="/tags/hdfs/">hdfs</a><small>1</small></li>
+  
+    <li><a href="/tags/hive/">hive</a><small>1</small></li>
+  
+    <li><a href="/tags/mesos/">mesos</a><small>1</small></li>
+  
+    <li><a href="/tags/python/">python</a><small>2</small></li>
+  
+    <li><a href="/tags/spark/">spark</a><small>1</small></li>
+  
+    <li><a href="/tags/sqoop/">sqoop</a><small>1</small></li>
+  
+    <li><a href="/tags/storm/">storm</a><small>1</small></li>
+  
+    <li><a href="/tags/tez/">tez</a><small>1</small></li>
+  
+    <li><a href="/tags/yarn/">yarn</a><small>2</small></li>
+  
+  </ul>
+</div>
+
+</aside>
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="alignleft">
+  
+  &copy; 2015 hubt@dtdream.com
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="//libs.baidu.com/jquery/2.0.3/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+</body>
+</html>

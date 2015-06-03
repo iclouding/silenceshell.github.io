@@ -1,0 +1,210 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta name="baidu-site-verification" content="mFmscoluqW" />
+  <meta charset="utf-8">
+  
+  <title>hadoop数据传输工具：Sqoop | 伊布</title>
+  <meta name="author" content="hubt@dtdream.com">
+  
+  <meta name="description" content="1 简介sqoop可以用来在hdfs和关系型数据（如mysql, Oracle, PostgreSQL）之间交换数据，也可以作为异构数据库之间同步使用。sqoop通过JDBC（Java Data Base Connectivity,java数据库连接）与数据库交互，整合了Hive/HBase和oozie，核心是MapReduce。从下面的几个实验来看，应该只是用到了Map。">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="hadoop数据传输工具：Sqoop"/>
+  <meta property="og:site_name" content="伊布"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  <link href="/github.ico" rel="icon" type="image/x-ico">
+  <link rel="alternate" href="/atom.xml" title="伊布" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+
+
+  <script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+var option = {
+  engineKey: 'f3e1951e888b8a117845'
+};
+(function(w,d,t,u,n,s,e){
+  s = d.createElement(t);
+  s.src = u;
+  s.async = 1;
+  w[n] = function(r){
+    w[n].opts = r;
+  };
+  e = d.getElementsByTagName(t)[0];
+  e.parentNode.insertBefore(s, e);
+})(window,document,'script','//tinysou-cdn.b0.upaiyun.com/ts.js','_ts');
+_ts(option);
+</script>
+
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="alignleft">
+  <h1><a href="/">伊布</a></h1>
+  <h2><a href="/"></a></h2>
+</div>
+<nav id="main-nav" class="alignright">
+  <ul>
+    
+      <li><a href="/">Home</a></li>
+    
+      <li><a href="/archives">Archives</a></li>
+    
+      <li><a href="/About">About</a></li>
+    
+	<li> <a href="/atom.xml">RSS</a> </li>
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div></header>
+  <div id="content" class="inner">
+    <div id="main-col" class="alignleft"><div id="wrapper"><article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-05-09T09:13:55.000Z"><a href="/2015/05/09/sqoop-intro/">2015-05-09</a></time>
+      
+      
+  
+    <h1 class="title">hadoop数据传输工具：Sqoop</h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h3 id="1_简介">1 简介</h3><p>sqoop可以用来在hdfs和关系型数据（如mysql, Oracle, PostgreSQL）之间交换数据，也可以作为异构数据库之间同步使用。<br>sqoop通过JDBC（Java Data Base Connectivity,java数据库连接）与数据库交互，整合了Hive/HBase和oozie，核心是MapReduce。从下面的几个实验来看，应该只是用到了Map。<br><a id="more"></a><br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">15</span><span class="regexp">/05/</span><span class="number">09</span> <span class="number">16</span>:<span class="number">27</span>:<span class="number">09</span> INFO mapreduce.<span class="string">Job:</span>  map <span class="number">0</span>% reduce <span class="number">0</span>%</span><br><span class="line"><span class="number">15</span><span class="regexp">/05/</span><span class="number">09</span> <span class="number">16</span>:<span class="number">27</span>:<span class="number">16</span> INFO mapreduce.<span class="string">Job:</span>  map <span class="number">75</span>% reduce <span class="number">0</span>%</span><br><span class="line"><span class="number">15</span><span class="regexp">/05/</span><span class="number">09</span> <span class="number">16</span>:<span class="number">27</span>:<span class="number">20</span> INFO mapreduce.<span class="string">Job:</span>  map <span class="number">100</span>% reduce <span class="number">0</span>%</span><br><span class="line"><span class="number">15</span><span class="regexp">/05/</span><span class="number">09</span> <span class="number">16</span>:<span class="number">27</span>:<span class="number">20</span> INFO mapreduce.<span class="string">Job:</span> Job job_1430310917645_0025 completed successfully</span><br></pre></td></tr></table></figure></p>
+<p>架构如下图：<br><img src="http://7xir15.com1.z0.glb.clouddn.com/sqoop_arch.jpg" alt="sqoop架构"><br>以下都是基于ambari安装环境下的sqoop1.4.5为例，如果你的sqoop执行时有下面这样的错误，可以<code>yum install accumulo</code>安装Accmulo。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Warning: /opt/cloudera/parcels/CDH-<span class="number">5.4</span>.<span class="number">0</span>-<span class="number">1</span>.cdh5.<span class="number">4.0</span>.p0.<span class="number">27</span>/bin/../lib/sqoop/../accumulo does not exist! Accumulo imports will fail.</span><br><span class="line">Please <span class="built_in">set</span> <span class="variable">$ACCUMULO_HOME</span> to the root of your Accumulo installation.</span><br></pre></td></tr></table></figure></p>
+<h3 id="2_工具">2 工具</h3><h4 id="2-1_直接查看数据库、表">2.1 直接查看数据库、表</h4><p>可以直接用sqoop查看mysql的库、表等。<br>下面的示例我们用sqoop跟mysql之间进行数据传输。安装mysql后默认会有3个database，我们这里的示例用test库。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ mysql</span><br><span class="line">mysql&gt; use <span class="built_in">test</span></span><br><span class="line">mysql&gt; CREATE TABLE t1(id int not null, name char(<span class="number">20</span>));  <span class="comment">#在test库里创建一个表t1</span></span><br><span class="line">Query OK, <span class="number">0</span> rows affected (<span class="number">0.02</span> sec)</span><br><span class="line">$ sqoop list-databases --connect jdbc:mysql://<span class="number">127.0</span>.<span class="number">0.1</span>/<span class="built_in">test</span>   --username root</span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">14</span>:<span class="number">49</span>:<span class="number">39</span> INFO sqoop.Sqoop: Running Sqoop version: <span class="number">1.4</span>.<span class="number">5.2</span>.<span class="number">2.4</span>.<span class="number">2</span>-<span class="number">2</span></span><br><span class="line">...</span><br><span class="line">information_schema</span><br><span class="line">mysql</span><br><span class="line"><span class="built_in">test</span></span><br><span class="line">$ sqoop list-tables --connect jdbc:mysql://<span class="number">127.0</span>.<span class="number">0.1</span>/<span class="built_in">test</span>   --username root</span><br><span class="line">...</span><br><span class="line">t1</span><br></pre></td></tr></table></figure></p>
+<h4 id="2-2_将数据库导入import到hdfs">2.2 将数据库导入import到hdfs</h4><ul>
+<li>支持导入为文本文件、avro、sequence file。例如import时指定<code>--as-avrodatafile</code>，写入到hdfs的文件就是avro格式的。</li>
+<li>支持并发Map，通过-m参数指定</li>
+<li>支持列选取(—column)、数据选取(—where)</li>
+<li>支持append</li>
+<li>数据可以导入到hive, hbase(—hive-import、—hbase-table)。实际还是先将数据导入到hdfs，然后再导入到hive/hbase。</li>
+</ul>
+<p>下例将mysql的数据导出到hdfs的/tmp/bbb目录中。由于mysql没有设置primary key，所以使用了串行的-m 1，最终生成的文件也只有一个part-m-x。<code>--columns</code>可以指定多个列，比如我这里把2个columns都导出来了。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">$ mysql</span><br><span class="line">mysql&gt; insert t1 values(<span class="number">100</span>, <span class="string">"cat100"</span>);</span><br><span class="line">mysql&gt; insert t1 values(<span class="number">101</span>, <span class="string">"cat101"</span>);</span><br><span class="line">mysql&gt; select * from t1;</span><br><span class="line">+-----+--------+</span><br><span class="line">| id  | name   |</span><br><span class="line">+-----+--------+</span><br><span class="line">| <span class="number">100</span> | cat100 |</span><br><span class="line">| <span class="number">101</span> | cat101 |</span><br><span class="line">+-----+--------+</span><br><span class="line">$ sqoop import --append -m <span class="number">1</span> --connect jdbc:mysql://<span class="number">127.0</span>.<span class="number">0.1</span>/<span class="built_in">test</span>   --username root --table t1 --target-dir /tmp/bbb --columns id,name</span><br><span class="line"><span class="comment">#以纯文件形式导入hdfs</span></span><br><span class="line">$ current]$ hadoop  fs -cat /tmp/bbb/part-m-<span class="number">00000</span></span><br><span class="line"><span class="number">100</span>,cat100</span><br><span class="line"><span class="number">101</span>,cat101</span><br></pre></td></tr></table></figure></p>
+<h4 id="2-3_将hdfs中的数据导出export到数据库">2.3 将hdfs中的数据导出export到数据库</h4><p>原理是根据用户指定的字段分隔符（默认是逗号）读入并解析数据，然后转换成insert/update语句导入数据到关系数据库。<br>如果你的源文件不是以逗号区分，导出时需要指定参数，否则会有这样的错误：<code>Caused by: java.lang.RuntimeException: Can&#39;t parse input data: &#39;100008 FLB100008 male&#39;</code>。字段分隔符参数的使用请参见下面的例子。<br><code>--fields-terminated-by &lt;char&gt;      Sets the field separator character</code><br>需要指出，分隔符是严格按照<strong>char</strong>为分隔符，如果列之间有多个空格，像上面这样只给一个空格，就会将中间的空格作为一个列写入数据库。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">$ mysql</span><br><span class="line"><span class="comment">#导出到mysql的表必须预先创建</span></span><br><span class="line">mysql&gt; CREATE TABLE  exTable1(id int not null, name char(<span class="number">20</span>), sex char(<span class="number">10</span>));</span><br><span class="line"><span class="comment">#往hdfs上上传这么个文件：</span></span><br><span class="line">$ hadoop fs -cat /tmp/bbb/newdata.txt</span><br><span class="line"><span class="number">100001</span> FLB100001 male</span><br><span class="line"><span class="number">100002</span> FLB100002 female</span><br><span class="line"><span class="number">100003</span> FLB100003 male</span><br><span class="line"><span class="number">100004</span> FLB100004 female</span><br><span class="line"><span class="number">100005</span> FLB100005 female</span><br><span class="line"><span class="number">100006</span> FLB100006 male</span><br><span class="line"><span class="number">100007</span> FLB100007 female</span><br><span class="line"><span class="number">100008</span> FLB100008 male</span><br><span class="line"><span class="comment">#导出到mysql</span></span><br><span class="line">$ sqoop <span class="built_in">export</span> --connect jdbc:mysql://<span class="number">127.0</span>.<span class="number">0.1</span>/<span class="built_in">test</span> --username root --table exTable1 --export-dir /tmp/bbb --fields-terminated-by <span class="string">' '</span></span><br><span class="line">$ mysql</span><br><span class="line">mysql&gt; select * from exTable1;</span><br><span class="line">+--------+-----------+--------+</span><br><span class="line">| id     | name      | sex    |</span><br><span class="line">+--------+-----------+--------+</span><br><span class="line">| <span class="number">100001</span> | FLB100001 | male   |</span><br><span class="line">| <span class="number">100002</span> | FLB100002 | female |</span><br><span class="line">| <span class="number">100003</span> | FLB100003 | male   |</span><br><span class="line">| <span class="number">100006</span> | FLB100006 | male   |</span><br><span class="line">| <span class="number">100007</span> | FLB100007 | female |</span><br><span class="line">| <span class="number">100004</span> | FLB100004 | female |</span><br><span class="line">| <span class="number">100005</span> | FLB100005 | female |</span><br><span class="line">| <span class="number">100008</span> | FLB100008 | male   |</span><br><span class="line">+--------+-----------+--------+</span><br></pre></td></tr></table></figure></p>
+<h4 id="2-4_生成代码">2.4 生成代码</h4><p>可以使用codegen来生成针对此数据库的代码。<br><img src="http://7xir15.com1.z0.glb.clouddn.com/t1_class.PNG" alt=""><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ sqoop codegen  --connect jdbc:mysql://<span class="number">127.0</span>.<span class="number">0.1</span>/<span class="built_in">test</span>   --username root --table t1</span><br><span class="line">...</span><br><span class="line"><span class="number">15</span>/<span class="number">05</span>/<span class="number">09</span> <span class="number">17</span>:<span class="number">00</span>:<span class="number">25</span> INFO orm.CompilationManager: Writing jar file: /tmp/sqoop-hdfs/compile/a1c1551458745f7925db43a5df1485b9/t1.jar</span><br></pre></td></tr></table></figure></p>
+<p>t1.jar包同一目录下可以看到t1.java<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">write</span><span class="params">(PreparedStatement __dbStmt, <span class="keyword">int</span> __off)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">  JdbcWritableBridge.writeInteger(id, <span class="number">1</span> + <span class="number">__</span>off, <span class="number">4</span>, <span class="number">__</span>dbStmt);</span><br><span class="line">  JdbcWritableBridge.writeString(name, <span class="number">2</span> + <span class="number">__</span>off, <span class="number">1</span>, <span class="number">__</span>dbStmt);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">2</span>;</span><br><span class="line">&#125;</span><br><span class="line">...</span><br><span class="line"><span class="keyword">public</span> Map&lt;String, Object&gt; getFieldMap() &#123;</span><br><span class="line">  Map&lt;String, Object&gt; <span class="number">__</span>sqoop$field_map = <span class="keyword">new</span> TreeMap&lt;String, Object&gt;();</span><br><span class="line">  <span class="number">__</span>sqoop$field_map.put(<span class="string">"id"</span>, <span class="keyword">this</span>.id);</span><br><span class="line">  <span class="number">__</span>sqoop$field_map.put(<span class="string">"name"</span>, <span class="keyword">this</span>.name);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">__</span>sqoop$field_map;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>参考：<br>1、<a href="http://blog.csdn.net/yfkiss/article/details/8700480" target="_blank" rel="external">CSDN blog</a></p>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+  
+  <div class="tags">
+    <a href="/tags/hadoop/">hadoop</a>, <a href="/tags/sqoop/">sqoop</a>
+  </div>
+
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+<section id="comment">
+	<div class="ds-thread"></div>
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"silenceshell"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+</section>
+
+</div></div>
+    <aside id="sidebar" class="alignright">
+  <div class="search">
+<form>
+    <input type="text" id="ts-search-input"  name="word" maxlength="20"  class="search-form-input" placeholder="Search">
+</form>
+</div>
+
+  
+
+  
+<div class="widget tag">
+  <h3 class="title">標籤</h3>
+  <ul class="entry">
+  
+    <li><a href="/tags/ambari/">ambari</a><small>1</small></li>
+  
+    <li><a href="/tags/hadoop/">hadoop</a><small>9</small></li>
+  
+    <li><a href="/tags/hdfs/">hdfs</a><small>1</small></li>
+  
+    <li><a href="/tags/hive/">hive</a><small>1</small></li>
+  
+    <li><a href="/tags/mesos/">mesos</a><small>1</small></li>
+  
+    <li><a href="/tags/python/">python</a><small>2</small></li>
+  
+    <li><a href="/tags/spark/">spark</a><small>1</small></li>
+  
+    <li><a href="/tags/sqoop/">sqoop</a><small>1</small></li>
+  
+    <li><a href="/tags/storm/">storm</a><small>1</small></li>
+  
+    <li><a href="/tags/tez/">tez</a><small>1</small></li>
+  
+    <li><a href="/tags/yarn/">yarn</a><small>2</small></li>
+  
+  </ul>
+</div>
+
+</aside>
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="alignleft">
+  
+  &copy; 2015 hubt@dtdream.com
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="//libs.baidu.com/jquery/2.0.3/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+</body>
+</html>

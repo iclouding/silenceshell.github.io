@@ -1,0 +1,234 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta name="baidu-site-verification" content="mFmscoluqW" />
+  <meta charset="utf-8">
+  
+  <title>hadoop分布式环境搭建 | 伊布</title>
+  <meta name="author" content="hubt@dtdream.com">
+  
+  <meta name="description" content="1、 环境使用版本：centos6.5虚机安装在workstation 11上，使用hadoop2.6.0、jdk-7u15-linux-x64。本文介绍手工安装hadoop的方法，有关自动化部署（如ambari、cloudera management）的方法请见后续文章。">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="hadoop分布式环境搭建"/>
+  <meta property="og:site_name" content="伊布"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  <link href="/github.ico" rel="icon" type="image/x-ico">
+  <link rel="alternate" href="/atom.xml" title="伊布" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+
+
+  <script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+var option = {
+  engineKey: 'f3e1951e888b8a117845'
+};
+(function(w,d,t,u,n,s,e){
+  s = d.createElement(t);
+  s.src = u;
+  s.async = 1;
+  w[n] = function(r){
+    w[n].opts = r;
+  };
+  e = d.getElementsByTagName(t)[0];
+  e.parentNode.insertBefore(s, e);
+})(window,document,'script','//tinysou-cdn.b0.upaiyun.com/ts.js','_ts');
+_ts(option);
+</script>
+
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="alignleft">
+  <h1><a href="/">伊布</a></h1>
+  <h2><a href="/"></a></h2>
+</div>
+<nav id="main-nav" class="alignright">
+  <ul>
+    
+      <li><a href="/">Home</a></li>
+    
+      <li><a href="/archives">Archives</a></li>
+    
+      <li><a href="/About">About</a></li>
+    
+	<li> <a href="/atom.xml">RSS</a> </li>
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div></header>
+  <div id="content" class="inner">
+    <div id="main-col" class="alignleft"><div id="wrapper"><article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-04-24T01:12:30.000Z"><a href="/2015/04/24/hadoop-setup/">2015-04-24</a></time>
+      
+      
+  
+    <h1 class="title">hadoop分布式环境搭建</h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h2 id="1、_环境">1、 环境</h2><p>使用版本：centos6.5虚机安装在workstation 11上，使用hadoop2.6.0、jdk-7u15-linux-x64。本文介绍手工安装hadoop的方法，有关自动化部署（如ambari、cloudera management）的方法请见后续文章。<br><a id="more"></a></p>
+<h2 id="2、_安装name_node">2、 安装name node</h2><h3 id="2-1_安装centos6-5">2.1 安装centos6.5</h3><h4 id="2-1-1_配置网卡">2.1.1 配置网卡</h4><p>vmware默认安装即可，直接创建hadoop用户，建议配置2个网卡，如下。<br>安装时指定网卡eth0使用NAT模式，用来直接连接网络，后面编译的时候maven需要下载。<br>系统启动后，再增加一个网卡eth1，模式为<strong>桥接模式</strong>，选上<strong><em>复制物理网络连接状态</em></strong>。<br>如果你的PC跟我一样有多个网卡，可能桥接到的物理网卡不是你想要的，所以需要编辑为自己需要的网卡：<br><em>编辑</em>-&gt;<em>虚拟网络编辑器</em>-&gt;<em>更改设置</em>，桥接模式使用的是vmnet0，选定后修改<code>桥接到</code>为准备要用的网卡。<br>配置完毕后，进到centos里<code>ifconfig</code>，可以看到新的网卡，我的环境里是叫做eth1（如果你用的是centos7以上的版本，可能叫做enp0s8之类奇怪的名字）。在我的环境里没有配置dhcp服务，需要设置为静态地址：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cd</span> /etc/sysconfig/network-scripts/</span><br><span class="line">$ vi ifcfg-eth1  <span class="comment">#地址、掩码、MAC需要改为实际值</span></span><br><span class="line">DEVICE=<span class="string">"eth1"</span></span><br><span class="line">BOOTPROTO=<span class="string">"static"</span></span><br><span class="line">IPADDR=<span class="number">192.168</span>.<span class="number">5.29</span></span><br><span class="line">NETMASK=<span class="number">255.255</span>.<span class="number">0.0</span></span><br><span class="line">HWADDR=<span class="string">"00:0C:29:64:09:88"</span></span><br><span class="line">IPV6INIT=<span class="string">"yes"</span></span><br><span class="line">NM_CONTROLLED=<span class="string">"yes"</span></span><br><span class="line">ONBOOT=<span class="string">"yes"</span></span><br><span class="line">TYPE=<span class="string">"Ethernet"</span></span><br></pre></td></tr></table></figure></p>
+<h4 id="2-1-2_配置iptables">2.1.2 配置iptables</h4><p>由于hadoop需要使用多个地址，而centos默认只开了几个端口，其他的都会被reject掉，所以需要改一下iptables。<br>我这里就粗暴的把iptables关闭了：<code>service iptables stop</code>。当然这样做有些风险，后面可以重新添加下iptables的规则。</p>
+<h4 id="2-1-3_配置本机ssh免密码登陆">2.1.3 配置本机ssh免密码登陆</h4><p>hadoop启动、停止脚本是通过ssh来控制相关进程的，并且name node与data node通信时使用的是ssh，需要设置免密码登陆。<br>1 生成公钥、私钥<br><code>ssh-keygen -t rsa</code><br>全部默认，执行完成后会在~/.ssh/生成2个文件：id_rsa(私钥)、id_rsa.pub(公钥)。尽量不要手动创建.ssh目录。<br>2 将公钥复制到相同目录下的authorized_keys文件中<br><code>cat id_rsa.pub &gt;&gt; authorized_keys</code></p>
+<blockquote>
+<p><strong><em>注意，一定要保证.ssh目录和authorized_keys的权限为600，否则免密码访问会失败。</em></strong></p>
+</blockquote>
+<p>配置完毕后切为root重启ssh服务器(service sshd restart)，然后切回hadoop用户ssh localhost，可以看到不再需要密码。</p>
+<h4 id="2-1-3_修改hostname">2.1.3 修改hostname</h4><p>分布式环境上要求各机器的名称是不一样的。我这里简单的把master节点命名为master，各slave节点命名为slave1、slave2、slave3。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/sysconfig/network</span><br><span class="line">NETWORKING=yes</span><br><span class="line">HOSTNAME=master</span><br></pre></td></tr></table></figure></p>
+<p><strong>注意这里不要加<code>.localdomain</code>，否则dfs的web页面上查看datanodes时，会只能看到一个mailitciberia.com的节点，但实际上3个节点都已经注册OK了，fs的Configured Capacity也显示3个节点的总容量。</strong></p>
+<h3 id="2-2_安装JDK和maven">2.2 安装JDK和maven</h3><h4 id="2-2-1_JDK">2.2.1 JDK</h4><p>下载jdk-7u15-linux-x64.tar.gz，解压到<code>/opt</code>目录下，配置环境变量：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ vi /etc/bashrc  <span class="comment">#别写到/etc/profile，这个文件只对root生效(我也不知道为啥)</span></span><br><span class="line"><span class="built_in">export</span> JAVA_HOME=/opt/jdk1.<span class="number">7.0</span>_15</span><br><span class="line"><span class="built_in">export</span> CLASSPATH=:<span class="variable">$JAVA_HOME</span>/lib.tools.jar</span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$JAVA_HOME</span>/bin:<span class="variable">$PATH</span></span><br></pre></td></tr></table></figure></p>
+<h4 id="2-2-2_maven">2.2.2 maven</h4><p>下载apache-maven-3.3.1-bin.tar.gz，解压到<code>/opt</code>目录下，配置环境变量：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> MAVEN_HOME=/opt/apache-maven-<span class="number">3.3</span>.<span class="number">1</span></span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$MAVEN_HOME</span>/bin:<span class="variable">$PATH</span></span><br></pre></td></tr></table></figure></p>
+<p>用户退出后重新登录，检查下<code>java</code>、<code>mvn</code>命令是不是都好用了。maven是为了后面编译代码用，如果只是部署hadoop，可以不安装。</p>
+<h3 id="2-3_安装hadoop">2.3 安装hadoop</h3><p>下载hadoop二进制版本hadoop-2.6.0.tar.gz，解压到<code>/opt</code>目录下。<br>配置文件基本都在<code>/opt/hadoop-2.6.0/etc/hadoop</code>里。</p>
+<h4 id="2-3-1_设置环境变量">2.3.1 设置环境变量</h4><p>只需要配置JAVA_HOME。前面已经在bash里设置了，这里不需要再修改。<br>涉及到的文件：hadoop-env.sh、yarn-env.sh<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># The java implementation to use.</span></span><br><span class="line"><span class="built_in">export</span> JAVA_HOME=<span class="variable">$&#123;JAVA_HOME&#125;</span></span><br></pre></td></tr></table></figure></p>
+<h4 id="2-3-2_设置mapred-site-xml">2.3.2 设置mapred-site.xml</h4><p>设置mapred使用YARN资源框架<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ cp mapred-site.xml.template mapred-site.xml</span><br><span class="line">$ vi mapred-site.xml</span><br><span class="line"><span class="tag">&lt;<span class="title">configuration</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="title">property</span>&gt;</span>  #增加此property</span><br><span class="line">    <span class="tag">&lt;<span class="title">name</span>&gt;</span>mapreduce.framework.name<span class="tag">&lt;/<span class="title">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">value</span>&gt;</span>yarn<span class="tag">&lt;/<span class="title">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="title">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="title">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<h4 id="2-3-3_修改mapred-site-xml">2.3.3 修改mapred-site.xml</h4><p>设置fs使用hdfs，设置hadoop临时文件存放地址（这里设置为hadoop用户目录下的tmp），并创建该目录tmp。<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ vi core-site.xml</span><br><span class="line"><span class="tag">&lt;<span class="title">configuration</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="title">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">name</span>&gt;</span>fs.defaultFS<span class="tag">&lt;/<span class="title">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">value</span>&gt;</span>hdfs://master:9000<span class="tag">&lt;/<span class="title">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">final</span>&gt;</span>true<span class="tag">&lt;/<span class="title">final</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="title">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="title">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">name</span>&gt;</span>hadoop.tmp.dir<span class="tag">&lt;/<span class="title">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">value</span>&gt;</span>/home/hadoop/tmp<span class="tag">&lt;/<span class="title">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="title">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="title">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<h4 id="2-3-4_配置hdfs-site-xml">2.3.4 配置hdfs-site.xml</h4><p>设置hdfs的name、data节点使用的目录，并创建；设置hdfs的数据块副本个数为3，即一份数据块存3份。<br><strong>需要注意</strong>，如果自己搭的环境里节点数不到3个，这里要设置为实际的个数。<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="title">configuration</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="title">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">name</span>&gt;</span>dfs.namenode.name.dir<span class="tag">&lt;/<span class="title">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">value</span>&gt;</span>file:/opt/hadoop-2.6.0/dfs/name<span class="tag">&lt;/<span class="title">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">final</span>&gt;</span>true<span class="tag">&lt;/<span class="title">final</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="title">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="title">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">name</span>&gt;</span>dfs.datanode.data.dir<span class="tag">&lt;/<span class="title">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">value</span>&gt;</span>file:/opt/hadoop-2.6.0/dfs/data<span class="tag">&lt;/<span class="title">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">final</span>&gt;</span>true<span class="tag">&lt;/<span class="title">final</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="title">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="title">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">name</span>&gt;</span>dfs.replication<span class="tag">&lt;/<span class="title">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">value</span>&gt;</span>3<span class="tag">&lt;/<span class="title">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="title">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="title">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">name</span>&gt;</span>dfs.webhdfs.enabled<span class="tag">&lt;/<span class="title">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">value</span>&gt;</span>true<span class="tag">&lt;/<span class="title">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="title">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="title">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<h4 id="2-3-5_配置yarn-site-xml">2.3.5 配置yarn-site.xml</h4><p>为了运行MR，需要让YARN的各Node Manager启动的时候加载shuffle server，Reduce Task通过该server从各个Node Manager上获取Map Task的中间结果。<br><em>有的资料还配置了YARN Resource各功能的监听端口，这儿我们用默认的即可。</em></p>
+<blockquote>
+<p>上面这句话是错误的!！必须要配置，否则slaves找不到要连接的resource manager。</p>
+</blockquote>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="title">configuration</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">&lt;!-- Site specific YARN configuration properties --&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="title">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">name</span>&gt;</span>yarn.nodemanager.aux-services<span class="tag">&lt;/<span class="title">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">value</span>&gt;</span>mapreduce_shuffle<span class="tag">&lt;/<span class="title">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="title">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="title">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">name</span>&gt;</span>yarn.nodemanager.aux-services.mapreduce.shuffle.class<span class="tag">&lt;/<span class="title">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">value</span>&gt;</span>org.apache.hadoop.mapred.ShuffleHandler<span class="tag">&lt;/<span class="title">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="title">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="title">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">name</span>&gt;</span>yarn.resourcemanager.address<span class="tag">&lt;/<span class="title">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">value</span>&gt;</span>192.168.5.29:8032<span class="tag">&lt;/<span class="title">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="title">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="title">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">name</span>&gt;</span>yarn.resourcemanager.scheduler.address<span class="tag">&lt;/<span class="title">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">value</span>&gt;</span>192.168.5.29:8030<span class="tag">&lt;/<span class="title">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="title">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="title">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">name</span>&gt;</span>yarn.resourcemanager.resource-tracker.address<span class="tag">&lt;/<span class="title">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">value</span>&gt;</span>192.168.5.29:8031<span class="tag">&lt;/<span class="title">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="title">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="title">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">name</span>&gt;</span>yarn.resourcemanager.admin.address<span class="tag">&lt;/<span class="title">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">value</span>&gt;</span>192.168.5.29:8033<span class="tag">&lt;/<span class="title">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="title">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="title">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">name</span>&gt;</span>yarn.resourcemanager.webapp.address<span class="tag">&lt;/<span class="title">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">value</span>&gt;</span>192.168.5.29:8088<span class="tag">&lt;/<span class="title">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="title">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="title">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<h4 id="2-3-6_配置slave">2.3.6 配置slave</h4><p>需要设置slaves的域名或者地址。这儿先用地址。<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">192.168.5.101</span><br><span class="line">192.168.5.102</span><br><span class="line">192.168.5.103</span><br></pre></td></tr></table></figure></p>
+<h2 id="3、_安装data_node">3、 安装data node</h2><p>说明：hadoop的分布式主要体现在hdfs上，name node下面管理了多个data node，data node可以有比较好的横向扩展性；<br>对yarn来说，也是存在resource manager下面管理多个node manager的情景，也是分布式。<br>由于这里用的是workstation，没有ESXi那种比较高级的功能，可以先把虚拟机关闭，然后拷贝出来一份，启动的时候选择“复制”。</p>
+<p>启动后，新的node还需要再做下面几件事：<br>1 修改eth1配置中的IP地址和MAC地址<br>2 配置本机免密码登陆<br>3 修改hostname<br>另，集群环境上，master访问各slave节点也需要ssh免密码登陆。<br>配置master到slave免密码登陆的方法有很多，本质上就是把master的~/.ssh/authorized_keys里的public key添加到slaves的同一个文件里。我这里是直接2个窗口拷贝粘贴了。<br>配置后，从master访问slave也不再需要密码</p>
+<h2 id="4、启动hadoop">4、启动hadoop</h2><p>hadoop的操作只需要在master上操作，master会ssh到各slaves上去启动对应的进程。</p>
+<h3 id="4-1_启动hdfs">4.1 启动hdfs</h3><p>启动前需要先format：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ./bin/hdfs namenode -format</span><br></pre></td></tr></table></figure></p>
+<p>之后分别启动hdfs和yarn：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">./sbin/start-dfs.sh</span><br><span class="line">./sbin/start-yarn.sh</span><br></pre></td></tr></table></figure></p>
+<p>jps命令查看hdfs和yarn在master、slaves上都启动了哪些应用：<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[hadoop@master hadoop-2.6.0]$ jps&#10;7244 NameNode          #hdfs&#10;7590 ResourceManager   #yarn&#10;7942 Jps&#10;7429 SecondaryNameNode #hdfs&#10;---&#10;[hadoop@slave1 hadoop]$ jps&#10;3929 NodeManager       #yarn&#10;3836 DataNode          #hdfs&#10;4111 Jps</span><br></pre></td></tr></table></figure></p>
+<p>简单操作一下hdfs：<br>$ ./bin/hadoop  fs -mkdir /test<br>$ ./bin/hadoop  fs -ls /<br>$ bin/hadoop fs -put<br>$ ./bin/hadoop  fs -ls /test</p>
+<p>web访问：<br><a href="http://master:8088" target="_blank" rel="external">http://master:8088</a><br>查看yarn所有的slave节点:<br><img src="http://7xir15.com1.z0.glb.clouddn.com/yarn_nodes.png" alt="yarn slave]"></p>
+<p><a href="http://master:50070" target="_blank" rel="external">http://master:50070</a><br>查看hdfs所有的slave节点：<br><img src="http://7xir15.com1.z0.glb.clouddn.com/hdfs_allnode.png" alt="hdfs_slave"></p>
+<h2 id="5、已有环境上新增一个slave节点">5、已有环境上新增一个slave节点</h2><p><strong>slave</strong><br>1、打包master的/opt下所有文件，拷贝到新的slave节点下的/opt解压；<br>2、修改slave节点的/etc/sysconfig/networking中的hostname，重启<br>3、修改slave节点的/etc/hosts，添加<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">192.168</span>.<span class="number">2.2</span> slave_r2_s1</span><br><span class="line"><span class="number">192.168</span>.<span class="number">5.29</span> master</span><br></pre></td></tr></table></figure></p>
+<p>4、配置ssh本地、远程免密码登陆<br>5、检查hdfs的data目录下是否为空，若否，则清空<br>6、创建tmp目录，如/home/hadoop/tmp。</p>
+<p><strong>master</strong><br>1、修改master节点的/etc/hosts，添加新增的slave节点<br>2、修改master节点的$hadoop/etc/hadoop/slaves，添加新增的slave节点地址</p>
+<h2 id="6、已有环境上新增一个master节点">6、已有环境上新增一个master节点</h2><blockquote>
+<p>todo..</p>
+</blockquote>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+  
+  <div class="tags">
+    <a href="/tags/hadoop/">hadoop</a>
+  </div>
+
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+<section id="comment">
+	<div class="ds-thread"></div>
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"silenceshell"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+</section>
+
+</div></div>
+    <aside id="sidebar" class="alignright">
+  <div class="search">
+<form>
+    <input type="text" id="ts-search-input"  name="word" maxlength="20"  class="search-form-input" placeholder="Search">
+</form>
+</div>
+
+  
+
+  
+<div class="widget tag">
+  <h3 class="title">標籤</h3>
+  <ul class="entry">
+  
+    <li><a href="/tags/ambari/">ambari</a><small>1</small></li>
+  
+    <li><a href="/tags/hadoop/">hadoop</a><small>9</small></li>
+  
+    <li><a href="/tags/hdfs/">hdfs</a><small>1</small></li>
+  
+    <li><a href="/tags/hive/">hive</a><small>1</small></li>
+  
+    <li><a href="/tags/mesos/">mesos</a><small>1</small></li>
+  
+    <li><a href="/tags/python/">python</a><small>2</small></li>
+  
+    <li><a href="/tags/spark/">spark</a><small>1</small></li>
+  
+    <li><a href="/tags/sqoop/">sqoop</a><small>1</small></li>
+  
+    <li><a href="/tags/storm/">storm</a><small>1</small></li>
+  
+    <li><a href="/tags/tez/">tez</a><small>1</small></li>
+  
+    <li><a href="/tags/yarn/">yarn</a><small>2</small></li>
+  
+  </ul>
+</div>
+
+</aside>
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="alignleft">
+  
+  &copy; 2015 hubt@dtdream.com
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="//libs.baidu.com/jquery/2.0.3/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta name="baidu-site-verification" content="mFmscoluqW" />
+  <meta charset="utf-8">
+  
+  <title>笔记：mesos简介 | 伊布</title>
+  <meta name="author" content="hubt@dtdream.com">
+  
+  <meta name="description" content="1 概述来自著名的加州大学伯克利分校，解决多样化环境里资源隔离和分享的问题。官网的介绍非常形象：1Program against your datacenter like it’s a single pool of resources
+mesos源码是用c++写的，但是API支持Java, Python, c++。">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="笔记：mesos简介"/>
+  <meta property="og:site_name" content="伊布"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  <link href="/github.ico" rel="icon" type="image/x-ico">
+  <link rel="alternate" href="/atom.xml" title="伊布" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+
+
+  <script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+var option = {
+  engineKey: 'f3e1951e888b8a117845'
+};
+(function(w,d,t,u,n,s,e){
+  s = d.createElement(t);
+  s.src = u;
+  s.async = 1;
+  w[n] = function(r){
+    w[n].opts = r;
+  };
+  e = d.getElementsByTagName(t)[0];
+  e.parentNode.insertBefore(s, e);
+})(window,document,'script','//tinysou-cdn.b0.upaiyun.com/ts.js','_ts');
+_ts(option);
+</script>
+
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="alignleft">
+  <h1><a href="/">伊布</a></h1>
+  <h2><a href="/"></a></h2>
+</div>
+<nav id="main-nav" class="alignright">
+  <ul>
+    
+      <li><a href="/">Home</a></li>
+    
+      <li><a href="/archives">Archives</a></li>
+    
+      <li><a href="/About">About</a></li>
+    
+	<li> <a href="/atom.xml">RSS</a> </li>
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div></header>
+  <div id="content" class="inner">
+    <div id="main-col" class="alignleft"><div id="wrapper"><article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-04-30T09:10:59.000Z"><a href="/2015/04/30/mesos/">2015-04-30</a></time>
+      
+      
+  
+    <h1 class="title">笔记：mesos简介</h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h3 id="1_概述">1 概述</h3><p>来自著名的加州大学伯克利分校，解决多样化环境里资源隔离和分享的问题。官网的介绍非常形象：<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Program <span class="keyword">against</span> your datacenter like <span class="keyword">it</span>’s a single pool <span class="keyword">of</span> resources</span><br></pre></td></tr></table></figure></p>
+<p>mesos源码是用<code>c++</code>写的，但是API支持Java, Python, c++。<br><a id="more"></a></p>
+<h4 id="1-1_mesos组件">1.1 mesos组件</h4><p>mesos与yarn组件对比：</p>
+<table>
+<thead>
+<tr>
+<th>mesos</th>
+<th>yarn</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>master</td>
+<td>Resource Manager</td>
+</tr>
+<tr>
+<td>slave</td>
+<td>Node Manager</td>
+</tr>
+<tr>
+<td>framwork scheduler</td>
+<td>Application MAster</td>
+</tr>
+<tr>
+<td>framwork executor</td>
+<td>Node Manager</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1-2_资源">1.2 资源</h4><p>与yarn一样，mesos的资源分配也是<strong>双层调度框架</strong>：Mesos Master分配资源给Framwork，Framwork Scheduler将这些资源分配给不同的任务。<br>目前资源仅指cpu和内存，通过cgroups资源隔离。内存资源的监控与yarn不同，yarn采用了更灵活的线程监控方案。</p>
+<h3 id="2_底层通信协议">2 底层通信协议</h3><p>mesos使用了libprocess，在socket之上的封装；序列化使用了protocal buffers(业界用的很多，感兴趣可以看这篇<a href="http://www.cnblogs.com/stephen-liu74/archive/2013/01/02/2841485.html" target="_blank" rel="external">文章</a>)。<br>以server为例说明流程：</p>
+<ul>
+<li>继承ProtobufProcess，实际就是定义message server</li>
+<li>注册消息处理器(回调)</li>
+<li>定义PB消息</li>
+<li>编写消息处理器</li>
+<li>main启动server<br>跟普通的socket编程相比，mesos将消息格式化为PB消息。</li>
+</ul>
+<h3 id="3_mesos四大服务：">3 mesos四大服务：</h3><p>Master, Slave, Scheduler Process, Executor Process<br>（框架实现Allocator, Framework Scheduler, Framwork Executor）<br><img src="http://7xir15.com1.z0.glb.clouddn.com/mesos主要服务组件.PNG" alt="mesos主要服务组件"></p>
+<p><strong>框架注册过程</strong>：<br>Framwork创建一个Driver对象，由此对象探测到mesos的master，并与之注册，并返回注册结果给Framwork。<br>Framwork Executor的过程类似，不同的是与mesos的slave注册。</p>
+<p><strong>任务运行过程</strong>：Framwork Scheduler向Master申请资源，申请到后launch task到Master，由Master封装RunTaskMessage给Slave，Slave提交到Executor process。<br>Executor Process收到消息后查看是否已经启动了Framwork Executor，若否则启动之，然后启动任务。<br><strong>任务状态更新</strong>：由Framwork Executor报给Slave，Slave提交给Master，Master发送updateStatus消息给Framwork Scheduler，任务状态更新后发送ack消息给Slave。<br>(Q: 为什么不直接由Framwork Executor更新状态给Scheduler？)</p>
+<h3 id="4_资源分配策略">4 资源分配策略</h3><p>背景：不同的框架，需要的资源是不一样的。考虑这样一种情况：MR和spark在一个集群上的情况，spark希望得到内存更大的资源。<br>解决办法：mesos只实现基础的资源分配策略<a href="http://blog.csdn.net/pelick/article/details/19326865" target="_blank" rel="external">DRF主资源公平</a>，将资源授权给框架后，由框架决定如何给任务分配资源。<br>三种机制：</p>
+<ul>
+<li>资源拒绝：Framwork可以拒绝master分配的资源，要求重新分配</li>
+<li>资源过滤：当master发现该Framwork总是拒绝某种资源，则设置规则，只分配给该框架特定类型的资源，减少通信压力。</li>
+<li>资源回收：要了不用，过期回收</li>
+</ul>
+<p>对比yarn的label schedule算法：yarn将不同的服务器打上不同的标签，application申请时带上标签，解决异构环境资源随机分配的问题。</p>
+<h3 id="5_容错机制">5 容错机制</h3><ul>
+<li>master:zookeeper监控master节点，发现故障后重新选举master，各slave重新注册，master重构；Framwork Scheduler重新注册。</li>
+<li>slave:超时检测+快照机制<br><strong>slave故障</strong>，master与slave之间有心跳，发现slave故障后通知给Framwork Scheduler，认为该slave之上的任务失败；<br><strong>slave升级</strong>，将之前的信息做了快照，重启后从快照恢复（类似V7的DBM）。具体来说，slave启动带<code>-checkpoint</code>参数，会适时的将信息保存起来；重新启动时带<code>-recovery</code>参数会先从快照来恢复相应信息。slave不会关闭正在跑的任务。</li>
+</ul>
+<p>mesos比yarn优秀的地方是实现在slave的快照，可以比较好的快速恢复。</p>
+<h3 id="6_应用实例">6 应用实例</h3><p>目前可以在mesos上运行的实例比较多：MR/Spark/Storm/MPI。<br>mesos为了支持MR、Storm，提供了不同的组件，看起来不太自然。（<strong>还需要再了解：是否每个框架都需要自己的组件？</strong>）<br>下图摘自董西成博客，比较好的总体概括了各框架是如何跑在mesos上的。<br><img src="http://dongxicheng.org/wp-content/uploads/2012/04/mesos-arch.jpg" alt="mesos-arch"></p>
+<h3 id="7_mesos与YARN对比">7 mesos与YARN对比</h3><p>从机制上来看，mesos与YARN很相似（mesos出现的更早），不同主要体现在以下几点：</p>
+<ul>
+<li>资源分配策略<br>对比来说，yarn走了一条比较艰难的路，有新的分配需求，yarn就需要提供新的特性（例如yarn新引入了label based scheduling，用来解决异构环境下，不同计算模型的不同需求），但可能这样会吸引更多的计算框架，生态会更加丰富。</li>
+<li>内存资源的监控</li>
+</ul>
+<p>参考<br>1 <a href="http://blog.csdn.net/pelick/article/details/21236837" target="_blank" rel="external">Mesos实战总结</a><br>2 <a href="http://dongxicheng.org/mapreduce-nextgen/hadoop-yarn-label-based-scheduling/" target="_blank" rel="external">Hadoop YARN新特性—label based scheduling</a><br>3 <a href="http://dongxicheng.org/category/apache-mesos/" target="_blank" rel="external">董西成的博客mesos分类</a></p>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+  
+  <div class="tags">
+    <a href="/tags/mesos/">mesos</a>
+  </div>
+
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+<section id="comment">
+	<div class="ds-thread"></div>
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"silenceshell"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+</section>
+
+</div></div>
+    <aside id="sidebar" class="alignright">
+  <div class="search">
+<form>
+    <input type="text" id="ts-search-input"  name="word" maxlength="20"  class="search-form-input" placeholder="Search">
+</form>
+</div>
+
+  
+
+  
+<div class="widget tag">
+  <h3 class="title">標籤</h3>
+  <ul class="entry">
+  
+    <li><a href="/tags/ambari/">ambari</a><small>1</small></li>
+  
+    <li><a href="/tags/hadoop/">hadoop</a><small>9</small></li>
+  
+    <li><a href="/tags/hdfs/">hdfs</a><small>1</small></li>
+  
+    <li><a href="/tags/hive/">hive</a><small>1</small></li>
+  
+    <li><a href="/tags/mesos/">mesos</a><small>1</small></li>
+  
+    <li><a href="/tags/python/">python</a><small>2</small></li>
+  
+    <li><a href="/tags/spark/">spark</a><small>1</small></li>
+  
+    <li><a href="/tags/sqoop/">sqoop</a><small>1</small></li>
+  
+    <li><a href="/tags/storm/">storm</a><small>1</small></li>
+  
+    <li><a href="/tags/tez/">tez</a><small>1</small></li>
+  
+    <li><a href="/tags/yarn/">yarn</a><small>2</small></li>
+  
+  </ul>
+</div>
+
+</aside>
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="alignleft">
+  
+  &copy; 2015 hubt@dtdream.com
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="//libs.baidu.com/jquery/2.0.3/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+</body>
+</html>

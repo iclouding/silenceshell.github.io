@@ -1,0 +1,205 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta name="baidu-site-verification" content="mFmscoluqW" />
+  <meta charset="utf-8">
+  
+  <title>MapReduce具体问题（二） | 伊布</title>
+  <meta name="author" content="hubt@dtdream.com">
+  
+  <meta name="description" content="前一篇文章解答了Map任务数、启动人的细节，下面我们解答第二个问题：HDFS的block是否粗暴但忠实的将文件按照64MB分片呢？如果是的话，怎么保证Map获取到的Splits是正确的？具体到wordcount，MR是怎么处理一个单词跨block的情况呢？">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="MapReduce具体问题（二）"/>
+  <meta property="og:site_name" content="伊布"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  <link href="/github.ico" rel="icon" type="image/x-ico">
+  <link rel="alternate" href="/atom.xml" title="伊布" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+
+
+  <script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+var option = {
+  engineKey: 'f3e1951e888b8a117845'
+};
+(function(w,d,t,u,n,s,e){
+  s = d.createElement(t);
+  s.src = u;
+  s.async = 1;
+  w[n] = function(r){
+    w[n].opts = r;
+  };
+  e = d.getElementsByTagName(t)[0];
+  e.parentNode.insertBefore(s, e);
+})(window,document,'script','//tinysou-cdn.b0.upaiyun.com/ts.js','_ts');
+_ts(option);
+</script>
+
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="alignleft">
+  <h1><a href="/">伊布</a></h1>
+  <h2><a href="/"></a></h2>
+</div>
+<nav id="main-nav" class="alignright">
+  <ul>
+    
+      <li><a href="/">Home</a></li>
+    
+      <li><a href="/archives">Archives</a></li>
+    
+      <li><a href="/About">About</a></li>
+    
+	<li> <a href="/atom.xml">RSS</a> </li>
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div></header>
+  <div id="content" class="inner">
+    <div id="main-col" class="alignleft"><div id="wrapper"><article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-06-02T15:09:19.000Z"><a href="/2015/06/02/mr-detail-2/">2015-06-02</a></time>
+      
+      
+  
+    <h1 class="title">MapReduce具体问题（二）</h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>前一篇文章解答了Map任务数、启动人的细节，下面我们解答第二个问题：<br>HDFS的block是否粗暴但忠实的将文件按照64MB分片呢？如果是的话，怎么保证Map获取到的Splits是正确的？具体到wordcount，MR是怎么处理一个单词跨block的情况呢？</p>
+<a id="more"></a>
+<p>我们从Map任务的人口开始说起。前面YARN分析的时候有提到过，AppMaster会将task提交到NodeManager，在NM的container里运行具体的任务。具体到MR来说，运行的任务就是MapTask/ReduceTask。<br>来看MapTask的runNewMapper：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">  <span class="function"><span class="keyword">void</span> <span class="title">runNewMapper</span><span class="params">(<span class="keyword">final</span> JobConf job,</span><br><span class="line">                    <span class="keyword">final</span> TaskSplitIndex splitIndex,</span><br><span class="line">                    <span class="keyword">final</span> TaskUmbilicalProtocol umbilical,</span><br><span class="line">                    TaskReporter reporter</span><br><span class="line">                    )</span> </span><br><span class="line">    org.apache.hadoop.mapreduce.InputFormat&lt;INKEY,INVALUE&gt; inputFormat </span>=</span><br><span class="line">      (org.apache.hadoop.mapreduce.InputFormat&lt;INKEY,INVALUE&gt;)	<span class="comment">//定义inputFormat</span></span><br><span class="line">        ReflectionUtils.newInstance(taskContext.getInputFormatClass(), job);</span><br><span class="line">..</span><br><span class="line">    org.apache.hadoop.mapreduce.RecordReader&lt;INKEY,INVALUE&gt; input =</span><br><span class="line">      <span class="keyword">new</span> NewTrackingRecordReader&lt;INKEY,INVALUE&gt;</span><br><span class="line">        (split, inputFormat, reporter, taskContext);	<span class="comment">//源自inputFormat</span></span><br><span class="line">..</span><br><span class="line">    mapContext = </span><br><span class="line">      <span class="keyword">new</span> MapContextImpl&lt;INKEY, INVALUE, OUTKEY, OUTVALUE&gt;(job, getTaskID(), </span><br><span class="line">          input, output, 	<span class="comment">//注意input</span></span><br><span class="line">          committer, </span><br><span class="line">          reporter, split);</span><br><span class="line"></span><br><span class="line">    org.apache.hadoop.mapreduce.Mapper&lt;INKEY,INVALUE,OUTKEY,OUTVALUE&gt;.Context </span><br><span class="line">        mapperContext = </span><br><span class="line">          <span class="keyword">new</span> WrappedMapper&lt;INKEY, INVALUE, OUTKEY, OUTVALUE&gt;().getMapContext(</span><br><span class="line">              mapContext);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      input.initialize(split, mapperContext);	<span class="comment">//先init</span></span><br><span class="line">      mapper.run(mapperContext);				<span class="comment">//再run</span></span><br></pre></td></tr></table></figure></p>
+<p>runNewMapper会先new一个mapContext，然后封装为mapperContext，并将这个context传递给mapper的run方法。显然这里只是封装上下文，并不会处理跨分片。继续来看Mapper类的run方法。<br>用户会继承Mapper类，实现自己的setup和map方法，而run方法通常直接用Mapper的。来看Map框架的run方法：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Mapper</span>&lt;<span class="title">KEYIN</span>, <span class="title">VALUEIN</span>, <span class="title">KEYOUT</span>, <span class="title">VALUEOUT</span>&gt; </span>&#123;</span><br><span class="line">..</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">(Context context)</span> <span class="keyword">throws</span> IOException, InterruptedException </span>&#123;</span><br><span class="line">    setup(context);</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">while</span> (context.nextKeyValue()) &#123;		<span class="comment">//关键点</span></span><br><span class="line">        map(context.getCurrentKey(), context.getCurrentValue(), context);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>简单来说就是context不断的<code>nextKeyValue</code>，得到了KV交给用户自定义的map方法。那么解决问题的关键就在nextKV了。<br>Mapper的run方法里用的是Context，具体nextKeyValue是在哪个类里定义的，还得回去MapTask里找<code>MapContextImpl</code>。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MapContextImpl</span>&lt;<span class="title">KEYIN</span>,<span class="title">VALUEIN</span>,<span class="title">KEYOUT</span>,<span class="title">VALUEOUT</span>&gt; </span><br><span class="line">..</span><br><span class="line">  <span class="title">public</span> <span class="title">MapContextImpl</span>(<span class="title">Configuration</span> <span class="title">conf</span>, <span class="title">TaskAttemptID</span> <span class="title">taskid</span>,</span><br><span class="line">                        <span class="title">RecordReader</span>&lt;<span class="title">KEYIN</span>,<span class="title">VALUEIN</span>&gt; <span class="title">reader</span>,</span><br><span class="line">                        <span class="title">RecordWriter</span>&lt;<span class="title">KEYOUT</span>,<span class="title">VALUEOUT</span>&gt; <span class="title">writer</span>,</span><br><span class="line">                        <span class="title">OutputCommitter</span> <span class="title">committer</span>,</span><br><span class="line">                        <span class="title">StatusReporter</span> <span class="title">reporter</span>,</span><br><span class="line">                        <span class="title">InputSplit</span> <span class="title">split</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>(conf, taskid, writer, committer, reporter);</span><br><span class="line">    <span class="keyword">this</span>.reader = reader;	<span class="comment">//reader</span></span><br><span class="line">    <span class="keyword">this</span>.split = split;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="annotation">@Override</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">nextKeyValue</span><span class="params">()</span> <span class="keyword">throws</span> IOException, InterruptedException </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> reader.nextKeyValue();	<span class="comment">//调用reader的nextKeyValue</span></span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>MapTask在创建上下文的时候记录reader类型，等到Mapper.run调用上下文的nextKeyValue的时候，实际调用的是reader的nextKV。<br>那么reader是谁呢？回到<code>runNewMapper</code>方法，reader其实就是input，而input的类型就是解析输入文件的后缀名得到的；在wordcount示例里，输入是纯文本文件，实际就是TextInputFormat。<br><code>runNewMapper</code>的<code>NewTrackingRecordReader</code>调用了<code>TextInputFormat</code>的<code>createRecordReader</code>，最终创建了<code>LineRecordReader</code>对象。</p>
+<p>答案就在LineRecordReader里。来看代码：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LineRecordReader</span> <span class="keyword">implements</span> <span class="title">RecordReader</span>&lt;<span class="title">LongWritable</span>, <span class="title">Text</span>&gt; </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="title">LineRecordReader</span><span class="params">(Configuration job, FileSplit split,	//record初始化方法</span><br><span class="line">      <span class="keyword">byte</span>[] recordDelimiter)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">...</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">initialize</span><span class="params">(InputSplit genericSplit,</span><br><span class="line">                         TaskAttemptContext context)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">...</span><br><span class="line">    <span class="comment">// If this is not the first split, we always throw away first record</span></span><br><span class="line">    <span class="comment">// because we always (except the last split) read one extra line in</span></span><br><span class="line">    <span class="comment">// next() method.</span></span><br><span class="line">    <span class="keyword">if</span> (start != <span class="number">0</span>) &#123;		<span class="comment">//只要不是第一个分片，总是跳过第一行，因为前面的block处理的时候，已经越过分区读取完毕了</span></span><br><span class="line">      start += in.readLine(<span class="keyword">new</span> Text(), <span class="number">0</span>, maxBytesToConsume(start));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">this</span>.pos = start;		<span class="comment">//记录本分split的起始位置</span></span><br><span class="line">  &#125;</span><br><span class="line">...</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">nextKeyValue</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (key == <span class="keyword">null</span>) &#123;</span><br><span class="line">      key = <span class="keyword">new</span> LongWritable();</span><br><span class="line">    &#125;</span><br><span class="line">    key.set(pos);</span><br><span class="line">    <span class="keyword">if</span> (value == <span class="keyword">null</span>) &#123;</span><br><span class="line">      value = <span class="keyword">new</span> Text();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">int</span> newSize = <span class="number">0</span>;</span><br><span class="line">    <span class="comment">// We always read one extra line, which lies outside the upper</span></span><br><span class="line">    <span class="comment">// split limit i.e. (end - 1)</span></span><br><span class="line">    <span class="keyword">while</span> (getFilePosition() &lt;= end || in.needAdditionalRecordAfterSplit()) &#123;	<span class="comment">//保证到了split末尾时只会一次“超读”</span></span><br><span class="line">      <span class="keyword">if</span> (pos == <span class="number">0</span>) &#123;</span><br><span class="line">        newSize = skipUtfByteOrderMark();</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        newSize = in.readLine(value, maxLineLength, maxBytesToConsume(pos));	<span class="comment">//答案：超读</span></span><br><span class="line">        pos += newSize;</span><br><span class="line">      &#125;</span><br><span class="line">      ...</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>还记得刚开始的<code>runNewMapper</code>里是怎么处理的吗？对，先initialize，再run；run里不停的nextKeyValue。<br>具体到LineRecordReader，initialize的处理是，如果当前块不是首块，那么就会跳过第一行（Split的划分其实是逻辑上的，只是指定了该文件的start和end位置，而不是真实的划分成小文件），因为第一行已经在前面的块里处理了；<br>相应的，在NextKeyValue里，由于使用的是readLine，故而总是会读完该文件的一整行（而不是该split），如果是该行跨HDFS分区，那么就读取下一个分区。</p>
+<p>答案其实很简单，不过借着这个问题，梳理了下MapTask的流程，虽然有点琐碎，但还是有所收获。<br>若分析谬误，还请指出:)</p>
+<p>参考：<br><a href="http://my.oschina.net/xiangchen/blog/99653" target="_blank" rel="external">Hadoop MapReduce中如何处理跨行Block和InputSplit</a></p>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+  
+  <div class="tags">
+    <a href="/tags/hadoop/">hadoop</a>
+  </div>
+
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+<section id="comment">
+	<div class="ds-thread"></div>
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"silenceshell"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+</section>
+
+</div></div>
+    <aside id="sidebar" class="alignright">
+  <div class="search">
+<form>
+    <input type="text" id="ts-search-input"  name="word" maxlength="20"  class="search-form-input" placeholder="Search">
+</form>
+</div>
+
+  
+
+  
+<div class="widget tag">
+  <h3 class="title">標籤</h3>
+  <ul class="entry">
+  
+    <li><a href="/tags/ambari/">ambari</a><small>1</small></li>
+  
+    <li><a href="/tags/hadoop/">hadoop</a><small>9</small></li>
+  
+    <li><a href="/tags/hdfs/">hdfs</a><small>1</small></li>
+  
+    <li><a href="/tags/hive/">hive</a><small>1</small></li>
+  
+    <li><a href="/tags/mesos/">mesos</a><small>1</small></li>
+  
+    <li><a href="/tags/python/">python</a><small>2</small></li>
+  
+    <li><a href="/tags/spark/">spark</a><small>1</small></li>
+  
+    <li><a href="/tags/sqoop/">sqoop</a><small>1</small></li>
+  
+    <li><a href="/tags/storm/">storm</a><small>1</small></li>
+  
+    <li><a href="/tags/tez/">tez</a><small>1</small></li>
+  
+    <li><a href="/tags/yarn/">yarn</a><small>2</small></li>
+  
+  </ul>
+</div>
+
+</aside>
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="alignleft">
+  
+  &copy; 2015 hubt@dtdream.com
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="//libs.baidu.com/jquery/2.0.3/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+</body>
+</html>
