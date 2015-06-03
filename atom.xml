@@ -4,7 +4,7 @@
   
   <link href="/atom.xml" rel="self"/>
   <link href="http://yoursite.com/"/>
-  <updated>2015-06-02T15:11:47.000Z</updated>
+  <updated>2015-06-02T15:11:47.441Z</updated>
   <id>http://yoursite.com/</id>
   
   <author>
@@ -19,7 +19,7 @@
     <link href="http://yoursite.com/2015/06/02/mr-detail-2/"/>
     <id>http://yoursite.com/2015/06/02/mr-detail-2/</id>
     <published>2015-06-02T15:09:19.000Z</published>
-    <updated>2015-06-02T15:11:47.000Z</updated>
+    <updated>2015-06-02T15:11:47.441Z</updated>
     <content type="html"><![CDATA[<p>前一篇文章解答了Map任务数、启动人的细节，下面我们解答第二个问题：<br>HDFS的block是否粗暴但忠实的将文件按照64MB分片呢？如果是的话，怎么保证Map获取到的Splits是正确的？具体到wordcount，MR是怎么处理一个单词跨block的情况呢？</p>
 <a id="more"></a>
 <p>我们从Map任务的人口开始说起。前面YARN分析的时候有提到过，AppMaster会将task提交到NodeManager，在NM的container里运行具体的任务。具体到MR来说，运行的任务就是MapTask/ReduceTask。<br>来看MapTask的runNewMapper：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">  <span class="function"><span class="keyword">void</span> <span class="title">runNewMapper</span><span class="params">(<span class="keyword">final</span> JobConf job,</span><br><span class="line">                    <span class="keyword">final</span> TaskSplitIndex splitIndex,</span><br><span class="line">                    <span class="keyword">final</span> TaskUmbilicalProtocol umbilical,</span><br><span class="line">                    TaskReporter reporter</span><br><span class="line">                    )</span> </span><br><span class="line">    org.apache.hadoop.mapreduce.InputFormat&lt;INKEY,INVALUE&gt; inputFormat </span>=</span><br><span class="line">      (org.apache.hadoop.mapreduce.InputFormat&lt;INKEY,INVALUE&gt;)	<span class="comment">//定义inputFormat</span></span><br><span class="line">        ReflectionUtils.newInstance(taskContext.getInputFormatClass(), job);</span><br><span class="line">..</span><br><span class="line">    org.apache.hadoop.mapreduce.RecordReader&lt;INKEY,INVALUE&gt; input =</span><br><span class="line">      <span class="keyword">new</span> NewTrackingRecordReader&lt;INKEY,INVALUE&gt;</span><br><span class="line">        (split, inputFormat, reporter, taskContext);	<span class="comment">//源自inputFormat</span></span><br><span class="line">..</span><br><span class="line">    mapContext = </span><br><span class="line">      <span class="keyword">new</span> MapContextImpl&lt;INKEY, INVALUE, OUTKEY, OUTVALUE&gt;(job, getTaskID(), </span><br><span class="line">          input, output, 	<span class="comment">//注意input</span></span><br><span class="line">          committer, </span><br><span class="line">          reporter, split);</span><br><span class="line"></span><br><span class="line">    org.apache.hadoop.mapreduce.Mapper&lt;INKEY,INVALUE,OUTKEY,OUTVALUE&gt;.Context </span><br><span class="line">        mapperContext = </span><br><span class="line">          <span class="keyword">new</span> WrappedMapper&lt;INKEY, INVALUE, OUTKEY, OUTVALUE&gt;().getMapContext(</span><br><span class="line">              mapContext);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      input.initialize(split, mapperContext);	<span class="comment">//先init</span></span><br><span class="line">      mapper.run(mapperContext);				<span class="comment">//再run</span></span><br></pre></td></tr></table></figure></p>
@@ -45,7 +45,7 @@
     <link href="http://yoursite.com/2015/05/28/python-homework-2/"/>
     <id>http://yoursite.com/2015/05/28/python-homework-2/</id>
     <published>2015-05-28T15:11:15.000Z</published>
-    <updated>2015-05-28T15:51:30.000Z</updated>
+    <updated>2015-05-28T15:51:30.831Z</updated>
     <content type="html"><![CDATA[<p>需求：生成纯文本格式的表数据，导入ODPS/ADS等。用户可以定义表的格式。<br>最早是想找一个类似DataFactory的工具来做，但今天问了下史进是自己用Java写的，走读了一遍逻辑不太复杂，于是花了些时间写了一个python版本的。</p>
 <p>实现思路非常简单：配置文件使用json格式，python读取配置文件，按每一行的格式随机生成内容，每行生成后写入文件，最后关闭文件，结束。<br><a id="more"></a></p>
 <p>几个有意思的点：</p>
@@ -73,7 +73,7 @@
     <link href="http://yoursite.com/2015/05/25/mr-detail-1/"/>
     <id>http://yoursite.com/2015/05/25/mr-detail-1/</id>
     <published>2015-05-25T00:44:33.000Z</published>
-    <updated>2015-05-28T15:53:52.000Z</updated>
+    <updated>2015-05-28T15:53:53.654Z</updated>
     <content type="html"><![CDATA[<p>MapReduce比较基础，但是经常会有一些问题不是很清楚，这一系列文章会解答几个经常问的问题。<br>本文解答第一个问题：是谁决定要起几个Map任务？在什么阶段呢？<br><a id="more"></a></p>
 <p>还是以wordcount为例。<br>wordcount客户端在初始化job后调用Job.waitForCompletion方法就结束了，真正提交Job给Yarn的在MapReduce客户端代码的submit里做的。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">waitForCompletion</span><span class="params">(<span class="keyword">boolean</span> verbose</span><br><span class="line">                                 )</span> <span class="keyword">throws</span> IOException, InterruptedException,</span><br><span class="line">                                          ClassNotFoundException </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (state == JobState.DEFINE) &#123;</span><br><span class="line">    submit();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">submit</span><span class="params">()</span></span><br><span class="line">      return submitter.<span class="title">submitJobInternal</span><span class="params">(Job.<span class="keyword">this</span>, cluster)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function">JobStatus <span class="title">submitJobInternal</span><span class="params">(Job job, Cluster cluster)</span></span><br><span class="line">    <span class="comment">// Create the splits for the job</span></span><br><span class="line">    LOG.<span class="title">debug</span><span class="params">(<span class="string">"Creating splits at "</span> + jtFs.makeQualified(submitJobDir)</span>)</span>;</span><br><span class="line">    <span class="keyword">int</span> maps = writeSplits(job, submitJobDir);</span><br><span class="line">    conf.setInt(MRJobConfig.NUM_MAPS, maps);		<span class="comment">//确定MR任务数</span></span><br><span class="line">    LOG.info(<span class="string">"number of splits:"</span> + maps);</span><br></pre></td></tr></table></figure>
@@ -446,7 +446,7 @@
     <link href="http://yoursite.com/2015/05/06/python-homework-1/"/>
     <id>http://yoursite.com/2015/05/06/python-homework-1/</id>
     <published>2015-05-06T07:45:47.000Z</published>
-    <updated>2015-05-28T15:35:34.000Z</updated>
+    <updated>2015-05-28T15:35:34.009Z</updated>
     <content type="html"><![CDATA[<p>这个系列记录Python小组学习过程中完成的作业，python用的很不熟，希望做作业的过程中有进步。<br><a id="more"></a><br>本次作业题目：<br>代码                       城市<br>CHXX0008                  北京<br>CHXX0044                  杭州<br>CHXX0116                  上海<br>CHXX0502                  海口<br>CHXX0037                  广州</p>
 <p>任意输入上表内的城市名字，与今天的时间差(明天、后天、大后天)），输出中文天气情况。<br>天气数据从yahoo网站获取，不同城市输入不同代码，如杭州从这个网址获取：<br><a href="http://xml.weather.yahoo.com/forecastrss?u=c&amp;p=CHXX0044" target="_blank" rel="external">http://xml.weather.yahoo.com/forecastrss?u=c&amp;p=CHXX0044</a></p>
 <p>用到的几个点：</p>
