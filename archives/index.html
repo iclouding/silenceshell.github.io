@@ -78,129 +78,386 @@ _ts(option);
 <h2 class="archive-title">彙整</h2>
 
 
-  <div class="archive">
-    
-      <article class="post">
-        <div class="post-content">
-          <header>
-            <div class="icon"></div>
-            <time datetime="2015-06-02T15:09:19.000Z"><a href="/2015/06/02/mr-detail-2/">2015-06-02</a></time>
-            
-              <h1 class="title"><a href="/2015/06/02/mr-detail-2/">MapReduce具体问题（二）</a></h1>
-            
-          </header>
-        </div>
-      </article>
-    
-      <article class="post">
-        <div class="post-content">
-          <header>
-            <div class="icon"></div>
-            <time datetime="2015-05-28T15:11:15.000Z"><a href="/2015/05/28/python-homework-2/">2015-05-28</a></time>
-            
-              <h1 class="title"><a href="/2015/05/28/python-homework-2/">python学习作业（二）</a></h1>
-            
-          </header>
-        </div>
-      </article>
-    
-      <article class="post">
-        <div class="post-content">
-          <header>
-            <div class="icon"></div>
-            <time datetime="2015-05-25T00:44:33.000Z"><a href="/2015/05/25/mr-detail-1/">2015-05-25</a></time>
-            
-              <h1 class="title"><a href="/2015/05/25/mr-detail-1/">MapReduce具体问题（一）</a></h1>
-            
-          </header>
-        </div>
-      </article>
-    
-      <article class="post">
-        <div class="post-content">
-          <header>
-            <div class="icon"></div>
-            <time datetime="2015-05-20T01:16:04.000Z"><a href="/2015/05/20/hive-intro-1/">2015-05-20</a></time>
-            
-              <h1 class="title"><a href="/2015/05/20/hive-intro-1/">读书笔记：hive简介（一）</a></h1>
-            
-          </header>
-        </div>
-      </article>
-    
-      <article class="post">
-        <div class="post-content">
-          <header>
-            <div class="icon"></div>
-            <time datetime="2015-05-15T16:56:26.000Z"><a href="/2015/05/16/hdfs-intro/">2015-05-16</a></time>
-            
-              <h1 class="title"><a href="/2015/05/16/hdfs-intro/">Hadoop文件系统：HDFS</a></h1>
-            
-          </header>
-        </div>
-      </article>
-    
-      <article class="post">
-        <div class="post-content">
-          <header>
-            <div class="icon"></div>
-            <time datetime="2015-05-13T03:18:55.000Z"><a href="/2015/05/13/spark-intro/">2015-05-13</a></time>
-            
-              <h1 class="title"><a href="/2015/05/13/spark-intro/">Spark（一）：介绍、初体验</a></h1>
-            
-          </header>
-        </div>
-      </article>
-    
-      <article class="post">
-        <div class="post-content">
-          <header>
-            <div class="icon"></div>
-            <time datetime="2015-05-11T02:56:25.000Z"><a href="/2015/05/11/storm-intro/">2015-05-11</a></time>
-            
-              <h1 class="title"><a href="/2015/05/11/storm-intro/">流式计算框架Storm介绍</a></h1>
-            
-          </header>
-        </div>
-      </article>
-    
-      <article class="post">
-        <div class="post-content">
-          <header>
-            <div class="icon"></div>
-            <time datetime="2015-05-11T01:17:45.000Z"><a href="/2015/05/11/tez-intro/">2015-05-11</a></time>
-            
-              <h1 class="title"><a href="/2015/05/11/tez-intro/">笔记：DAG计算框架Tez</a></h1>
-            
-          </header>
-        </div>
-      </article>
-    
-      <article class="post">
-        <div class="post-content">
-          <header>
-            <div class="icon"></div>
-            <time datetime="2015-05-09T09:13:55.000Z"><a href="/2015/05/09/sqoop-intro/">2015-05-09</a></time>
-            
-              <h1 class="title"><a href="/2015/05/09/sqoop-intro/">hadoop数据传输工具：Sqoop</a></h1>
-            
-          </header>
-        </div>
-      </article>
-    
-      <article class="post">
-        <div class="post-content">
-          <header>
-            <div class="icon"></div>
-            <time datetime="2015-05-06T07:45:47.000Z"><a href="/2015/05/06/python-homework-1/">2015-05-06</a></time>
-            
-              <h1 class="title"><a href="/2015/05/06/python-homework-1/">python学习作业（一）</a></h1>
-            
-          </header>
-        </div>
-      </article>
-    
+  
+    <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-06-02T15:09:19.000Z"><a href="/2015/06/02/mr-detail-2/">2015-06-02</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2015/06/02/mr-detail-2/">MapReduce具体问题（二）</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>前一篇文章解答了Map任务数、启动人的细节，下面我们解答第二个问题：<br>HDFS的block是否粗暴但忠实的将文件按照64MB分片呢？如果是的话，怎么保证Map获取到的Splits是正确的？具体到wordcount，MR是怎么处理一个单词跨block的情况呢？</p>
+      
+    </div>
+    <footer>
+      
+        
+          <div class="alignleft">
+            <a href="/2015/06/02/mr-detail-2/#more" class="more-link">Read More</a>
+          </div>
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
   </div>
+</article>
+
+
+
+  
+    <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-05-28T15:11:15.000Z"><a href="/2015/05/28/python-homework-2/">2015-05-28</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2015/05/28/python-homework-2/">python学习作业（二）</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>需求：生成纯文本格式的表数据，导入ODPS/ADS等。用户可以定义表的格式。<br>最早是想找一个类似DataFactory的工具来做，但今天问了下史进是自己用Java写的，走读了一遍逻辑不太复杂，于是花了些时间写了一个python版本的。</p>
+<p>实现思路非常简单：配置文件使用json格式，python读取配置文件，按每一行的格式随机生成内容，每行生成后写入文件，最后关闭文件，结束。<br>
+      
+    </div>
+    <footer>
+      
+        
+          <div class="alignleft">
+            <a href="/2015/05/28/python-homework-2/#more" class="more-link">Read More</a>
+          </div>
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  
+    <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-05-25T00:44:33.000Z"><a href="/2015/05/25/mr-detail-1/">2015-05-25</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2015/05/25/mr-detail-1/">MapReduce具体问题（一）</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>MapReduce比较基础，但是经常会有一些问题不是很清楚，这一系列文章会解答几个经常问的问题。<br>本文解答第一个问题：是谁决定要起几个Map任务？在什么阶段呢？<br>
+      
+    </div>
+    <footer>
+      
+        
+          <div class="alignleft">
+            <a href="/2015/05/25/mr-detail-1/#more" class="more-link">Read More</a>
+          </div>
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  
+    <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-05-20T01:16:04.000Z"><a href="/2015/05/20/hive-intro-1/">2015-05-20</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2015/05/20/hive-intro-1/">读书笔记：hive简介（一）</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>Hive是一个运行在hadoop之上的数据仓库(dataware)，目的是为精通SQL但不熟悉java的分析师提供一个在hadoop平台上数据分析的工具。<br>Hive提供类似SQL的接口，但并不完全相同：Hive没有完全实现SQL的所有语法，但又结合MR任务提供了一些新的方法。分析师按照HQL的语法提交任务，Hive将HQL语句翻译为MR作业。</p>
+      
+    </div>
+    <footer>
+      
+        
+          <div class="alignleft">
+            <a href="/2015/05/20/hive-intro-1/#more" class="more-link">Read More</a>
+          </div>
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  
+    <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-05-15T16:56:26.000Z"><a href="/2015/05/16/hdfs-intro/">2015-05-16</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2015/05/16/hdfs-intro/">Hadoop文件系统：HDFS</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h3 id="1_概述">1 概述</h3><p>HDFS应用场景：存储超大型流式处理数据（Terabytes和Petabytes级别）。<br>总的来说，HDFS的特点有这么几个：</p>
+<ul>
+<li>“write once, read many”，只支持一个writer，但对并发的reader支持很高的吞吐。</li>
+<li>将数据处理逻辑放置到数据附近，可以减少数据拷贝的成本，提高并发效率。下面的读取/写入，都体现了这个特点。</li>
+<li>可靠：维护同一文件的的多个副本+故障发生时自动重新部署问题节点。</li>
+</ul>
+      
+    </div>
+    <footer>
+      
+        
+          <div class="alignleft">
+            <a href="/2015/05/16/hdfs-intro/#more" class="more-link">Read More</a>
+          </div>
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  
+    <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-05-13T03:18:55.000Z"><a href="/2015/05/13/spark-intro/">2015-05-13</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2015/05/13/spark-intro/">Spark（一）：介绍、初体验</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h3 id="1_介绍">1 介绍</h3><p>Spark是一个快速、通用的集群计算系统，提供JAVA/Scala/Python API，以及一系列的高级工具：Spark SQL/MLib/GrapyX/Spark Streaming.<br>Spark的编程语言是scala，同样采用scala的还有kafka。<br>
+      
+    </div>
+    <footer>
+      
+        
+          <div class="alignleft">
+            <a href="/2015/05/13/spark-intro/#more" class="more-link">Read More</a>
+          </div>
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  
+    <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-05-11T02:56:25.000Z"><a href="/2015/05/11/storm-intro/">2015-05-11</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2015/05/11/storm-intro/">流式计算框架Storm介绍</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h3 id="1_背景：MR的问题">1 背景：MR的问题</h3><ul>
+<li>启动时间长。多采用pull模型，没有JVM缓存池</li>
+<li>调度开销大</li>
+<li>中间数据写磁盘</li>
+</ul>
+<p>storm的出现，可以比较好的解决上面的问题。<br>
+      
+    </div>
+    <footer>
+      
+        
+          <div class="alignleft">
+            <a href="/2015/05/11/storm-intro/#more" class="more-link">Read More</a>
+          </div>
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  
+    <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-05-11T01:17:45.000Z"><a href="/2015/05/11/tez-intro/">2015-05-11</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2015/05/11/tez-intro/">笔记：DAG计算框架Tez</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h3 id="1_介绍">1 介绍</h3><p>目前的问题：如果作业由多个MR任务完成，则必然经过多次完整的Map—shuffer—Reduce，中间节点的数据多次写入HDFS，浪费IO读写。（可以将HDFS理解为多个任务之间的共享存储。）Tez的引入可以较小的代价的解决这一问题。<br>
+      
+    </div>
+    <footer>
+      
+        
+          <div class="alignleft">
+            <a href="/2015/05/11/tez-intro/#more" class="more-link">Read More</a>
+          </div>
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  
+    <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-05-09T09:13:55.000Z"><a href="/2015/05/09/sqoop-intro/">2015-05-09</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2015/05/09/sqoop-intro/">hadoop数据传输工具：Sqoop</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h3 id="1_简介">1 简介</h3><p>sqoop可以用来在hdfs和关系型数据（如mysql, Oracle, PostgreSQL）之间交换数据，也可以作为异构数据库之间同步使用。<br>sqoop通过JDBC（Java Data Base Connectivity,java数据库连接）与数据库交互，整合了Hive/HBase和oozie，核心是MapReduce。从下面的几个实验来看，应该只是用到了Map。<br>
+      
+    </div>
+    <footer>
+      
+        
+          <div class="alignleft">
+            <a href="/2015/05/09/sqoop-intro/#more" class="more-link">Read More</a>
+          </div>
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  
+    <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-05-06T07:45:47.000Z"><a href="/2015/05/06/python-homework-1/">2015-05-06</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2015/05/06/python-homework-1/">python学习作业（一）</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>这个系列记录Python小组学习过程中完成的作业，python用的很不熟，希望做作业的过程中有进步。<br>
+      
+    </div>
+    <footer>
+      
+        
+          <div class="alignleft">
+            <a href="/2015/05/06/python-homework-1/#more" class="more-link">Read More</a>
+          </div>
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  
+
+  <nav id="pagination">
+  
+  
+    <a href="/archives/page/2/" class="alignright next">下一頁</a>
+  
+  <div class="clearfix"></div>
+</nav>
 </div></div>
     <aside id="sidebar" class="alignright">
   <div class="search">
