@@ -1,0 +1,209 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta name="baidu-site-verification" content="mFmscoluqW" />
+  <meta charset="utf-8">
+  
+  <title>Hibernate之Hello World | 伊布</title>
+  <meta name="author" content="hubt@dtdream.com">
+  
+  <meta name="description" content="Hibernate是一个优秀的持久化框架，其主要功能是将内存里的瞬时状态，通过JDBC持久化到硬盘数据库上。Hibernate以面向对象的思想来解决数据库的问题，可以简化数据库的访问。这篇文章通过一个简单的示例，来建立Hibernate的初步认识，较水，记录用。">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="Hibernate之Hello World"/>
+  <meta property="og:site_name" content="伊布"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  <link href="/github.ico" rel="icon" type="image/x-ico">
+  <link rel="alternate" href="/atom.xml" title="伊布" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+
+
+  <script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+var option = {
+  engineKey: 'f3e1951e888b8a117845'
+};
+(function(w,d,t,u,n,s,e){
+  s = d.createElement(t);
+  s.src = u;
+  s.async = 1;
+  w[n] = function(r){
+    w[n].opts = r;
+  };
+  e = d.getElementsByTagName(t)[0];
+  e.parentNode.insertBefore(s, e);
+})(window,document,'script','//tinysou-cdn.b0.upaiyun.com/ts.js','_ts');
+_ts(option);
+</script>
+
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="alignleft">
+  <h1><a href="/">伊布</a></h1>
+  <h2><a href="/"></a></h2>
+</div>
+<nav id="main-nav" class="alignright">
+  <ul>
+    
+      <li><a href="/">Home</a></li>
+    
+      <li><a href="/archives">Archives</a></li>
+    
+      <li><a href="/About">About</a></li>
+    
+	<li> <a href="/atom.xml">RSS</a> </li>
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div></header>
+  <div id="content" class="inner">
+    <div id="main-col" class="alignleft"><div id="wrapper"><article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2015-06-10T11:22:01.000Z"><a href="/2015/06/10/hibernate-hello/">2015-06-10</a></time>
+      
+      
+  
+    <h1 class="title">Hibernate之Hello World</h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>Hibernate是一个优秀的持久化框架，其主要功能是将内存里的瞬时状态，通过JDBC持久化到硬盘数据库上。Hibernate以面向对象的思想来解决数据库的问题，可以简化数据库的访问。<br>这篇文章通过一个简单的示例，来建立Hibernate的初步认识，较水，记录用。<br><a id="more"></a></p>
+<p>示例代码基本是从这篇<a href="http://www.javaweb.cc/architecture/hibernate/132325.shtml" target="_blank" rel="external">文章</a>里抄来的。</p>
+<p>首先，得有一个<del>女朋友</del>表。我在mytest数据库里创建了一个student表。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="operator"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="string">`student`</span> (</span><br><span class="line">  <span class="string">`id`</span> <span class="built_in">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> auto_increment,</span><br><span class="line">  <span class="string">`name`</span> <span class="built_in">varchar</span>(<span class="number">255</span>) <span class="keyword">default</span> <span class="literal">NULL</span>,</span><br><span class="line">  <span class="string">`password`</span> <span class="built_in">varchar</span>(<span class="number">255</span>) <span class="keyword">default</span> <span class="literal">NULL</span>,</span><br><span class="line">  <span class="keyword">PRIMARY</span> <span class="keyword">KEY</span>  (<span class="string">`id`</span>)</span><br><span class="line">) ;</span></span><br></pre></td></tr></table></figure></p>
+<h3 id="1、创建工程，导入Hibernate库。">1、创建工程，导入Hibernate库。</h3><p>我下载的版本是4.3.10，从<a href="http://hibernate.org/orm/downloads/" target="_blank" rel="external">官方网站</a>上下载下来的是Hibernate ORM（hibernate-release-4.3.10.Final.zip）。要导入的lib文件在<code>.\hibernate-release-4.3.10.Final\lib\required\</code>，其他的先不管（我也不知道干啥用的）。<br>想不起来当时怎么把lib导入到IDEA了，现在导入没有图标了。</p>
+<h3 id="2、建立包com-xxx-hibernatest">2、建立包<code>com.xxx.hibernatest</code></h3><h3 id="3、建立实体类的映射">3、建立实体类的映射</h3><p>在hibernatest包里新建Student.hbm.xml文件，编写对象关系映射文件，把对象关系映射的逻辑放在此处，这个文件包括表和字段的对象关系，当操作对象时，该文件通过java反射机制产生的方法，会把对象的方法转为关系的方法。<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="pi">&lt;?xml version="1.0"?&gt;</span></span><br><span class="line"><span class="doctype">&lt;!DOCTYPE hibernate-mapping PUBLIC</span><br><span class="line">        "-//Hibernate/Hibernate Mapping DTD 3.0//EN"</span><br><span class="line">        "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd"&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="title">hibernate-mapping</span> <span class="attribute">package</span>=<span class="value">"com.dtdream.hibernatest"</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="title">class</span> <span class="attribute">name</span>=<span class="value">"Student"</span> <span class="attribute">table</span>=<span class="value">"student"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="title">id</span> <span class="attribute">name</span>=<span class="value">"id"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="title">generator</span> <span class="attribute">class</span>=<span class="value">"native"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="title">id</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="title">property</span> <span class="attribute">name</span>=<span class="value">"name"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="title">property</span> <span class="attribute">name</span>=<span class="value">"age"</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="title">class</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;/<span class="title">hibernate-mapping</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<h3 id="4、对象类定义。">4、对象类定义。</h3><p>在hibernatest包里新建Student.java。它对应于数据库的一个具体的表，需要定义数据库的列、列方法等，实际就是用Java来描述表。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.dtdream.hibernatest;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Student</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> id;</span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line">    <span class="keyword">private</span>  <span class="keyword">int</span> age;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getId</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> id;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">getName</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> name;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getAge</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> age;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setId</span><span class="params">(<span class="keyword">int</span> id)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.id = id;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setName</span><span class="params">(String name)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.name = name;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setAge</span><span class="params">(<span class="keyword">int</span> age)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.age = age;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="5、main入口">5、main入口</h3><p>这里可以看到Hibernate简单的用法，代码看一看很清楚，就不多说了，名字随便起。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.dtdream.hibernatest;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.hibernate.Session;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.SessionFactory;</span><br><span class="line"><span class="keyword">import</span> org.hibernate.cfg.Configuration;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">StudentTest</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        Student s = <span class="keyword">new</span> Student();</span><br><span class="line">        <span class="comment">//s.setId();	这句不需要，我们创建的数据库是increasement的</span></span><br><span class="line">        s.setAge(<span class="number">23</span>);</span><br><span class="line">        s.setName(<span class="string">"dtd"</span>);</span><br><span class="line"></span><br><span class="line">        Configuration cfg = <span class="keyword">new</span> Configuration();</span><br><span class="line">        SessionFactory sf = cfg.configure().buildSessionFactory();</span><br><span class="line">        Session session = sf.openSession();</span><br><span class="line">        session.beginTransaction();</span><br><span class="line">        session.save(s);</span><br><span class="line">        session.getTransaction().commit();</span><br><span class="line">        session.close();</span><br><span class="line">        sf.close();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="6、Hibernate主配置">6、Hibernate主配置</h3><p>前面我们有了数据库操作主流程，有了对象关系映射文件，有了表的对象，表在前面也创建了，那么就剩下怎么访问数据库了：地址、端口号、数据库名、driver。<br>这里提供一个<code>hibernate.cfg.xml</code>的数据库配置文件。配置文件放到工程的根目录，不要放到包里。<br>Hibernate实际是封装了JDBC，需要对应数据库的driver lib，对端数据库用的是mysql，所以需要把mysql-connector-java-5.1.35-bin也加到project的lib库里。<br>配置文件就不说了，照着葫芦画瓢就行。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version='1.0' encoding='utf-8'?&gt;</span><br><span class="line">&lt;!DOCTYPE hibernate-configuration PUBLIC</span><br><span class="line">        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"</span><br><span class="line">        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd"&gt;</span><br><span class="line">&lt;hibernate-configuration&gt;</span><br><span class="line">&lt;session-factory&gt;</span><br><span class="line">    &lt;!-- Database connection settings --&gt;</span><br><span class="line">    &lt;property name="connection.driver_class"&gt;com.mysql.jdbc.Driver&lt;/property&gt;</span><br><span class="line">    &lt;property name="connection.url"&gt;jdbc:mysql://192.168.5.29:3306/mytest&lt;/property&gt;</span><br><span class="line">    &lt;property name="connection.username"&gt;root&lt;/property&gt;</span><br><span class="line">    &lt;property name="connection.password"&gt;&lt;/property&gt;</span><br><span class="line"></span><br><span class="line">    &lt;!-- JDBC connection pool (use the built-in) --&gt;</span><br><span class="line">    &lt;property name="connection.pool_size"&gt;1&lt;/property&gt;</span><br><span class="line">    &lt;!-- SQL dialect --&gt;</span><br><span class="line">    &lt;property name="dialect"&gt;org.hibernate.dialect.MySQLDialect&lt;/property&gt;</span><br><span class="line">    &lt;!-- Enable Hibernate's automatic session context management --&gt;</span><br><span class="line">    &lt;property name="current_session_context_class"&gt;thread&lt;/property&gt;</span><br><span class="line">    &lt;!-- Disable the second-level cache  --&gt;</span><br><span class="line">    &lt;property name="cache.provider_class"&gt;org.hibernate.cache.internal.NoCacheProvider&lt;/property&gt;</span><br><span class="line">    &lt;!-- Echo all executed SQL to stdout --&gt;</span><br><span class="line">    &lt;property name="show_sql"&gt;true&lt;/property&gt;</span><br><span class="line">    &lt;!-- Drop and re-create the database schema on startup --&gt;</span><br><span class="line">    &lt;property name="hbm2ddl.auto"&gt;update&lt;/property&gt;</span><br><span class="line">    &lt;mapping resource="com/dtdream/hibernatest/Student.hbm.xml"/&gt;</span><br><span class="line">&lt;/session-factory&gt;</span><br><span class="line">&lt;/hibernate-configuration&gt;</span><br></pre></td></tr></table></figure>
+<p>好了，有了上面4个文件，一个简单的Hibernate示例就完成了，run main文件，我们去看mysql数据库里，可以看到添加了一条记录：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; select * from student;</span><br><span class="line">+----+--------+----------+------+</span><br><span class="line">| id | name   | password | age  |</span><br><span class="line">+----+--------+----------+------+</span><br><span class="line">|  <span class="number">1</span> | dtd    | NULL     |   <span class="number">23</span> |</span><br><span class="line">+----+--------+----------+------+</span><br><span class="line"><span class="number">1</span> rows <span class="keyword">in</span> <span class="built_in">set</span> (<span class="number">0.01</span> sec)</span><br></pre></td></tr></table></figure></p>
+<p>再运行一次，可以看到又添加了一条记录：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; select * from student;</span><br><span class="line">+----+--------+----------+------+</span><br><span class="line">| id | name   | password | age  |</span><br><span class="line">+----+--------+----------+------+</span><br><span class="line">|  <span class="number">1</span> | dtd    | NULL     |   <span class="number">23</span> |</span><br><span class="line">|  <span class="number">2</span> | dtd    | NULL     |   <span class="number">23</span> |</span><br><span class="line">+----+--------+----------+------+</span><br><span class="line"><span class="number">2</span> rows <span class="keyword">in</span> <span class="built_in">set</span> (<span class="number">0.01</span> sec)</span><br></pre></td></tr></table></figure></p>
+<p>至此，示例结束，以后有机会用Hibernate做一些实际的事情再来分享更深入的东西。</p>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+  
+  <div class="tags">
+    <a href="/tags/Hibernate/">Hibernate</a>
+  </div>
+
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+<section id="comment">
+	<div class="ds-thread"></div>
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"silenceshell"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+</section>
+
+</div></div>
+    <aside id="sidebar" class="alignright">
+  <div class="search">
+<form>
+    <input type="text" id="ts-search-input"  name="word" maxlength="20"  class="search-form-input" placeholder="Search">
+</form>
+</div>
+
+  
+
+  
+<div class="widget tag">
+  <h3 class="title">標籤</h3>
+  <ul class="entry">
+  
+    <li><a href="/tags/Hibernate/">Hibernate</a><small>1</small></li>
+  
+    <li><a href="/tags/ambari/">ambari</a><small>1</small></li>
+  
+    <li><a href="/tags/hadoop/">hadoop</a><small>9</small></li>
+  
+    <li><a href="/tags/hdfs/">hdfs</a><small>1</small></li>
+  
+    <li><a href="/tags/hive/">hive</a><small>1</small></li>
+  
+    <li><a href="/tags/mesos/">mesos</a><small>1</small></li>
+  
+    <li><a href="/tags/python/">python</a><small>2</small></li>
+  
+    <li><a href="/tags/spark/">spark</a><small>1</small></li>
+  
+    <li><a href="/tags/sqoop/">sqoop</a><small>1</small></li>
+  
+    <li><a href="/tags/storm/">storm</a><small>1</small></li>
+  
+    <li><a href="/tags/tez/">tez</a><small>1</small></li>
+  
+    <li><a href="/tags/yarn/">yarn</a><small>2</small></li>
+  
+  </ul>
+</div>
+
+</aside>
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="alignleft">
+  
+  &copy; 2015 hubt@dtdream.com
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="//libs.baidu.com/jquery/2.0.3/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+</body>
+</html>
