@@ -4,7 +4,7 @@
   
   <link href="/atom.xml" rel="self"/>
   <link href="http://yoursite.com/"/>
-  <updated>2015-07-02T14:33:10.692Z</updated>
+  <updated>2015-07-02T14:34:27.915Z</updated>
   <id>http://yoursite.com/</id>
   
   <author>
@@ -19,10 +19,8 @@
     <link href="http://yoursite.com/2015/07/02/nginx-keepalived/"/>
     <id>http://yoursite.com/2015/07/02/nginx-keepalived/</id>
     <published>2015-07-02T14:08:53.000Z</published>
-    <updated>2015-07-02T14:33:10.692Z</updated>
-    <content type="html"><![CDATA[<p>使用centos6.5</p>
-<p>很久没有更新了，因为我被派去做一个项目，没什么时间写。这两天要解决一个HA+LoadBalance的问题，记录下来，以备以后查阅。<br>核心需求就是我们有一个RESTful API的服务集群，需要能够保证不管是web服务故障还是服务器整体故障，外部访问不会间断，并且在整体运行正常的时候，需要能够负载均衡。<br>业界比较常见的几个负载均衡方案有haproxy, nginx, lvs。有关这仨的比较，可以看<a href="http://www.csdn.net/article/2014-07-24/2820837" target="_blank" rel="external">这篇文章</a>。我这里选择的方案是nginx+keepalived。nginx做反向代理，可以实现负载均衡，如果后端的web服务故障了，nginx可以实现切换；但nginx本身存在单点故障，需要通过keepalived监测实现nginx的切换。</p>
-<!--More-->
+    <updated>2015-07-02T14:34:27.915Z</updated>
+    <content type="html"><![CDATA[<p>很久没有更新了，因为我被派去做一个项目，没什么时间写。这两天要解决一个HA+LoadBalance的问题，记录下来，以备以后查阅。<br>核心需求就是我们有一个RESTful API的服务集群，需要能够保证不管是web服务故障还是服务器整体故障，外部访问不会间断，并且在整体运行正常的时候，需要能够负载均衡。<br>业界比较常见的几个负载均衡方案有haproxy, nginx, lvs。有关这仨的比较，可以看<a href="http://www.csdn.net/article/2014-07-24/2820837" target="_blank" rel="external">这篇文章</a>。我这里选择的方案是nginx+keepalived。nginx做反向代理，可以实现负载均衡，如果后端的web服务故障了，nginx可以实现切换；但nginx本身存在单点故障，需要通过keepalived监测实现nginx的切换。<br><img src="http://7xir15.com1.z0.glb.clouddn.com/nginx反向代理.png" alt="整体结构图"><br><!--More--></p>
 <h2 id="1、设置nginx-repo：">1、设置nginx.repo：</h2><p>我用的操作系统是centos6.5，如下：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[nginx]</span><br><span class="line">name=nginx repo</span><br><span class="line">baseurl=http://nginx.org/packages/centos/<span class="variable">$releasever</span>/<span class="variable">$basearch</span>/</span><br><span class="line">gpgcheck=<span class="number">0</span></span><br><span class="line">enabled=<span class="number">1</span></span><br></pre></td></tr></table></figure></p>
 <p>如果是RHEL:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[nginx]</span><br><span class="line">name=nginx repo</span><br><span class="line">baseurl=http://nginx.org/packages/rhel/<span class="variable">$releasever</span>/<span class="variable">$basearch</span>/</span><br><span class="line">gpgcheck=<span class="number">0</span></span><br><span class="line">enabled=<span class="number">1</span></span><br></pre></td></tr></table></figure></p>
 <h2 id="2、安装nginx、keepalived">2、安装nginx、keepalived</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ yum install nginx</span><br><span class="line">$ yum install keepalived</span><br></pre></td></tr></table></figure>
@@ -44,8 +42,7 @@
 <h2 id=""><img src="http://7xir15.com1.z0.glb.clouddn.com/虚IP.png" alt="虚IP访问"></h2><p>通过上面的keepalived和nginx的配置，我们完成了开始预设的要求：<br>1、rest server能够负载分担；<br>2、某rest server进程故障，可以由nginx剔除；<br>3、nginx故障，keepalived可以切换虚IP到正常nginx，由新的nginx继续负载分担；nginx故障恢复，切换回原来的主server；<br>4、整设备故障，vrrp超时切换虚IP到正常服务器；故障恢复，回切。</p>
 ]]></content>
     <summary type="html">
-    <![CDATA[<p>使用centos6.5</p>
-<p>很久没有更新了，因为我被派去做一个项目，没什么时间写。这两天要解决一个HA+LoadBalance的问题，记录下来，以备以后查阅。<br>核心需求就是我们有一个RESTful API的服务集群，需要能够保证不管是web服务故障还是服务器]]>
+    <![CDATA[<p>很久没有更新了，因为我被派去做一个项目，没什么时间写。这两天要解决一个HA+LoadBalance的问题，记录下来，以备以后查阅。<br>核心需求就是我们有一个RESTful API的服务集群，需要能够保证不管是web服务故障还是服务器整体故障，外部访问不会间断，并且在整体]]>
     </summary>
     
       <category term="keepalived" scheme="http://yoursite.com/tags/keepalived/"/>
