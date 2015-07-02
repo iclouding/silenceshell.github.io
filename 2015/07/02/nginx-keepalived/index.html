@@ -7,7 +7,7 @@
   <title>使用nginx+keepalived实现RESTful API服务器的负载均衡和高可靠性 | 伊布</title>
   <meta name="author" content="hubt@dtdream.com">
   
-  <meta name="description" content="很久没有更新了，因为我被派去做一个项目，没什么时间写。这两天要解决一个HA+LoadBalance的问题，记录下来，以备以后查阅。核心需求就是我们有一个RESTful API的服务集群，需要能够保证不管是web服务故障还是服务器整体故障，外部访问不会间断，并且在整体运行正常的时候，需要能够负载均衡。业界比较常见的几个负载均衡方案有haproxy, nginx, lvs。有关这仨的比较，可以看这篇文章。我这里选择的方案是nginx+keepalived。nginx做反向代理，可以实现负载均衡，如果后端的web服务故障了，nginx可以实现切换；但nginx本身存在单点故障，需要通过keepalived监测实现nginx的切换。">
+  <meta name="description" content="核心需求是我们有一个RESTful API的服务集群，需要能够保证不管是web服务故障还是服务器整体故障，外部访问不会间断，并且在整体运行正常的时候，需要能够负载均衡。业界比较常见的几个负载均衡方案有haproxy, nginx, lvs。有关这仨的比较，可以看这篇文章。我这里选择的方案是nginx+keepalived。nginx做反向代理，可以实现负载均衡，如果后端的web服务故障了，nginx可以实现切换；但nginx本身存在单点故障，需要通过keepalived监测实现nginx的切换。">
   
   
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -92,8 +92,9 @@ _ts(option);
     </header>
     <div class="entry">
       
-        <p>很久没有更新了，因为我被派去做一个项目，没什么时间写。这两天要解决一个HA+LoadBalance的问题，记录下来，以备以后查阅。<br>核心需求就是我们有一个RESTful API的服务集群，需要能够保证不管是web服务故障还是服务器整体故障，外部访问不会间断，并且在整体运行正常的时候，需要能够负载均衡。<br>业界比较常见的几个负载均衡方案有haproxy, nginx, lvs。有关这仨的比较，可以看<a href="http://www.csdn.net/article/2014-07-24/2820837" target="_blank" rel="external">这篇文章</a>。我这里选择的方案是nginx+keepalived。nginx做反向代理，可以实现负载均衡，如果后端的web服务故障了，nginx可以实现切换；但nginx本身存在单点故障，需要通过keepalived监测实现nginx的切换。<br><img src="http://7xir15.com1.z0.glb.clouddn.com/nginx反向代理.png" alt="整体结构图"></p>
+        <p>核心需求是我们有一个RESTful API的服务集群，需要能够保证不管是web服务故障还是服务器整体故障，外部访问不会间断，并且在整体运行正常的时候，需要能够负载均衡。<br>业界比较常见的几个负载均衡方案有haproxy, nginx, lvs。有关这仨的比较，可以看<a href="http://www.csdn.net/article/2014-07-24/2820837" target="_blank" rel="external">这篇文章</a>。我这里选择的方案是nginx+keepalived。nginx做反向代理，可以实现负载均衡，如果后端的web服务故障了，nginx可以实现切换；但nginx本身存在单点故障，需要通过keepalived监测实现nginx的切换。</p>
 <a id="more"></a>
+<p>**整体结构图<br><img src="http://7xir15.com1.z0.glb.clouddn.com/nginx反向代理.png" alt=""></p>
 <h2 id="1、设置nginx-repo：">1、设置nginx.repo：</h2><p>我用的操作系统是centos6.5，如下：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[nginx]</span><br><span class="line">name=nginx repo</span><br><span class="line">baseurl=http://nginx.org/packages/centos/<span class="variable">$releasever</span>/<span class="variable">$basearch</span>/</span><br><span class="line">gpgcheck=<span class="number">0</span></span><br><span class="line">enabled=<span class="number">1</span></span><br></pre></td></tr></table></figure></p>
 <p>如果是RHEL:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[nginx]</span><br><span class="line">name=nginx repo</span><br><span class="line">baseurl=http://nginx.org/packages/rhel/<span class="variable">$releasever</span>/<span class="variable">$basearch</span>/</span><br><span class="line">gpgcheck=<span class="number">0</span></span><br><span class="line">enabled=<span class="number">1</span></span><br></pre></td></tr></table></figure></p>
 <h2 id="2、安装nginx、keepalived">2、安装nginx、keepalived</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ yum install nginx</span><br><span class="line">$ yum install keepalived</span><br></pre></td></tr></table></figure>
