@@ -85,6 +85,42 @@ _ts(option);
     <header>
       
         <div class="icon"></div>
+        <time datetime="2015-05-11T01:17:45.000Z"><a href="/2015/05/11/tez-intro/">2015-05-11</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2015/05/11/tez-intro/">笔记：DAG计算框架Tez</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h3 id="1_介绍">1 介绍</h3><p>目前的问题：如果作业由多个MR任务完成，则必然经过多次完整的Map—shuffer—Reduce，中间节点的数据多次写入HDFS，浪费IO读写。（可以将HDFS理解为多个任务之间的共享存储。）Tez的引入可以较小的代价的解决这一问题。<br>
+      
+    </div>
+    <footer>
+      
+        
+          <div class="alignleft">
+            <a href="/2015/05/11/tez-intro/#more" class="more-link">Read More</a>
+          </div>
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  
+    <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
         <time datetime="2015-05-09T09:13:55.000Z"><a href="/2015/05/09/sqoop-intro/">2015-05-09</a></time>
       
       
@@ -355,7 +391,11 @@ _ts(option);
   <h3 class="title">標籤</h3>
   <ul class="entry">
   
+    <li><a href="/tags/PALO/">PALO</a><small>1</small></li>
+  
     <li><a href="/tags/ambari/">ambari</a><small>1</small></li>
+  
+    <li><a href="/tags/baidu/">baidu</a><small>1</small></li>
   
     <li><a href="/tags/hadoop/">hadoop</a><small>9</small></li>
   
@@ -370,6 +410,8 @@ _ts(option);
     <li><a href="/tags/mesos/">mesos</a><small>1</small></li>
   
     <li><a href="/tags/nginx/">nginx</a><small>1</small></li>
+  
+    <li><a href="/tags/olap/">olap</a><small>1</small></li>
   
     <li><a href="/tags/python/">python</a><small>2</small></li>
   
