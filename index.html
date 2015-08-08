@@ -91,7 +91,7 @@ _ts(option);
     </header>
     <div class="entry">
       
-        <p>以下内容基本源于百度PALO（OLAP分析引擎）对外的一个[视频演讲]<a href="http://www.chinahadoop.cn/course/95/learn#lesson/1333)，讲的比较形象，下面做了简单的摘抄。" target="_blank" rel="external">http://www.chinahadoop.cn/course/95/learn#lesson/1333)，讲的比较形象，下面做了简单的摘抄。</a></p>
+        <p>以下内容基本源于百度PALO（OLAP分析引擎）对外的一个<a href="http://www.chinahadoop.cn/course/95/learn#lesson/1333" target="_blank" rel="external">视频演讲</a>，讲的比较形象，下面做了简单的摘抄。</p>
 <p><strong>总体架构图</strong><br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_1.png" alt=""></p>
 <p>PALO对外体现为一个mysql的服务器，所有mysql相关的工具：mysql client，JDBC，基于mysql的报表工具、R语言等，都可以直接对接PALO。<br>FE即Front End，PALO使用了RAFT协议来共享元数据，所有FE都可以接收用户请求。RAFT协议类似PAXOS(代表实现zookeeper)，但要简化很多。master故障后，follower可以根据checkpoint进行LOG回放，快速恢复元数据（内存数据库）。RAFT支持较好的横向扩展，observer就是这个作用。</p>
 <p><strong>数据存储</strong><br>hash partition<br>指定表按某一列做hash分区。<br>elastic range partition<br>与hash的散列分布不同，range partition是将数据连续的分区。如何解决列的value范围无法预测的问题呢？开始的时候只有一个分区列，当数据量增长到某一临界点时，将数据平均的分成两份。后面继续类似的处理。这样数据可以比较均衡的分散到不同的分区中。range partition对where友好。</p>
