@@ -4,13 +4,16 @@
   <meta name="baidu-site-verification" content="mFmscoluqW" />
   <meta charset="utf-8">
   
-  <title>彙整 | 伊布</title>
+  <title>使用lvs+keepalived为mysql提供高可靠的负载分担功能 | 伊布</title>
   <meta name="author" content="hubt@dtdream.com">
+  
+  <meta name="description" content="需求1 安装软件基本所有的Linux版本内核都包含了LVS，不需要再安装。安装ipvsadm，用来控制内核lvs表项；keepalived，用来控制虚IP迁移；ldirectord，现在还没有用到。可以用来检测real server是否可用。我用的是centos，直接yum安装即可。
+2 组网使用了">
   
   
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
-  
+  <meta property="og:title" content="使用lvs+keepalived为mysql提供高可靠的负载分担功能"/>
   <meta property="og:site_name" content="伊布"/>
 
   
@@ -74,12 +77,7 @@ _ts(option);
 </nav>
 <div class="clearfix"></div></header>
   <div id="content" class="inner">
-    <div id="main-col" class="alignleft"><div id="wrapper">
-<h2 class="archive-title">彙整</h2>
-
-
-  
-    <article class="post">
+    <div id="main-col" class="alignleft"><div id="wrapper"><article class="post">
   
   <div class="post-content">
     <header>
@@ -89,7 +87,7 @@ _ts(option);
       
       
   
-    <h1 class="title"><a href="/2015/08/20/dlvs/">使用lvs+keepalived为mysql提供高可靠的负载分担功能</a></h1>
+    <h1 class="title">使用lvs+keepalived为mysql提供高可靠的负载分担功能</h1>
   
 
     </header>
@@ -119,56 +117,11 @@ _ts(option);
       
         
         
-      
-      <div class="clearfix"></div>
-    </footer>
+  
+  <div class="tags">
+    <a href="/tags/keepalived/">keepalived</a>, <a href="/tags/lvs/">lvs</a>, <a href="/tags/mysql/">mysql</a>
   </div>
-</article>
 
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-08-08T05:39:26.000Z"><a href="/2015/08/08/baidu-palo/">2015-08-08</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/08/08/baidu-palo/">百度PALO技术整理分析</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>以下内容基本源于百度PALO（OLAP分析引擎）对外的一个<a href="http://www.chinahadoop.cn/course/95/learn#lesson/1333" target="_blank" rel="external">视频演讲</a>，讲的比较形象，下面做了简单的摘抄。</p>
-<p><strong>总体架构图</strong><br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_1.png" alt=""></p>
-<p>PALO对外体现为一个mysql的服务器，所有mysql相关的工具：mysql client，JDBC，基于mysql的报表工具、R语言等，都可以直接对接PALO。<br>FE即Front End，PALO使用了RAFT协议来共享元数据，所有FE都可以接收用户请求。RAFT协议类似PAXOS(代表实现zookeeper)，但要简化很多。master故障后，follower可以根据checkpoint进行LOG回放，快速恢复元数据（内存数据库）。RAFT支持较好的横向扩展，observer就是这个作用。</p>
-<p><strong>数据存储</strong><br>hash partition<br>指定表按某一列做hash分区。<br>elastic range partition<br>与hash的散列分布不同，range partition是将数据连续的分区。如何解决列的value范围无法预测的问题呢？开始的时候只有一个分区列，当数据量增长到某一临界点时，将数据平均的分成两份。后面继续类似的处理。这样数据可以比较均衡的分散到不同的分区中。range partition对where友好。</p>
-<p><strong>动态rollup表</strong><br>发现如果用户经常只观察该表的某几个维度，则动态生成rollup表，新表里的维度表只有常用列，由于会有一定的合并，后续查找该表的速度会比较快</p>
-<p><strong>Compation</strong><br>小批量插入的数据，文件越来越多，会导致查询性能越来越差。可以设置一个规则，每隔一段时间将一定批量的数据合并在一起，查询的数据块变少，并且索引更准确，可以提高性能</p>
-<p><strong>行列存</strong><br>每块数据包含256行，快内列式存储，按块压缩。数据压缩比率不高，对于分析型的数据库来说，每次查询都要遍历所有数据库，效率低。<br>稀疏索引：数据的共同特征作为索引常驻内存（每个块对应一个索引），查询时先查索引，找到数据块以后再做解压缩。</p>
-<p><strong>列式存储</strong><br>参考HBASE。带来的优势：<br>1、分析型数据库通常只涉及某些列，可以避免遍历所有数据，减少CPU/IO消耗。PALO采用的是列式存储。<br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_2.png" alt=""><br>2、存储：列的数据类型一致，压缩效率高<br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_3.png" alt=""><br>3、智能索引：PALO会为每一个数据库都生成min max sum，在where sum等计算的时候，可以大幅度提高性能。<br>4、复合分区<br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_4.png" alt=""></p>
-<p><strong>库内分析</strong><br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_5.png" alt=""><br>区别于数据与计算分离，可以解决网络和前端分析机器 性能的瓶颈。要求数据库有计算能力。<br>方法：数据库提供UDF/UDAF/UDTF。</p>
-<p><strong>向量执行引擎</strong><br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_6.png" alt=""><br>区别于遍历所有行、过滤、计算的模型，向量执行引擎可以将待计算的该列单独拿出来计算。带来的好处：<br>行式处理变为列式处理，避免了指令和数据的cache miss；<br>编译器友好，可以循环展开+分支预测</p>
-<p><strong>数据导入</strong><br>PALO依赖于hadoop，数据必须得先上HDFS，然后分布式的将各个节点上的数据块导入到PALO，导入性能较好。<br>PALO不支持直接实时插入。</p>
-<p><del>小批量更新、批量原子提交</del></p>
-<p><strong>其他</strong></p>
-<ul>
-<li>分布式管理框架，故障快速切换、恢复</li>
-<li>查询引擎：share-noting MPP，可扩展好</li>
-<li>大表分布式join：<br>shuffle，即先hash partition，再做join，join数据量小，适合大量数据与大量数据之间join；<br>broadcast，适合大量数据与小批量数据之间join，小批量数据直接与大批量数据的所有分片做join</li>
-<li>谓词下推<br>实际就是尽早的将where条件下沉到数据库（离数据源越近越好），通过索引可以提早过滤掉数据，减少分析的数据量</li>
-</ul>
-
-      
-    </div>
-    <footer>
-      
-        
         
       
       <div class="clearfix"></div>
@@ -177,310 +130,21 @@ _ts(option);
 </article>
 
 
+<section id="comment">
+	<div class="ds-thread"></div>
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"silenceshell"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+</section>
 
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-07-02T14:08:53.000Z"><a href="/2015/07/02/nginx-keepalived/">2015-07-02</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/07/02/nginx-keepalived/">使用nginx+keepalived实现RESTful API服务器的负载均衡和高可靠性</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>核心需求是我们有一个RESTful API的服务集群，需要能够保证不管是web服务故障还是服务器整体故障，外部访问不会间断，并且在整体运行正常的时候，需要能够负载均衡。<br>业界比较常见的几个负载均衡方案有haproxy, nginx, lvs。有关这仨的比较，可以看<a href="http://www.csdn.net/article/2014-07-24/2820837">这篇文章</a>。我这里选择的方案是nginx+keepalived。nginx做反向代理，可以实现负载均衡，如果后端的web服务故障了，nginx可以实现切换；但nginx本身存在单点故障，需要通过keepalived监测实现nginx的切换。</p>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/07/02/nginx-keepalived/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-06-10T11:22:01.000Z"><a href="/2015/06/10/hibernate-hello/">2015-06-10</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/06/10/hibernate-hello/">Hibernate之Hello World</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>Hibernate是一个优秀的持久化框架，其主要功能是将内存里的瞬时状态，通过JDBC持久化到硬盘数据库上。Hibernate以面向对象的思想来解决数据库的问题，可以简化数据库的访问。<br>这篇文章通过一个简单的示例，来建立Hibernate的初步认识，较水，记录用。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/06/10/hibernate-hello/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-06-02T15:09:19.000Z"><a href="/2015/06/02/mr-detail-2/">2015-06-02</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/06/02/mr-detail-2/">MapReduce具体问题（二）</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>前一篇文章解答了Map任务数、启动人的细节，下面我们解答第二个问题：<br>HDFS的block是否粗暴但忠实的将文件按照64MB分片呢？如果是的话，怎么保证Map获取到的Splits是正确的？具体到wordcount，MR是怎么处理一个单词跨block的情况呢？</p>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/06/02/mr-detail-2/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-05-28T15:11:15.000Z"><a href="/2015/05/28/python-homework-2/">2015-05-28</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/05/28/python-homework-2/">python学习作业（二）</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>需求：生成纯文本格式的表数据，导入ODPS/ADS等。用户可以定义表的格式。<br>最早是想找一个类似DataFactory的工具来做，但今天问了下史进是自己用Java写的，走读了一遍逻辑不太复杂，于是花了些时间写了一个python版本的。</p>
-<p>实现思路非常简单：配置文件使用json格式，python读取配置文件，按每一行的格式随机生成内容，每行生成后写入文件，最后关闭文件，结束。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/05/28/python-homework-2/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-05-25T00:44:33.000Z"><a href="/2015/05/25/mr-detail-1/">2015-05-25</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/05/25/mr-detail-1/">MapReduce具体问题（一）</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>MapReduce比较基础，但是经常会有一些问题不是很清楚，这一系列文章会解答几个经常问的问题。<br>本文解答第一个问题：是谁决定要起几个Map任务？在什么阶段呢？<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/05/25/mr-detail-1/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-05-20T01:16:04.000Z"><a href="/2015/05/20/hive-intro-1/">2015-05-20</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/05/20/hive-intro-1/">读书笔记：hive简介（一）</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>Hive是一个运行在hadoop之上的数据仓库(dataware)，目的是为精通SQL但不熟悉java的分析师提供一个在hadoop平台上数据分析的工具。<br>Hive提供类似SQL的接口，但并不完全相同：Hive没有完全实现SQL的所有语法，但又结合MR任务提供了一些新的方法。分析师按照HQL的语法提交任务，Hive将HQL语句翻译为MR作业。</p>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/05/20/hive-intro-1/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-05-15T16:56:26.000Z"><a href="/2015/05/16/hdfs-intro/">2015-05-16</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/05/16/hdfs-intro/">Hadoop文件系统：HDFS</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h3 id="1_概述">1 概述</h3><p>HDFS应用场景：存储超大型流式处理数据（Terabytes和Petabytes级别）。<br>总的来说，HDFS的特点有这么几个：</p>
-<ul>
-<li>“write once, read many”，只支持一个writer，但对并发的reader支持很高的吞吐。</li>
-<li>将数据处理逻辑放置到数据附近，可以减少数据拷贝的成本，提高并发效率。下面的读取/写入，都体现了这个特点。</li>
-<li>可靠：维护同一文件的的多个副本+故障发生时自动重新部署问题节点。</li>
-</ul>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/05/16/hdfs-intro/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-05-13T03:18:55.000Z"><a href="/2015/05/13/spark-intro/">2015-05-13</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/05/13/spark-intro/">Spark（一）：介绍、初体验</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h3 id="1_介绍">1 介绍</h3><p>Spark是一个快速、通用的集群计算系统，提供JAVA/Scala/Python API，以及一系列的高级工具：Spark SQL/MLib/GrapyX/Spark Streaming.<br>Spark的编程语言是scala，同样采用scala的还有kafka。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/05/13/spark-intro/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-
-  <nav id="pagination">
-  
-  
-    <a href="/archives/page/2/" class="alignright next">下一頁</a>
-  
-  <div class="clearfix"></div>
-</nav>
 </div></div>
     <aside id="sidebar" class="alignright">
   <div class="search">
