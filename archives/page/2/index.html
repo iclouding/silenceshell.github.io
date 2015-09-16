@@ -85,6 +85,47 @@ _ts(option);
     <header>
       
         <div class="icon"></div>
+        <time datetime="2015-05-15T16:56:26.000Z"><a href="/2015/05/16/hdfs-intro/">2015-05-16</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2015/05/16/hdfs-intro/">Hadoop文件系统：HDFS</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h3 id="1_概述">1 概述</h3><p>HDFS应用场景：存储超大型流式处理数据（Terabytes和Petabytes级别）。<br>总的来说，HDFS的特点有这么几个：</p>
+<ul>
+<li>“write once, read many”，只支持一个writer，但对并发的reader支持很高的吞吐。</li>
+<li>将数据处理逻辑放置到数据附近，可以减少数据拷贝的成本，提高并发效率。下面的读取/写入，都体现了这个特点。</li>
+<li>可靠：维护同一文件的的多个副本+故障发生时自动重新部署问题节点。</li>
+</ul>
+      
+    </div>
+    <footer>
+      
+        
+          <div class="alignleft">
+            <a href="/2015/05/16/hdfs-intro/#more" class="more-link">Read More</a>
+          </div>
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  
+    <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
         <time datetime="2015-05-13T03:18:55.000Z"><a href="/2015/05/13/spark-intro/">2015-05-13</a></time>
       
       
@@ -409,47 +450,13 @@ _ts(option);
 
 
   
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-04-22T05:25:29.000Z"><a href="/2015/04/22/yarn-intro/">2015-04-22</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/04/22/yarn-intro/">yarn（一）：介绍</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h3 id="1_设计理念和基本架构">1 设计理念和基本架构</h3><p>编程模型（API）、数据引擎(Map Task, Reduce Task)、运行时环境(Job Tracker—Task Trackers)<br>MRv2修改了运行时环境，将资源管理调度与作业控制分离，YARN就是分离出来的资源管理模块（具体应用程序的作业控制由ApplicationMaster负责）。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/04/22/yarn-intro/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
 
   <nav id="pagination">
   
     <a href="/archives/" class="alignleft prev">上一頁</a>
   
+  
+    <a href="/archives/page/3/" class="alignright next">下一頁</a>
   
   <div class="clearfix"></div>
 </nav>
