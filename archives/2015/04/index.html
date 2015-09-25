@@ -78,158 +78,57 @@ _ts(option);
 <h2 class="archive-title">2015/4</h2>
 
 
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-04-30T09:10:59.000Z"><a href="/2015/04/30/mesos/">2015-04-30</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/04/30/mesos/">笔记：mesos简介</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h3 id="1_概述">1 概述</h3><p>来自著名的加州大学伯克利分校，解决多样化环境里资源隔离和分享的问题。官网的介绍非常形象：<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Program <span class="keyword">against</span> your datacenter like <span class="keyword">it</span>’s a single pool <span class="keyword">of</span> resources</span><br></pre></td></tr></table></figure></p>
-<p>mesos源码是用<code>c++</code>写的，但是API支持Java, Python, c++。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/04/30/mesos/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
+  <div class="archive">
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-04-30T09:10:59.000Z"><a href="/2015/04/30/mesos/">2015-04-30</a></time>
+            
+              <h1 class="title"><a href="/2015/04/30/mesos/">笔记：mesos简介</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-04-30T03:10:59.000Z"><a href="/2015/04/30/ambari/">2015-04-30</a></time>
+            
+              <h1 class="title"><a href="/2015/04/30/ambari/">Ambari简介</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-04-24T01:12:30.000Z"><a href="/2015/04/24/hadoop-setup/">2015-04-24</a></time>
+            
+              <h1 class="title"><a href="/2015/04/24/hadoop-setup/">hadoop分布式环境搭建</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-04-22T05:25:29.000Z"><a href="/2015/04/22/yarn-intro/">2015-04-22</a></time>
+            
+              <h1 class="title"><a href="/2015/04/22/yarn-intro/">yarn（一）：介绍</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
   </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-04-30T03:10:59.000Z"><a href="/2015/04/30/ambari/">2015-04-30</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/04/30/ambari/">Ambari简介</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h3 id="1_介绍">1 介绍</h3><p>之前搭建hadoop平台（参加<a href="http://silenceshell.github.io/2015/04/24/hadoop-setup/">前一篇blog</a>），采用的是手动安装、修改配置文件的方法。这样可以大致了解hadoop基本的部署过程，但是实际生产过程中不可能采用这种全手工的方法，后续还涉及到安装HBase/Hive/Spark/Storm之类的上层应用，以及管理监控平台，过程相对繁琐一些。<br>面对这些问题，就需要一个优秀的分布式集群管理工具了。目前了解到业界自动化部署+管理监控工具里，比较有名的是Hortonworks的<a href="http://ambari.apache.org/">ambari</a>，以及cloudera的<a href="http://www.cloudera.com/content/cloudera/en/downloads/cloudera_manager/cm-5-4-0.html">cloudera manager</a>。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/04/30/ambari/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-04-24T01:12:30.000Z"><a href="/2015/04/24/hadoop-setup/">2015-04-24</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/04/24/hadoop-setup/">hadoop分布式环境搭建</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h2 id="1、_环境">1、 环境</h2><p>使用版本：centos6.5虚机安装在workstation 11上，使用hadoop2.6.0、jdk-7u15-linux-x64。本文介绍手工安装hadoop的方法，有关自动化部署（如ambari、cloudera management）的方法请见后续文章。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/04/24/hadoop-setup/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-04-22T05:25:29.000Z"><a href="/2015/04/22/yarn-intro/">2015-04-22</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/04/22/yarn-intro/">yarn（一）：介绍</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h3 id="1_设计理念和基本架构">1 设计理念和基本架构</h3><p>编程模型（API）、数据引擎(Map Task, Reduce Task)、运行时环境(Job Tracker—Task Trackers)<br>MRv2修改了运行时环境，将资源管理调度与作业控制分离，YARN就是分离出来的资源管理模块（具体应用程序的作业控制由ApplicationMaster负责）。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/04/22/yarn-intro/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-
-  <nav id="pagination">
-  
-  
-  <div class="clearfix"></div>
-</nav>
 </div></div>
     <aside id="sidebar" class="alignright">
   <div class="search">

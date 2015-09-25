@@ -78,388 +78,129 @@ _ts(option);
 <h2 class="archive-title">彙整</h2>
 
 
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-05-15T16:56:26.000Z"><a href="/2015/05/16/hdfs-intro/">2015-05-16</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/05/16/hdfs-intro/">Hadoop文件系统：HDFS</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h3 id="1_概述">1 概述</h3><p>HDFS应用场景：存储超大型流式处理数据（Terabytes和Petabytes级别）。<br>总的来说，HDFS的特点有这么几个：</p>
-<ul>
-<li>“write once, read many”，只支持一个writer，但对并发的reader支持很高的吞吐。</li>
-<li>将数据处理逻辑放置到数据附近，可以减少数据拷贝的成本，提高并发效率。下面的读取/写入，都体现了这个特点。</li>
-<li>可靠：维护同一文件的的多个副本+故障发生时自动重新部署问题节点。</li>
-</ul>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/05/16/hdfs-intro/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
+  <div class="archive">
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-05-15T16:56:26.000Z"><a href="/2015/05/16/hdfs-intro/">2015-05-16</a></time>
+            
+              <h1 class="title"><a href="/2015/05/16/hdfs-intro/">Hadoop文件系统：HDFS</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-05-13T03:18:55.000Z"><a href="/2015/05/13/spark-intro/">2015-05-13</a></time>
+            
+              <h1 class="title"><a href="/2015/05/13/spark-intro/">Spark（一）：介绍、初体验</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-05-11T02:56:25.000Z"><a href="/2015/05/11/storm-intro/">2015-05-11</a></time>
+            
+              <h1 class="title"><a href="/2015/05/11/storm-intro/">流式计算框架Storm介绍</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-05-11T01:17:45.000Z"><a href="/2015/05/11/tez-intro/">2015-05-11</a></time>
+            
+              <h1 class="title"><a href="/2015/05/11/tez-intro/">笔记：DAG计算框架Tez</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-05-09T09:13:55.000Z"><a href="/2015/05/09/sqoop-intro/">2015-05-09</a></time>
+            
+              <h1 class="title"><a href="/2015/05/09/sqoop-intro/">hadoop数据传输工具：Sqoop</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-05-06T07:45:47.000Z"><a href="/2015/05/06/python-homework-1/">2015-05-06</a></time>
+            
+              <h1 class="title"><a href="/2015/05/06/python-homework-1/">python学习作业（一）</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-05-05T08:56:22.000Z"><a href="/2015/05/05/yarn-dist-shell/">2015-05-05</a></time>
+            
+              <h1 class="title"><a href="/2015/05/05/yarn-dist-shell/">yarn（二）：distributedShell和Unmanaged AM示例代码解析</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-04-30T09:10:59.000Z"><a href="/2015/04/30/mesos/">2015-04-30</a></time>
+            
+              <h1 class="title"><a href="/2015/04/30/mesos/">笔记：mesos简介</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-04-30T03:10:59.000Z"><a href="/2015/04/30/ambari/">2015-04-30</a></time>
+            
+              <h1 class="title"><a href="/2015/04/30/ambari/">Ambari简介</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-04-24T01:12:30.000Z"><a href="/2015/04/24/hadoop-setup/">2015-04-24</a></time>
+            
+              <h1 class="title"><a href="/2015/04/24/hadoop-setup/">hadoop分布式环境搭建</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
   </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-05-13T03:18:55.000Z"><a href="/2015/05/13/spark-intro/">2015-05-13</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/05/13/spark-intro/">Spark（一）：介绍、初体验</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h3 id="1_介绍">1 介绍</h3><p>Spark是一个快速、通用的集群计算系统，提供JAVA/Scala/Python API，以及一系列的高级工具：Spark SQL/MLib/GrapyX/Spark Streaming.<br>Spark的编程语言是scala，同样采用scala的还有kafka。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/05/13/spark-intro/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-05-11T02:56:25.000Z"><a href="/2015/05/11/storm-intro/">2015-05-11</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/05/11/storm-intro/">流式计算框架Storm介绍</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h3 id="1_背景：MR的问题">1 背景：MR的问题</h3><ul>
-<li>启动时间长。多采用pull模型，没有JVM缓存池</li>
-<li>调度开销大</li>
-<li>中间数据写磁盘</li>
-</ul>
-<p>storm的出现，可以比较好的解决上面的问题。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/05/11/storm-intro/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-05-11T01:17:45.000Z"><a href="/2015/05/11/tez-intro/">2015-05-11</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/05/11/tez-intro/">笔记：DAG计算框架Tez</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h3 id="1_介绍">1 介绍</h3><p>目前的问题：如果作业由多个MR任务完成，则必然经过多次完整的Map—shuffer—Reduce，中间节点的数据多次写入HDFS，浪费IO读写。（可以将HDFS理解为多个任务之间的共享存储。）Tez的引入可以较小的代价的解决这一问题。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/05/11/tez-intro/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-05-09T09:13:55.000Z"><a href="/2015/05/09/sqoop-intro/">2015-05-09</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/05/09/sqoop-intro/">hadoop数据传输工具：Sqoop</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h3 id="1_简介">1 简介</h3><p>sqoop可以用来在hdfs和关系型数据（如mysql, Oracle, PostgreSQL）之间交换数据，也可以作为异构数据库之间同步使用。<br>sqoop通过JDBC（Java Data Base Connectivity,java数据库连接）与数据库交互，整合了Hive/HBase和oozie，核心是MapReduce。从下面的几个实验来看，应该只是用到了Map。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/05/09/sqoop-intro/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-05-06T07:45:47.000Z"><a href="/2015/05/06/python-homework-1/">2015-05-06</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/05/06/python-homework-1/">python学习作业（一）</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>这个系列记录Python小组学习过程中完成的作业，python用的很不熟，希望做作业的过程中有进步。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/05/06/python-homework-1/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-05-05T08:56:22.000Z"><a href="/2015/05/05/yarn-dist-shell/">2015-05-05</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/05/05/yarn-dist-shell/">yarn（二）：distributedShell和Unmanaged AM示例代码解析</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>hadoop源码中，使用yarn的应用程序除了MR以外，还有2个示例程序，我们先来分析distributedShell，顺带介绍YARN应用程序设计方法。<br>以下代码基于2.6.0版本。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/05/05/yarn-dist-shell/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-04-30T09:10:59.000Z"><a href="/2015/04/30/mesos/">2015-04-30</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/04/30/mesos/">笔记：mesos简介</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h3 id="1_概述">1 概述</h3><p>来自著名的加州大学伯克利分校，解决多样化环境里资源隔离和分享的问题。官网的介绍非常形象：<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Program <span class="keyword">against</span> your datacenter like <span class="keyword">it</span>’s a single pool <span class="keyword">of</span> resources</span><br></pre></td></tr></table></figure></p>
-<p>mesos源码是用<code>c++</code>写的，但是API支持Java, Python, c++。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/04/30/mesos/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-04-30T03:10:59.000Z"><a href="/2015/04/30/ambari/">2015-04-30</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/04/30/ambari/">Ambari简介</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h3 id="1_介绍">1 介绍</h3><p>之前搭建hadoop平台（参加<a href="http://silenceshell.github.io/2015/04/24/hadoop-setup/">前一篇blog</a>），采用的是手动安装、修改配置文件的方法。这样可以大致了解hadoop基本的部署过程，但是实际生产过程中不可能采用这种全手工的方法，后续还涉及到安装HBase/Hive/Spark/Storm之类的上层应用，以及管理监控平台，过程相对繁琐一些。<br>面对这些问题，就需要一个优秀的分布式集群管理工具了。目前了解到业界自动化部署+管理监控工具里，比较有名的是Hortonworks的<a href="http://ambari.apache.org/">ambari</a>，以及cloudera的<a href="http://www.cloudera.com/content/cloudera/en/downloads/cloudera_manager/cm-5-4-0.html">cloudera manager</a>。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/04/30/ambari/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-04-24T01:12:30.000Z"><a href="/2015/04/24/hadoop-setup/">2015-04-24</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/04/24/hadoop-setup/">hadoop分布式环境搭建</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h2 id="1、_环境">1、 环境</h2><p>使用版本：centos6.5虚机安装在workstation 11上，使用hadoop2.6.0、jdk-7u15-linux-x64。本文介绍手工安装hadoop的方法，有关自动化部署（如ambari、cloudera management）的方法请见后续文章。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/04/24/hadoop-setup/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-
-  <nav id="pagination">
-  
-    <a href="/archives/" class="alignleft prev">上一頁</a>
-  
-  
-    <a href="/archives/page/3/" class="alignright next">下一頁</a>
-  
-  <div class="clearfix"></div>
-</nav>
 </div></div>
     <aside id="sidebar" class="alignright">
   <div class="search">

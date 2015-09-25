@@ -78,116 +78,33 @@ _ts(option);
 <h2 class="archive-title">2015/8</h2>
 
 
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-08-20T07:29:34.000Z"><a href="/2015/08/20/dlvs/">2015-08-20</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/08/20/dlvs/">使用lvs+keepalived为mysql提供高可靠的负载分担功能</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h3 id="需求">需求</h3><h3 id="1_安装软件">1 安装软件</h3><p>基本所有的Linux版本内核都包含了LVS，不需要再安装。<br>安装ipvsadm，用来控制内核lvs表项；<br>keepalived，用来控制虚IP迁移；<br>ldirectord，现在还没有用到。可以用来检测real server是否可用。<br>我用的是centos，直接yum安装即可。</p>
-<h3 id="2_组网">2 组网</h3><p>使用了4台虚拟机，本机连接到其中虚拟机里的mysql服务。<br>组网图如下。<br><img src="http://7xir15.com1.z0.glb.clouddn.com/SLB_LVS.png" alt=""></p>
-<h3 id="3_配置keepalived">3 配置keepalived</h3><p>需要在DLVS1、DLVS2两台服务器上配置keepalived。keepalived需要配置2个VRRP实例：<br>VRRP实例1:供外部用户访问，DLVS故障恢复不影响用户访问，对应虚IP1；<br>VRRP实例2：供mysql服务器访问。由于在本例中lvs配置成nat模式，mysql集群上的各个机器需要配置网关为DLVS的内部虚IP，否则DLVS迁移后，mysql上报文回不去。对应虚IP2，即Real Server(RS)的网关地址。<br>其中，DLVS1的priority均配置为101，DLVS2的priority均配置为100。DLVS1、DLVS2均正常时，DLVS1优先级更高，所以虚IP落在DLVS1上；若DLVS1故障，VRRP迁移，虚IP改落在DLVS2上；DLVS1故障恢复后，会抢占回虚IP。</p>
-<blockquote>
-<p>由于两台服务器配置基本是一致的，为了避免发生过多的虚IP迁移，这里我们把VRRP配置为不抢占模式。<br>具体到配置上，两台设备均配置VRRP state为BACKUP（当然这样会有一个影响，因为现在没有MASTER，启动以后要稍等一会才会抢占虚IP）；计划为主的设备，VRRPpriority配置更大，并且添加nopreempt。备设备不需要再加preempt。</p>
-</blockquote>
-<p>/etc/keepalived/keepalived.conf：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">! Configuration File <span class="keyword">for</span> keepalived</span><br><span class="line">global_defs &#123;</span><br><span class="line">   <span class="comment">#不做修改</span></span><br><span class="line">&#125;</span><br><span class="line">vrrp_instance VI_1 &#123;</span><br><span class="line">    state BACKUP</span><br><span class="line">    interface eth2</span><br><span class="line">    virtual_router_id <span class="number">51</span></span><br><span class="line">    priority <span class="number">101</span></span><br><span class="line">    nopreempt</span><br><span class="line">    advert_int <span class="number">1</span></span><br><span class="line">    authentication &#123;</span><br><span class="line">        auth_<span class="built_in">type</span> PASS</span><br><span class="line">        auth_pass <span class="number">1111</span></span><br><span class="line">    &#125;</span><br><span class="line">    virtual_ipaddress &#123;</span><br><span class="line">        <span class="number">192.168</span>.<span class="number">80.111</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">vrrp_instance VI_2 &#123;</span><br><span class="line">    state BACKUP</span><br><span class="line">    interface eth1</span><br><span class="line">    virtual_router_id <span class="number">52</span></span><br><span class="line">    priority <span class="number">101</span></span><br><span class="line">    nopreempt</span><br><span class="line">    advert_int <span class="number">1</span></span><br><span class="line">    authentication &#123;</span><br><span class="line">        auth_<span class="built_in">type</span> PASS</span><br><span class="line">        auth_pass <span class="number">1111</span></span><br><span class="line">    &#125;</span><br><span class="line">    virtual_ipaddress &#123;</span><br><span class="line">        <span class="number">10.80</span>.<span class="number">1.243</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>这里我没有检查LVS服务是否可靠。DLVS进程起来以后，keepalived需要脚本检查DLVS进程是否正常，如果故障了需要切换。怎么设置参考我之前的<a href="http://www.datastart.cn/2015/07/02/nginx-keepalived/" target="_blank" rel="external">文章</a>。</p>
-<h3 id="4_配置RS">4 配置RS</h3><p>RS上主要配置MySQL和网络：<br>1、安装及配置MySQL。安装不再赘述，需要配置MySQL远程访问及root密码：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="operator"><span class="keyword">GRANT</span> <span class="keyword">ALL</span> <span class="keyword">PRIVILEGES</span> <span class="keyword">ON</span> *.* <span class="keyword">TO</span> <span class="string">'root'</span>@<span class="string">'%'</span> <span class="keyword">IDENTIFIED</span> <span class="keyword">BY</span> <span class="string">'123456'</span> <span class="keyword">WITH</span> <span class="keyword">GRANT</span> <span class="keyword">OPTION</span>;</span></span><br><span class="line"><span class="operator"><span class="keyword">FLUSH</span> <span class="keyword">PRIVILEGES</span>;</span></span><br></pre></td></tr></table></figure></p>
-<p>2、配置网络<br>centos的配置文件在<code>/etc/sysconfig/network-scripts/ifcfg-ethx</code><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">DEVICE=<span class="string">"eth0"</span></span><br><span class="line">BOOTPROTO=<span class="string">"static"</span></span><br><span class="line">IPV6INIT=<span class="string">"yes"</span></span><br><span class="line">NM_CONTROLLED=<span class="string">"yes"</span></span><br><span class="line">IPADDR=<span class="number">192.168</span>.<span class="number">80.136</span></span><br><span class="line">NETMASK=<span class="number">255.255</span>.<span class="number">255.0</span></span><br><span class="line">GATEWAY=<span class="number">192.168</span>.<span class="number">80.111</span></span><br><span class="line">ONBOOT=<span class="string">"yes"</span></span><br><span class="line">TYPE=<span class="string">"Ethernet"</span></span><br></pre></td></tr></table></figure></p>
-<h3 id="5_配置LVS">5 配置LVS</h3><p>LVS主要配置virtual server和real server，以及开启IP转发。<br>ipvsadm的配置就不再多说，直接看man手册即可。<br>为了方便以后用，把ipvsadm命令组织到service脚本中，可以<code>service dlvs start/stop</code>。由于ipvsadm的配置不会保存，如果设备故障重启了就没了，需要把service start加到系统启动过程中。<br>脚本：<code>/etc/init.d/dlvs</code><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="shebang">#!/bin/sh</span></span><br><span class="line">VIP=<span class="number">10.80</span>.<span class="number">1.243</span></span><br><span class="line">RIP1=<span class="number">192.168</span>.<span class="number">80.167</span></span><br><span class="line">RIP2=<span class="number">192.168</span>.<span class="number">80.136</span></span><br><span class="line">SERVPORT=<span class="number">3306</span></span><br><span class="line">. /etc/rc.d/init.d/<span class="built_in">functions</span></span><br><span class="line"><span class="keyword">case</span> <span class="string">"<span class="variable">$1</span>"</span> <span class="keyword">in</span></span><br><span class="line">    start)</span><br><span class="line">        <span class="built_in">echo</span> <span class="string">" start DLVS of Director Server"</span></span><br><span class="line">        <span class="built_in">echo</span> <span class="string">"1"</span> &gt;/proc/sys/net/ipv4/ip_forward</span><br><span class="line">        /sbin/ipvsadm -C</span><br><span class="line">        /sbin/ipvsadm -A -t <span class="variable">$VIP</span>:<span class="variable">$SERVPORT</span> <span class="operator">-s</span> rr</span><br><span class="line">        /sbin/ipvsadm <span class="operator">-a</span> -t <span class="variable">$VIP</span>:<span class="variable">$SERVPORT</span> -r <span class="variable">$RIP1</span>:<span class="variable">$SERVPORT</span> -m</span><br><span class="line">        /sbin/ipvsadm <span class="operator">-a</span> -t <span class="variable">$VIP</span>:<span class="variable">$SERVPORT</span> -r <span class="variable">$RIP2</span>:<span class="variable">$SERVPORT</span> -m</span><br><span class="line">        service iptables stop</span><br><span class="line">        ;;</span><br><span class="line">    stop)</span><br><span class="line">        <span class="built_in">echo</span> <span class="string">"close DLVS Director Server"</span></span><br><span class="line">        <span class="built_in">echo</span> <span class="string">"0"</span> &gt;/proc/sys/net/ipv4/ip_forward</span><br><span class="line">        /sbin/ipvsadm -C</span><br><span class="line">        ;;</span><br><span class="line">    *)</span><br><span class="line">        <span class="built_in">echo</span> <span class="string">"Usage: <span class="variable">$0</span> &#123;start|stop&#125;"</span></span><br><span class="line">        <span class="built_in">exit</span> <span class="number">1</span></span><br><span class="line"><span class="keyword">esac</span></span><br></pre></td></tr></table></figure></p>
-<p>将脚本启动加到系统启动过程中。在centos里，需要把用户自己启动的命令加到/etc/rc.local中，即在这个文件中添加一行：<code>service dlvs start</code>。</p>
-<h3 id="6_测试">6 测试</h3><p>DLVS1、DLVS2、RS1、RS2正常启动后，虚IP1、虚IP2均落在DLVS1上（使用ip addr命令）。DLVS1、DLVS2上看lvs内核表项均为：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ipvsadm -l</span></span><br><span class="line">IP Virtual Server version <span class="number">1.2</span>.<span class="number">1</span> (size=<span class="number">4096</span>)</span><br><span class="line">Prot LocalAddress:Port Scheduler Flags</span><br><span class="line">  -&gt; RemoteAddress:Port           Forward Weight ActiveConn InActConn</span><br><span class="line">TCP  <span class="number">10.80</span>.<span class="number">1.243</span>:mysql rr</span><br><span class="line">  -&gt; <span class="number">192.168</span>.<span class="number">80.136</span>:mysql         Masq    <span class="number">1</span>      <span class="number">0</span>          <span class="number">0</span></span><br><span class="line">  -&gt; master:mysql                 Masq    <span class="number">1</span>      <span class="number">1</span>          <span class="number">0</span></span><br></pre></td></tr></table></figure></p>
-<p>从客户端PC访问虚IP1（10.80.1.243），DLVS1将请求NAT到mysql服务器中的某一台，在DLVS1上可以看到ipvs连接信息：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ipvsadm -l -c</span></span><br><span class="line">IPVS connection entries</span><br><span class="line">pro expire state       <span class="built_in">source</span>             virtual            destination</span><br><span class="line">TCP <span class="number">14</span>:<span class="number">53</span>  ESTABLISHED <span class="number">10.80</span>.<span class="number">0.243</span>:<span class="number">50640</span>  <span class="number">10.80</span>.<span class="number">1.243</span>:mysql  master:mysql</span><br></pre></td></tr></table></figure></p>
-<p>将DLVS1整机重启，虚IP1、虚IP2漂移到DLVS2上，客户端再访问mysql服务，会重建连接，在DLVS2上ipvsadm可以看到新建立的connection；DLVS1重启完毕后，连接会再建立到DLVS1上，前面已有描述，略。</p>
-<h3 id="7_待扩展">7 待扩展</h3><h4 id="7-1_内核connection同步">7.1 内核connection同步</h4><p>从前面的例子我们可以看到，虚IP漂移后，DLVS2接手，但是客户端连接需要重新建立，但其实真实的mysql服务器还是正常工作的，对于用户来说连接断开的体验较差。<br>LVS可以通过配置，在内核提供一个同步线程，将当前提供服务的设备上的表项，组播报文同步到其他服务器上。配置如下：<br><figure class="highlight puppet"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[@<span class="constant">D</span>LVS1]$: ipvsadm --<span class="literal">start</span>-daemon master - --mcast-<span class="keyword">interface</span> ethX</span><br><span class="line">[@<span class="constant">D</span>LVS2]$: ipvsadm --<span class="literal">start</span>-daemon <span class="literal">backup</span> - --mcast-<span class="keyword">interface</span> ethY</span><br></pre></td></tr></table></figure></p>
-<p>虚IP切换过以后，内核连接信息都在，就可以保证用户连接不断。<br>但这里还有个问题，在本方案里，所有的LVS其实均为主，而组播线程其实是有主、备身份的，备切过去以后就不能再同步表项了，当主设备回切，连接还是会断。还没有想到办法解决。</p>
-<h4 id="7-2_iptables">7.2 iptables</h4><p>细心的同学会发现前面我粗暴的把iptables服务给整个关闭了，但这其实是很不安全的，正确的做法是添加一条规则。<br>关闭的原因？在实测过程中，发现从mysql返回的syn+ack报文，被DLVS设备的防火墙丢弃并返回了”Destination unreachable (Host administratively prohibited)”。<br>等我知道该怎么添加规则的时候，我就改。</p>
-<h4 id="7-3_ldirectord">7.3 ldirectord</h4><p>现在的方案里，如果是RS级别的故障，LVS可以做到切换，不会将服务NAT到故障的机器；但如果只是mysql服务的故障，LVS还做不到检查，会影响用户访问失败。所以，需要一个工具能够告诉LVS，RS上的服务故障了，不要再转过去了。<br>ldrectord可以搞定这件事情。</p>
-<p>大量参考：<br><a href="http://ixdba.blog.51cto.com/2895551/552947" target="_blank" rel="external">Linux负载均衡软件LVS系列</a></p>
-
-      
-    </div>
-    <footer>
-      
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
+  <div class="archive">
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-08-20T07:29:34.000Z"><a href="/2015/08/20/dlvs/">2015-08-20</a></time>
+            
+              <h1 class="title"><a href="/2015/08/20/dlvs/">使用lvs+keepalived为mysql提供高可靠的负载分担功能</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-08-08T05:39:26.000Z"><a href="/2015/08/08/baidu-palo/">2015-08-08</a></time>
+            
+              <h1 class="title"><a href="/2015/08/08/baidu-palo/">百度PALO技术整理分析</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
   </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-08-08T05:39:26.000Z"><a href="/2015/08/08/baidu-palo/">2015-08-08</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/08/08/baidu-palo/">百度PALO技术整理分析</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>以下内容基本源于百度PALO（OLAP分析引擎）对外的一个<a href="http://www.chinahadoop.cn/course/95/learn#lesson/1333" target="_blank" rel="external">视频演讲</a>，讲的比较形象，下面做了简单的摘抄。</p>
-<p><strong>总体架构图</strong><br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_1.png" alt=""></p>
-<p>PALO对外体现为一个mysql的服务器，所有mysql相关的工具：mysql client，JDBC，基于mysql的报表工具、R语言等，都可以直接对接PALO。<br>FE即Front End，PALO使用了RAFT协议来共享元数据，所有FE都可以接收用户请求。RAFT协议类似PAXOS(代表实现zookeeper)，但要简化很多。master故障后，follower可以根据checkpoint进行LOG回放，快速恢复元数据（内存数据库）。RAFT支持较好的横向扩展，observer就是这个作用。</p>
-<p><strong>数据存储</strong><br>hash partition<br>指定表按某一列做hash分区。<br>elastic range partition<br>与hash的散列分布不同，range partition是将数据连续的分区。如何解决列的value范围无法预测的问题呢？开始的时候只有一个分区列，当数据量增长到某一临界点时，将数据平均的分成两份。后面继续类似的处理。这样数据可以比较均衡的分散到不同的分区中。range partition对where友好。</p>
-<p><strong>动态rollup表</strong><br>发现如果用户经常只观察该表的某几个维度，则动态生成rollup表，新表里的维度表只有常用列，由于会有一定的合并，后续查找该表的速度会比较快</p>
-<p><strong>Compation</strong><br>小批量插入的数据，文件越来越多，会导致查询性能越来越差。可以设置一个规则，每隔一段时间将一定批量的数据合并在一起，查询的数据块变少，并且索引更准确，可以提高性能</p>
-<p><strong>行列存</strong><br>每块数据包含256行，快内列式存储，按块压缩。数据压缩比率不高，对于分析型的数据库来说，每次查询都要遍历所有数据库，效率低。<br>稀疏索引：数据的共同特征作为索引常驻内存（每个块对应一个索引），查询时先查索引，找到数据块以后再做解压缩。</p>
-<p><strong>列式存储</strong><br>参考HBASE。带来的优势：<br>1、分析型数据库通常只涉及某些列，可以避免遍历所有数据，减少CPU/IO消耗。PALO采用的是列式存储。<br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_2.png" alt=""><br>2、存储：列的数据类型一致，压缩效率高<br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_3.png" alt=""><br>3、智能索引：PALO会为每一个数据库都生成min max sum，在where sum等计算的时候，可以大幅度提高性能。<br>4、复合分区<br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_4.png" alt=""></p>
-<p><strong>库内分析</strong><br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_5.png" alt=""><br>区别于数据与计算分离，可以解决网络和前端分析机器 性能的瓶颈。要求数据库有计算能力。<br>方法：数据库提供UDF/UDAF/UDTF。</p>
-<p><strong>向量执行引擎</strong><br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_6.png" alt=""><br>区别于遍历所有行、过滤、计算的模型，向量执行引擎可以将待计算的该列单独拿出来计算。带来的好处：<br>行式处理变为列式处理，避免了指令和数据的cache miss；<br>编译器友好，可以循环展开+分支预测</p>
-<p><strong>数据导入</strong><br>PALO依赖于hadoop，数据必须得先上HDFS，然后分布式的将各个节点上的数据块导入到PALO，导入性能较好。<br>PALO不支持直接实时插入。</p>
-<p><del>小批量更新、批量原子提交</del></p>
-<p><strong>其他</strong></p>
-<ul>
-<li>分布式管理框架，故障快速切换、恢复</li>
-<li>查询引擎：share-noting MPP，可扩展好</li>
-<li>大表分布式join：<br>shuffle，即先hash partition，再做join，join数据量小，适合大量数据与大量数据之间join；<br>broadcast，适合大量数据与小批量数据之间join，小批量数据直接与大批量数据的所有分片做join</li>
-<li>谓词下推<br>实际就是尽早的将where条件下沉到数据库（离数据源越近越好），通过索引可以提早过滤掉数据，减少分析的数据量</li>
-</ul>
-
-      
-    </div>
-    <footer>
-      
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-
-  <nav id="pagination">
-  
-  
-  <div class="clearfix"></div>
-</nav>
 </div></div>
     <aside id="sidebar" class="alignright">
   <div class="search">

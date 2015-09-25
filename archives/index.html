@@ -78,469 +78,129 @@ _ts(option);
 <h2 class="archive-title">彙整</h2>
 
 
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-09-16T02:57:04.000Z"><a href="/2015/09/16/hbase-1/">2015-09-16</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/09/16/hbase-1/">HBase系列（一）</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>最近由于工作关系，需要了解HBase，随手记录一些内容，以供查阅。</p>
-<h3 id="NoSQL">NoSQL</h3><p>在刚接触Hadoop的时候，对Hive和HBase这两个组件总是不算特别清楚，都跟数据库有点关系，Hive又跟HBase有依赖，扯不太清楚。<br>如果要简单的说二者的区别，可以这样理解：可以把Hive理解为一个SQL Parser，其目的是为了方便那些会使用SQL编程的数据科学家们，但真正在跑的，是Hive翻译出来的Map Reduce程序。所以Hive的用处仍然是离线批量计算。<br>而HBase本质上是一个NoSQL数据库。那么问题来了，NoSQL又是什么鬼？说白了，NoSQL(Not Only SQL)也是一种数据库；但它区别于Oracle、MySQL这种会提供一个便捷的SQL编程语言的关系型数据库。NoSQL通常是列式数据库，不支持事务，不提供行的修改，其访问接口与SQL完全不同，例如HBase的接口是这样的:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">hbase(main):<span class="number">001</span>:<span class="number">0</span>&gt; create <span class="string">'test'</span>, <span class="string">'cf'</span></span><br><span class="line"><span class="number">0</span> row(s) <span class="keyword">in</span> <span class="number">0.4170</span> seconds</span><br><span class="line"></span><br><span class="line">=&gt; Hbase::Table - <span class="built_in">test</span></span><br><span class="line">hbase(main):<span class="number">002</span>:<span class="number">0</span>&gt; list <span class="string">'test'</span></span><br><span class="line">TABLE</span><br><span class="line"><span class="built_in">test</span></span><br><span class="line"><span class="number">1</span> row(s) <span class="keyword">in</span> <span class="number">0.0180</span> seconds</span><br><span class="line"></span><br><span class="line">=&gt; [<span class="string">"test"</span>]</span><br></pre></td></tr></table></figure></p>
-<p>显然这与SQL是不兼容的。当然了，这样做是不是合适也见仁见智。与SQL不兼容，必然造成用户原有业务系统不能方便的迁移到HBase上来，需要做较多的改造。但话说回来，由于NoSQL不能完整支持RDBMS的众多方便的功能，与其削足适履，不如干脆重开一片新天地。<br>如果您的业务想在HBase基础上开发一款新产品，可能做一套方便的SQL接口是个不错的方法。</p>
-<h3 id="HBase">HBase</h3><p>从技术上来说，HBase应该叫做分布式“数仓”（Data Store），而不是数据库，因为它没有数据库的各种特点，例如列的类型，二级索引，触发器等。<br>HBase的特点如下：</p>
-<ul>
-<li>支持读写一致性。    这跟一些NoSQL数据库不太一样。</li>
-<li>自动碎片化。HBase通过region实现分布式，region自动分片，并且随着数据的增长，会自动重新分布式。</li>
-<li>Region Server支持故障恢复</li>
-<li>集成HDFS，因此也就拥有了超大的存储空间</li>
-<li>支持MR大数据量并发处理的源或目的</li>
-<li>提供JAVA API（再也不用写Hibernate了）</li>
-<li>对于非JAVA程序，HBase也提供Thrift/REST API</li>
-<li>支持块存储和Bloom Filters</li>
-<li>内置WEB化管理界面(呵呵)</li>
-</ul>
-<h3 id="快速开始">快速开始</h3><p>我们先在本地stand alone的状态启动一个HBase的环境（没有集成HDFS，只是体验用）。官方说明，只要10分钟就能搞定。这个例子会帮助我们对HBase有个比较感性的认识。</p>
-<ol>
-<li><p>JDK<br>由于版权的问题，以后我们都会只用openjdk。如下分别安装JRE和JDK。</p>
-<figure class="highlight vala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="preprocessor"># yum install java-1.8.0-openjdk</span></span><br><span class="line"><span class="preprocessor"># yum install java-1.8.0-openjdk-devel</span></span><br></pre></td></tr></table></figure>
-</li>
-<li><p>去官网或者<a href="http://www.apache.org/dyn/closer.lua/hbase/" target="_blank" rel="external">镜像</a>下载stable bin，解压。</p>
-</li>
-<li><p>从 0.98.5 开始要求设置JAVA_HOME环境变量。<br>有两种做法：<br>一是设置全局的JAVA_HOME，这样所有的hadoop组件都可以得到满足，但是如果你想支持多套JDK环境就没法应付了。<br>二是在hbase_env.sh中单独设置本组件的JAVA_HOME，精细化管理。我们采用的是这个做法。编辑./conf/hbase_env.sh文件：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># The java implementation to use.  Java 1.7+ required.</span></span><br><span class="line"><span class="built_in">export</span> JAVA_HOME=/usr/</span><br></pre></td></tr></table></figure>
-</li>
-</ol>
-<p>如果你的环境跟我不一样也没关系，只是要注意从上面给出的路径直接走到<code>./bin</code>可以找到javac。</p>
-<ol>
-<li>设置hbase的使用的目录。<br>还记得我们是standalone模式安装吗？这种情况实际我们数据是存储在本地的某个目录的（对应集群则存储在HDFS）。在<code>conf/hbase-site.xml</code>中新增如下：</li>
-</ol>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="title">configuration</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="title">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">name</span>&gt;</span>hbase.rootdir<span class="tag">&lt;/<span class="title">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">value</span>&gt;</span>file:///home/testuser/hbase<span class="tag">&lt;/<span class="title">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="title">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="title">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">name</span>&gt;</span>hbase.zookeeper.property.dataDir<span class="tag">&lt;/<span class="title">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">value</span>&gt;</span>/home/testuser/zookeeper<span class="tag">&lt;/<span class="title">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="title">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="title">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
-<p>hbase和zookeper两个目录不需要创建。</p>
-<ol>
-<li>启动HBase服务<br>HBase提供了脚本<code>bin/start-hbase.sh</code>，可以方便的启动HBase服务。启动成功后，如果你输入jps，只会看到一个HMaster的进程。<figure class="highlight vala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="preprocessor"># jps</span></span><br><span class="line"><span class="number">3030</span> Jps</span><br><span class="line"><span class="number">1997</span> HMaster</span><br></pre></td></tr></table></figure>
-</li>
-</ol>
-<p>standalone模式里，HBase在一个JVM中运行了HMaster、Region Server、zookeeper三个角色。</p>
-<ol>
-<li>进入到HBase shell交互界面：</li>
-</ol>
-<figure class="highlight livecodeserver"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ./bin/hbase shell</span></span><br><span class="line"><span class="number">2015</span>-<span class="number">09</span>-<span class="number">15</span> <span class="number">02</span>:<span class="number">08</span>:<span class="number">38</span>,<span class="number">364</span> WARN  [main] util.NativeCodeLoader: Unable <span class="built_in">to</span> <span class="built_in">load</span> native-hadoop library <span class="keyword">for</span> your <span class="built_in">platform</span>... <span class="keyword">using</span> builtin-java classes where applicable</span><br><span class="line">HBase Shell; enter <span class="string">'help&lt;RETURN&gt;'</span> <span class="keyword">for</span> list <span class="operator">of</span> supported commands.</span><br><span class="line">Type <span class="string">"exit&lt;RETURN&gt;"</span> <span class="built_in">to</span> leave <span class="operator">the</span> HBase Shell</span><br><span class="line">Version <span class="number">1.1</span>.2, rcc2b70cf03e3378800661ec5cab11eb43fafe0fc, Wed Aug <span class="number">26</span> <span class="number">20</span>:<span class="number">11</span>:<span class="number">27</span> PDT <span class="number">2015</span></span><br><span class="line"></span><br><span class="line">hbase(main):<span class="number">001</span>:<span class="number">0</span>&gt;</span><br></pre></td></tr></table></figure>
-<p>在这儿你可以创建表、插入数据、查询数据等，官方网站上有，我直接搬运过来好了。唯一需要注意的是这个例子用了列族(就是cf:a, cf:b, cf:c，下一篇文章再谈)等。</p>
-<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">001</span>:<span class="number">0</span>&gt; create <span class="string">'test'</span>, <span class="string">'cf'</span></span><br><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">002</span>:<span class="number">0</span>&gt; list <span class="string">'test'</span></span><br><span class="line">TABLE</span><br><span class="line">test</span><br><span class="line"><span class="number">1</span> <span class="function"><span class="title">row</span><span class="params">(s)</span></span> <span class="keyword">in</span> <span class="number">0.0180</span> seconds</span><br><span class="line"></span><br><span class="line">=&gt; [<span class="string">"test"</span>]</span><br><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">003</span>:<span class="number">0</span>&gt; put <span class="string">'test'</span>, <span class="string">'row1'</span>, <span class="string">'cf:a'</span>, <span class="string">'value1'</span></span><br><span class="line"><span class="number">0</span> <span class="function"><span class="title">row</span><span class="params">(s)</span></span> <span class="keyword">in</span> <span class="number">0.0850</span> seconds</span><br><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">004</span>:<span class="number">0</span>&gt; put <span class="string">'test'</span>, <span class="string">'row2'</span>, <span class="string">'cf:b'</span>, <span class="string">'value2'</span></span><br><span class="line"><span class="number">0</span> <span class="function"><span class="title">row</span><span class="params">(s)</span></span> <span class="keyword">in</span> <span class="number">0.0110</span> seconds</span><br><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">005</span>:<span class="number">0</span>&gt; put <span class="string">'test'</span>, <span class="string">'row3'</span>, <span class="string">'cf:c'</span>, <span class="string">'value3'</span></span><br><span class="line"><span class="number">0</span> <span class="function"><span class="title">row</span><span class="params">(s)</span></span> <span class="keyword">in</span> <span class="number">0.0100</span> seconds</span><br><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">006</span>:<span class="number">0</span>&gt; scan <span class="string">'test'</span></span><br><span class="line">ROW                                      COLUMN+CELL</span><br><span class="line"> row1                                    column=cf:<span class="tag">a</span>, timestamp=<span class="number">1421762485768</span>, value=value1</span><br><span class="line"> row2                                    column=cf:<span class="tag">b</span>, timestamp=<span class="number">1421762491785</span>, value=value2</span><br><span class="line"> row3                                    column=cf:c, timestamp=<span class="number">1421762496210</span>, value=value3</span><br><span class="line"><span class="number">3</span> <span class="function"><span class="title">row</span><span class="params">(s)</span></span> <span class="keyword">in</span> <span class="number">0.0230</span> seconds</span><br><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">007</span>:<span class="number">0</span>&gt; get <span class="string">'test'</span>, <span class="string">'row1'</span></span><br><span class="line">COLUMN                                   CELL</span><br><span class="line"> cf:<span class="tag">a</span>                                    timestamp=<span class="number">1421762485768</span>, value=value1</span><br><span class="line"><span class="number">1</span> <span class="function"><span class="title">row</span><span class="params">(s)</span></span> <span class="keyword">in</span> <span class="number">0.0350</span> seconds</span><br><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">008</span>:<span class="number">0</span>&gt; disable <span class="string">'test'</span></span><br><span class="line"><span class="number">0</span> <span class="function"><span class="title">row</span><span class="params">(s)</span></span> <span class="keyword">in</span> <span class="number">1.1820</span> seconds</span><br><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">011</span>:<span class="number">0</span>&gt; drop <span class="string">'test'</span></span><br><span class="line"><span class="number">0</span> <span class="function"><span class="title">row</span><span class="params">(s)</span></span> <span class="keyword">in</span> <span class="number">0.1370</span> seconds</span><br></pre></td></tr></table></figure>
-<p><a href="http://hbase.apache.org/book.html#quickstart" target="_blank" rel="external">HBase 官方链接</a></p>
-
-      
-    </div>
-    <footer>
-      
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
+  <div class="archive">
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-09-16T02:57:04.000Z"><a href="/2015/09/16/hbase-1/">2015-09-16</a></time>
+            
+              <h1 class="title"><a href="/2015/09/16/hbase-1/">HBase系列（一）</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-09-07T11:58:40.000Z"><a href="/2015/09/07/mysql-ec/">2015-09-07</a></time>
+            
+              <h1 class="title"><a href="/2015/09/07/mysql-ec/">mysql:C源代码内嵌SQL语句的预编译工具</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-08-20T07:29:34.000Z"><a href="/2015/08/20/dlvs/">2015-08-20</a></time>
+            
+              <h1 class="title"><a href="/2015/08/20/dlvs/">使用lvs+keepalived为mysql提供高可靠的负载分担功能</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-08-08T05:39:26.000Z"><a href="/2015/08/08/baidu-palo/">2015-08-08</a></time>
+            
+              <h1 class="title"><a href="/2015/08/08/baidu-palo/">百度PALO技术整理分析</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-07-02T14:08:53.000Z"><a href="/2015/07/02/nginx-keepalived/">2015-07-02</a></time>
+            
+              <h1 class="title"><a href="/2015/07/02/nginx-keepalived/">使用nginx+keepalived实现RESTful API服务器的负载均衡和高可靠性</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-06-10T11:22:01.000Z"><a href="/2015/06/10/hibernate-hello/">2015-06-10</a></time>
+            
+              <h1 class="title"><a href="/2015/06/10/hibernate-hello/">Hibernate之Hello World</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-06-02T15:09:19.000Z"><a href="/2015/06/02/mr-detail-2/">2015-06-02</a></time>
+            
+              <h1 class="title"><a href="/2015/06/02/mr-detail-2/">MapReduce具体问题（二）</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-05-28T15:11:15.000Z"><a href="/2015/05/28/python-homework-2/">2015-05-28</a></time>
+            
+              <h1 class="title"><a href="/2015/05/28/python-homework-2/">python学习作业（二）</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-05-25T00:44:33.000Z"><a href="/2015/05/25/mr-detail-1/">2015-05-25</a></time>
+            
+              <h1 class="title"><a href="/2015/05/25/mr-detail-1/">MapReduce具体问题（一）</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
+      <article class="post">
+        <div class="post-content">
+          <header>
+            <div class="icon"></div>
+            <time datetime="2015-05-20T01:16:04.000Z"><a href="/2015/05/20/hive-intro-1/">2015-05-20</a></time>
+            
+              <h1 class="title"><a href="/2015/05/20/hive-intro-1/">读书笔记：hive简介（一）</a></h1>
+            
+          </header>
+        </div>
+      </article>
+    
   </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-09-07T11:58:40.000Z"><a href="/2015/09/07/mysql-ec/">2015-09-07</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/09/07/mysql-ec/">mysql:C源代码内嵌SQL语句的预编译工具</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p><strong>本文较水  哪篇不水</strong></p>
-<p>今天遇到一个比较好玩的东西，记下来跟大家分享。<br>我们知道操作数据库，在JAVA环境中一般会使用JDBC，不管是mysql、oracle还是别的什么数据库都可以比较好的支持；但在一些比较古老（或者说比较谨慎）的系统中，比如银行业，可能其应用使用的还是C语言写的，这种情况JDBC是没门了，只能调用对应数据库提供的C lib，例如mysql的C库提供了这些接口：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">MYSQL *mysql_init(MYSQL *mysql)</span><br><span class="line">MYSQL *mysql_real_connect(MYSQL *mysql, <span class="keyword">const</span> <span class="keyword">char</span> *host, <span class="keyword">const</span> <span class="keyword">char</span> *user, <span class="keyword">const</span> <span class="keyword">char</span> *passwd, <span class="keyword">const</span> <span class="keyword">char</span> *db, <span class="keyword">unsigned</span> <span class="keyword">int</span> port, <span class="keyword">const</span> <span class="keyword">char</span> *unix_socket, <span class="keyword">unsigned</span> <span class="keyword">long</span> client_flag)</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">mysql_query</span><span class="params">(MYSQL *mysql, <span class="keyword">const</span> <span class="keyword">char</span> *stmt_str)</span></span></span><br></pre></td></tr></table></figure></p>
-<p>有了C库，按照一般的思路，直接在C里面调用对应的API就好了，但显然这样不如直接写SQL方便。于是像Oracle就提供了<a href="http://baike.baidu.com/link?url=GeQqyf0TdG0m3EWrFIVO7LIw8yUsjzAFA7E4VKm_s21kOWD2rePSmVCKCyUWT5GGdKm-v8EJ8U0HWZMZGmlv8K" target="_blank" rel="external">Pro*C</a>这种工具。<br>说白了PRO*C就是一种预编译工具，我们写的代码是C和SQL混合的，这样的代码没办法直接编译，gcc不认。PRO<em>C会将该代码（</em>.pc）转为纯C代码，这样就可以用gcc编译为可执行文件了。但PRO*C是为ORACLE服务的，编译出来的代码调用的也是ORACLE的C库，显然我们想给mysql用是行不通的，需要一款类似的工具。其他的数据库，如IBM DB2有PREP，Informix和Postgre SQL Server都有自己的ESQL/C工具。</p>
-<p>在网上扒了半天，找到了这么一个工具，<a href="http://sourceforge.net/projects/open-esql/" target="_blank" rel="external">open esql</a>。下载下来解压后看到两个文件夹，e2odbc是使用ODBC，理论上应该适应所有类型的数据库，而e2mysql是我们要用的。进到e2mysql看到有三个文件：<code>e2mysql.awk  e2mysql.cpp  e2mysql.h</code>。e2mysql.awk是一个awk脚本，用来预处理pc混合文件；e2mysql.cpp用来定义数据库连接信息。</p>
-<p>使用步骤如下：</p>
-<p><strong>1、使用awk脚本转换pc文件为C++文件。</strong><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># awk -f e2mysql.awk xxx.pc &gt; xxx.cpp</span></span><br></pre></td></tr></table></figure></p>
-<p>预处理实际就是文本转换处理，正是awk的用武之地。</p>
-<p><strong>2、将xxx.cpp与e2mysql.cpp一起编译。</strong><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># g++ xxx.cpp e2mysql.cpp -o xxx `mysql_config --cflags --libs`</span></span><br></pre></td></tr></table></figure></p>
-<p>步骤很简单，但过程中遇到了一些问题，这里记一下，您自己解决起来应该也比较简单。<br>1、g++编译的时候提示没有sqlda.h、sqlcpr.h。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">xxx.cpp:<span class="number">7</span>:<span class="number">21</span>: error: sqlda.h: No such file or directory</span><br><span class="line">xxx.cpp:<span class="number">8</span>:<span class="number">20</span>: warning: extra tokens at end of <span class="preprocessor">#include directive</span></span><br><span class="line">xxx.cpp:<span class="number">8</span>:<span class="number">22</span>: error: sqlcpr.h: No such file or directory</span><br></pre></td></tr></table></figure></p>
-<p>PRO*C的源文件里会调用这两个头文件，我们没有，删掉即可。如果是在生产环境，建议创建这两个头文件，为空即可。</p>
-<p>2、提示e2mysql.h里没有定义strlen。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">e2mysql.h: In function ‘<span class="function"><span class="keyword">int32_t</span> <span class="title">SQLBindParmPoly</span><span class="params">(<span class="built_in">std</span>::<span class="built_in">string</span>&amp;, <span class="keyword">const</span> <span class="keyword">char</span>*, <span class="keyword">char</span>, <span class="keyword">uint16_t</span>)</span>’:</span><br><span class="line">e2mysql.h:176: error: ‘<span class="built_in">strlen</span>’ was not declared in <span class="keyword">this</span> scope</span></span><br></pre></td></tr></table></figure></p>
-<p>strlen是C的string函数，需要包含cstring头文件：<code>#include &lt;cstring&gt;</code>。</p>
-<p>3、提示e2mysql.h里没有定义atoi。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">e2mysql.h: In function ‘<span class="function"><span class="keyword">int32_t</span> <span class="title">SQLBindColPoly</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span>*, <span class="keyword">int16_t</span>&amp;, <span class="keyword">uint16_t</span>)</span>’:</span><br><span class="line">e2mysql.h:319: error: ‘atoi’ was not declared in <span class="keyword">this</span> scope</span></span><br></pre></td></tr></table></figure></p>
-<p>atoi是stdlib里的函数，需要包含该头文件：<code>#include &lt;stdlib.h&gt;</code>。</p>
-<p>4、提示EXEC不识别。<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">xxx.cpp:<span class="number">13</span>: <span class="keyword">error</span>: ‘EXEC’ <span class="keyword">does</span> <span class="keyword">not</span> <span class="property">name</span> a type</span><br></pre></td></tr></table></figure></p>
-<p>找到代码里是这一句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*RELEASE_CURSOR=YES 使PROC 在执行完后释放与嵌入SQL有关资源*/</span></span><br><span class="line">EXEC ORACLE OPTION (RELEASE_CURSOR = YES);</span><br></pre></td></tr></table></figure></p>
-<p>显然这句是跟ORACLE相关的，工具不认。我这里粗暴的将这句注释掉了。</p>
-<p>5、提示使用了int16类型不识别。<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">xxx.cpp:<span class="number">33</span>: <span class="keyword">error</span>: ‘int16’ <span class="keyword">does</span> <span class="keyword">not</span> <span class="property">name</span> a type</span><br><span class="line">xxx.cpp:<span class="number">61</span>: <span class="keyword">error</span>: ‘int16’ <span class="keyword">does</span> <span class="keyword">not</span> <span class="property">name</span> a type</span><br><span class="line">xxx.cpp:<span class="number">78</span>: <span class="keyword">error</span>: ‘int16’ <span class="keyword">does</span> <span class="keyword">not</span> <span class="property">name</span> a type</span><br></pre></td></tr></table></figure></p>
-<p>应该是作者的环境不是gcc，而是一些能认int16这种变体的windows环境。这个是在awk预编译的时候生成的，需要改awk脚本源码，我这里是整体替换为了short int。</p>
-<p>6、提示sqlca_struct里没有sqlerrm。<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">xxx<span class="class">.cpp</span>: In function ‘void <span class="function"><span class="title">sql_error</span><span class="params">(char*)</span></span>’:</span><br><span class="line">xxx<span class="class">.cpp</span>:<span class="number">92</span>: error: ‘struct sqlca_struct’ has no member named ‘sqlerrm’</span><br></pre></td></tr></table></figure></p>
-<p>如上，sqlca是oracle特有的，这儿不识别，注释掉即可。</p>
-<p>7、编译成功，执行的时候提示连不上<code>&#39;abc.xyz.com&#39;</code>。<br>看了下awk脚本，没有对connect做转换，而e2mysql.cpp里有个SQLHelperConnect(void)函数，里面可以修改数据库连接信息，改之，重新编译，验证OK。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ./xxx</span></span><br><span class="line">Connecting to database</span><br><span class="line">Connected: <span class="built_in">test</span></span><br><span class="line">c1=<span class="number">100</span>,c2=<span class="number">200</span>,c3=<span class="number">300</span></span><br></pre></td></tr></table></figure></p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; select * from xxx;</span><br><span class="line">+------+------+------+</span><br><span class="line">| c1   | c2   | c3   |</span><br><span class="line">+------+------+------+</span><br><span class="line">|  <span class="number">100</span> |  <span class="number">200</span> |  <span class="number">300</span> |</span><br><span class="line">+------+------+------+</span><br><span class="line"><span class="number">1</span> row <span class="keyword">in</span> <span class="built_in">set</span> (<span class="number">0.00</span> sec)</span><br></pre></td></tr></table></figure>
-<p>8、如果提示没有mysql.h，或者找不到mysqlclient的lib，建议安装mysql-devel(centos 6.5)，并且在编译的时候，不要手工指定-I、-L、-lmysqlclient，而是用mysql_config自动配置：<code>mysql_config --cflags --libs</code>。</p>
-<p>总的来说这个脚本在不复杂的情况下还是能用的，但确实不成熟，如果有大量的C文件，需要一个一个去转，而且每个文件可能都要做一些修改；没能像PRO*C那样可以返回SQL执行的结果，用户用起来不方便；等等。解决问题的思路没错，但如果要商业化，还是有很长的路要走。</p>
-<p>所有源文件放到github上了，参见<a href="https://github.com/silenceshell/open-esql-s" target="_blank" rel="external">open-esql-s</a>。</p>
-
-      
-    </div>
-    <footer>
-      
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-08-20T07:29:34.000Z"><a href="/2015/08/20/dlvs/">2015-08-20</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/08/20/dlvs/">使用lvs+keepalived为mysql提供高可靠的负载分担功能</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <h3 id="需求">需求</h3><h3 id="1_安装软件">1 安装软件</h3><p>基本所有的Linux版本内核都包含了LVS，不需要再安装。<br>安装ipvsadm，用来控制内核lvs表项；<br>keepalived，用来控制虚IP迁移；<br>ldirectord，现在还没有用到。可以用来检测real server是否可用。<br>我用的是centos，直接yum安装即可。</p>
-<h3 id="2_组网">2 组网</h3><p>使用了4台虚拟机，本机连接到其中虚拟机里的mysql服务。<br>组网图如下。<br><img src="http://7xir15.com1.z0.glb.clouddn.com/SLB_LVS.png" alt=""></p>
-<h3 id="3_配置keepalived">3 配置keepalived</h3><p>需要在DLVS1、DLVS2两台服务器上配置keepalived。keepalived需要配置2个VRRP实例：<br>VRRP实例1:供外部用户访问，DLVS故障恢复不影响用户访问，对应虚IP1；<br>VRRP实例2：供mysql服务器访问。由于在本例中lvs配置成nat模式，mysql集群上的各个机器需要配置网关为DLVS的内部虚IP，否则DLVS迁移后，mysql上报文回不去。对应虚IP2，即Real Server(RS)的网关地址。<br>其中，DLVS1的priority均配置为101，DLVS2的priority均配置为100。DLVS1、DLVS2均正常时，DLVS1优先级更高，所以虚IP落在DLVS1上；若DLVS1故障，VRRP迁移，虚IP改落在DLVS2上；DLVS1故障恢复后，会抢占回虚IP。</p>
-<blockquote>
-<p>由于两台服务器配置基本是一致的，为了避免发生过多的虚IP迁移，这里我们把VRRP配置为不抢占模式。<br>具体到配置上，两台设备均配置VRRP state为BACKUP（当然这样会有一个影响，因为现在没有MASTER，启动以后要稍等一会才会抢占虚IP）；计划为主的设备，VRRPpriority配置更大，并且添加nopreempt。备设备不需要再加preempt。</p>
-</blockquote>
-<p>/etc/keepalived/keepalived.conf：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">! Configuration File <span class="keyword">for</span> keepalived</span><br><span class="line">global_defs &#123;</span><br><span class="line">   <span class="comment">#不做修改</span></span><br><span class="line">&#125;</span><br><span class="line">vrrp_instance VI_1 &#123;</span><br><span class="line">    state BACKUP</span><br><span class="line">    interface eth2</span><br><span class="line">    virtual_router_id <span class="number">51</span></span><br><span class="line">    priority <span class="number">101</span></span><br><span class="line">    nopreempt</span><br><span class="line">    advert_int <span class="number">1</span></span><br><span class="line">    authentication &#123;</span><br><span class="line">        auth_<span class="built_in">type</span> PASS</span><br><span class="line">        auth_pass <span class="number">1111</span></span><br><span class="line">    &#125;</span><br><span class="line">    virtual_ipaddress &#123;</span><br><span class="line">        <span class="number">192.168</span>.<span class="number">80.111</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">vrrp_instance VI_2 &#123;</span><br><span class="line">    state BACKUP</span><br><span class="line">    interface eth1</span><br><span class="line">    virtual_router_id <span class="number">52</span></span><br><span class="line">    priority <span class="number">101</span></span><br><span class="line">    nopreempt</span><br><span class="line">    advert_int <span class="number">1</span></span><br><span class="line">    authentication &#123;</span><br><span class="line">        auth_<span class="built_in">type</span> PASS</span><br><span class="line">        auth_pass <span class="number">1111</span></span><br><span class="line">    &#125;</span><br><span class="line">    virtual_ipaddress &#123;</span><br><span class="line">        <span class="number">10.80</span>.<span class="number">1.243</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>这里我没有检查LVS服务是否可靠。DLVS进程起来以后，keepalived需要脚本检查DLVS进程是否正常，如果故障了需要切换。怎么设置参考我之前的<a href="http://www.datastart.cn/2015/07/02/nginx-keepalived/" target="_blank" rel="external">文章</a>。</p>
-<h3 id="4_配置RS">4 配置RS</h3><p>RS上主要配置MySQL和网络：<br>1、安装及配置MySQL。安装不再赘述，需要配置MySQL远程访问及root密码：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="operator"><span class="keyword">GRANT</span> <span class="keyword">ALL</span> <span class="keyword">PRIVILEGES</span> <span class="keyword">ON</span> *.* <span class="keyword">TO</span> <span class="string">'root'</span>@<span class="string">'%'</span> <span class="keyword">IDENTIFIED</span> <span class="keyword">BY</span> <span class="string">'123456'</span> <span class="keyword">WITH</span> <span class="keyword">GRANT</span> <span class="keyword">OPTION</span>;</span></span><br><span class="line"><span class="operator"><span class="keyword">FLUSH</span> <span class="keyword">PRIVILEGES</span>;</span></span><br></pre></td></tr></table></figure></p>
-<p>2、配置网络<br>centos的配置文件在<code>/etc/sysconfig/network-scripts/ifcfg-ethx</code><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">DEVICE=<span class="string">"eth0"</span></span><br><span class="line">BOOTPROTO=<span class="string">"static"</span></span><br><span class="line">IPV6INIT=<span class="string">"yes"</span></span><br><span class="line">NM_CONTROLLED=<span class="string">"yes"</span></span><br><span class="line">IPADDR=<span class="number">192.168</span>.<span class="number">80.136</span></span><br><span class="line">NETMASK=<span class="number">255.255</span>.<span class="number">255.0</span></span><br><span class="line">GATEWAY=<span class="number">192.168</span>.<span class="number">80.111</span></span><br><span class="line">ONBOOT=<span class="string">"yes"</span></span><br><span class="line">TYPE=<span class="string">"Ethernet"</span></span><br></pre></td></tr></table></figure></p>
-<h3 id="5_配置LVS">5 配置LVS</h3><p>LVS主要配置virtual server和real server，以及开启IP转发。<br>ipvsadm的配置就不再多说，直接看man手册即可。<br>为了方便以后用，把ipvsadm命令组织到service脚本中，可以<code>service dlvs start/stop</code>。由于ipvsadm的配置不会保存，如果设备故障重启了就没了，需要把service start加到系统启动过程中。<br>脚本：<code>/etc/init.d/dlvs</code><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="shebang">#!/bin/sh</span></span><br><span class="line">VIP=<span class="number">10.80</span>.<span class="number">1.243</span></span><br><span class="line">RIP1=<span class="number">192.168</span>.<span class="number">80.167</span></span><br><span class="line">RIP2=<span class="number">192.168</span>.<span class="number">80.136</span></span><br><span class="line">SERVPORT=<span class="number">3306</span></span><br><span class="line">. /etc/rc.d/init.d/<span class="built_in">functions</span></span><br><span class="line"><span class="keyword">case</span> <span class="string">"<span class="variable">$1</span>"</span> <span class="keyword">in</span></span><br><span class="line">    start)</span><br><span class="line">        <span class="built_in">echo</span> <span class="string">" start DLVS of Director Server"</span></span><br><span class="line">        <span class="built_in">echo</span> <span class="string">"1"</span> &gt;/proc/sys/net/ipv4/ip_forward</span><br><span class="line">        /sbin/ipvsadm -C</span><br><span class="line">        /sbin/ipvsadm -A -t <span class="variable">$VIP</span>:<span class="variable">$SERVPORT</span> <span class="operator">-s</span> rr</span><br><span class="line">        /sbin/ipvsadm <span class="operator">-a</span> -t <span class="variable">$VIP</span>:<span class="variable">$SERVPORT</span> -r <span class="variable">$RIP1</span>:<span class="variable">$SERVPORT</span> -m</span><br><span class="line">        /sbin/ipvsadm <span class="operator">-a</span> -t <span class="variable">$VIP</span>:<span class="variable">$SERVPORT</span> -r <span class="variable">$RIP2</span>:<span class="variable">$SERVPORT</span> -m</span><br><span class="line">        service iptables stop</span><br><span class="line">        ;;</span><br><span class="line">    stop)</span><br><span class="line">        <span class="built_in">echo</span> <span class="string">"close DLVS Director Server"</span></span><br><span class="line">        <span class="built_in">echo</span> <span class="string">"0"</span> &gt;/proc/sys/net/ipv4/ip_forward</span><br><span class="line">        /sbin/ipvsadm -C</span><br><span class="line">        ;;</span><br><span class="line">    *)</span><br><span class="line">        <span class="built_in">echo</span> <span class="string">"Usage: <span class="variable">$0</span> &#123;start|stop&#125;"</span></span><br><span class="line">        <span class="built_in">exit</span> <span class="number">1</span></span><br><span class="line"><span class="keyword">esac</span></span><br></pre></td></tr></table></figure></p>
-<p>将脚本启动加到系统启动过程中。在centos里，需要把用户自己启动的命令加到/etc/rc.local中，即在这个文件中添加一行：<code>service dlvs start</code>。</p>
-<h3 id="6_测试">6 测试</h3><p>DLVS1、DLVS2、RS1、RS2正常启动后，虚IP1、虚IP2均落在DLVS1上（使用ip addr命令）。DLVS1、DLVS2上看lvs内核表项均为：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ipvsadm -l</span></span><br><span class="line">IP Virtual Server version <span class="number">1.2</span>.<span class="number">1</span> (size=<span class="number">4096</span>)</span><br><span class="line">Prot LocalAddress:Port Scheduler Flags</span><br><span class="line">  -&gt; RemoteAddress:Port           Forward Weight ActiveConn InActConn</span><br><span class="line">TCP  <span class="number">10.80</span>.<span class="number">1.243</span>:mysql rr</span><br><span class="line">  -&gt; <span class="number">192.168</span>.<span class="number">80.136</span>:mysql         Masq    <span class="number">1</span>      <span class="number">0</span>          <span class="number">0</span></span><br><span class="line">  -&gt; master:mysql                 Masq    <span class="number">1</span>      <span class="number">1</span>          <span class="number">0</span></span><br></pre></td></tr></table></figure></p>
-<p>从客户端PC访问虚IP1（10.80.1.243），DLVS1将请求NAT到mysql服务器中的某一台，在DLVS1上可以看到ipvs连接信息：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ipvsadm -l -c</span></span><br><span class="line">IPVS connection entries</span><br><span class="line">pro expire state       <span class="built_in">source</span>             virtual            destination</span><br><span class="line">TCP <span class="number">14</span>:<span class="number">53</span>  ESTABLISHED <span class="number">10.80</span>.<span class="number">0.243</span>:<span class="number">50640</span>  <span class="number">10.80</span>.<span class="number">1.243</span>:mysql  master:mysql</span><br></pre></td></tr></table></figure></p>
-<p>将DLVS1整机重启，虚IP1、虚IP2漂移到DLVS2上，客户端再访问mysql服务，会重建连接，在DLVS2上ipvsadm可以看到新建立的connection；DLVS1重启完毕后，连接会再建立到DLVS1上，前面已有描述，略。</p>
-<h3 id="7_待扩展">7 待扩展</h3><h4 id="7-1_内核connection同步">7.1 内核connection同步</h4><p>从前面的例子我们可以看到，虚IP漂移后，DLVS2接手，但是客户端连接需要重新建立，但其实真实的mysql服务器还是正常工作的，对于用户来说连接断开的体验较差。<br>LVS可以通过配置，在内核提供一个同步线程，将当前提供服务的设备上的表项，组播报文同步到其他服务器上。配置如下：<br><figure class="highlight puppet"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[@<span class="constant">D</span>LVS1]$: ipvsadm --<span class="literal">start</span>-daemon master - --mcast-<span class="keyword">interface</span> ethX</span><br><span class="line">[@<span class="constant">D</span>LVS2]$: ipvsadm --<span class="literal">start</span>-daemon <span class="literal">backup</span> - --mcast-<span class="keyword">interface</span> ethY</span><br></pre></td></tr></table></figure></p>
-<p>虚IP切换过以后，内核连接信息都在，就可以保证用户连接不断。<br>但这里还有个问题，在本方案里，所有的LVS其实均为主，而组播线程其实是有主、备身份的，备切过去以后就不能再同步表项了，当主设备回切，连接还是会断。还没有想到办法解决。</p>
-<h4 id="7-2_iptables">7.2 iptables</h4><p>细心的同学会发现前面我粗暴的把iptables服务给整个关闭了，但这其实是很不安全的，正确的做法是添加一条规则。<br>关闭的原因？在实测过程中，发现从mysql返回的syn+ack报文，被DLVS设备的防火墙丢弃并返回了”Destination unreachable (Host administratively prohibited)”。<br>等我知道该怎么添加规则的时候，我就改。</p>
-<h4 id="7-3_ldirectord">7.3 ldirectord</h4><p>现在的方案里，如果是RS级别的故障，LVS可以做到切换，不会将服务NAT到故障的机器；但如果只是mysql服务的故障，LVS还做不到检查，会影响用户访问失败。所以，需要一个工具能够告诉LVS，RS上的服务故障了，不要再转过去了。<br>ldrectord可以搞定这件事情。</p>
-<p>大量参考：<br><a href="http://ixdba.blog.51cto.com/2895551/552947" target="_blank" rel="external">Linux负载均衡软件LVS系列</a></p>
-
-      
-    </div>
-    <footer>
-      
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-08-08T05:39:26.000Z"><a href="/2015/08/08/baidu-palo/">2015-08-08</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/08/08/baidu-palo/">百度PALO技术整理分析</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>以下内容基本源于百度PALO（OLAP分析引擎）对外的一个<a href="http://www.chinahadoop.cn/course/95/learn#lesson/1333" target="_blank" rel="external">视频演讲</a>，讲的比较形象，下面做了简单的摘抄。</p>
-<p><strong>总体架构图</strong><br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_1.png" alt=""></p>
-<p>PALO对外体现为一个mysql的服务器，所有mysql相关的工具：mysql client，JDBC，基于mysql的报表工具、R语言等，都可以直接对接PALO。<br>FE即Front End，PALO使用了RAFT协议来共享元数据，所有FE都可以接收用户请求。RAFT协议类似PAXOS(代表实现zookeeper)，但要简化很多。master故障后，follower可以根据checkpoint进行LOG回放，快速恢复元数据（内存数据库）。RAFT支持较好的横向扩展，observer就是这个作用。</p>
-<p><strong>数据存储</strong><br>hash partition<br>指定表按某一列做hash分区。<br>elastic range partition<br>与hash的散列分布不同，range partition是将数据连续的分区。如何解决列的value范围无法预测的问题呢？开始的时候只有一个分区列，当数据量增长到某一临界点时，将数据平均的分成两份。后面继续类似的处理。这样数据可以比较均衡的分散到不同的分区中。range partition对where友好。</p>
-<p><strong>动态rollup表</strong><br>发现如果用户经常只观察该表的某几个维度，则动态生成rollup表，新表里的维度表只有常用列，由于会有一定的合并，后续查找该表的速度会比较快</p>
-<p><strong>Compation</strong><br>小批量插入的数据，文件越来越多，会导致查询性能越来越差。可以设置一个规则，每隔一段时间将一定批量的数据合并在一起，查询的数据块变少，并且索引更准确，可以提高性能</p>
-<p><strong>行列存</strong><br>每块数据包含256行，快内列式存储，按块压缩。数据压缩比率不高，对于分析型的数据库来说，每次查询都要遍历所有数据库，效率低。<br>稀疏索引：数据的共同特征作为索引常驻内存（每个块对应一个索引），查询时先查索引，找到数据块以后再做解压缩。</p>
-<p><strong>列式存储</strong><br>参考HBASE。带来的优势：<br>1、分析型数据库通常只涉及某些列，可以避免遍历所有数据，减少CPU/IO消耗。PALO采用的是列式存储。<br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_2.png" alt=""><br>2、存储：列的数据类型一致，压缩效率高<br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_3.png" alt=""><br>3、智能索引：PALO会为每一个数据库都生成min max sum，在where sum等计算的时候，可以大幅度提高性能。<br>4、复合分区<br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_4.png" alt=""></p>
-<p><strong>库内分析</strong><br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_5.png" alt=""><br>区别于数据与计算分离，可以解决网络和前端分析机器 性能的瓶颈。要求数据库有计算能力。<br>方法：数据库提供UDF/UDAF/UDTF。</p>
-<p><strong>向量执行引擎</strong><br><img src="http://7xir15.com1.z0.glb.clouddn.com/palo_6.png" alt=""><br>区别于遍历所有行、过滤、计算的模型，向量执行引擎可以将待计算的该列单独拿出来计算。带来的好处：<br>行式处理变为列式处理，避免了指令和数据的cache miss；<br>编译器友好，可以循环展开+分支预测</p>
-<p><strong>数据导入</strong><br>PALO依赖于hadoop，数据必须得先上HDFS，然后分布式的将各个节点上的数据块导入到PALO，导入性能较好。<br>PALO不支持直接实时插入。</p>
-<p><del>小批量更新、批量原子提交</del></p>
-<p><strong>其他</strong></p>
-<ul>
-<li>分布式管理框架，故障快速切换、恢复</li>
-<li>查询引擎：share-noting MPP，可扩展好</li>
-<li>大表分布式join：<br>shuffle，即先hash partition，再做join，join数据量小，适合大量数据与大量数据之间join；<br>broadcast，适合大量数据与小批量数据之间join，小批量数据直接与大批量数据的所有分片做join</li>
-<li>谓词下推<br>实际就是尽早的将where条件下沉到数据库（离数据源越近越好），通过索引可以提早过滤掉数据，减少分析的数据量</li>
-</ul>
-
-      
-    </div>
-    <footer>
-      
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-07-02T14:08:53.000Z"><a href="/2015/07/02/nginx-keepalived/">2015-07-02</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/07/02/nginx-keepalived/">使用nginx+keepalived实现RESTful API服务器的负载均衡和高可靠性</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>核心需求是我们有一个RESTful API的服务集群，需要能够保证不管是web服务故障还是服务器整体故障，外部访问不会间断，并且在整体运行正常的时候，需要能够负载均衡。<br>业界比较常见的几个负载均衡方案有haproxy, nginx, lvs。有关这仨的比较，可以看<a href="http://www.csdn.net/article/2014-07-24/2820837">这篇文章</a>。我这里选择的方案是nginx+keepalived。nginx做反向代理，可以实现负载均衡，如果后端的web服务故障了，nginx可以实现切换；但nginx本身存在单点故障，需要通过keepalived监测实现nginx的切换。</p>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/07/02/nginx-keepalived/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-06-10T11:22:01.000Z"><a href="/2015/06/10/hibernate-hello/">2015-06-10</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/06/10/hibernate-hello/">Hibernate之Hello World</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>Hibernate是一个优秀的持久化框架，其主要功能是将内存里的瞬时状态，通过JDBC持久化到硬盘数据库上。Hibernate以面向对象的思想来解决数据库的问题，可以简化数据库的访问。<br>这篇文章通过一个简单的示例，来建立Hibernate的初步认识，较水，记录用。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/06/10/hibernate-hello/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-06-02T15:09:19.000Z"><a href="/2015/06/02/mr-detail-2/">2015-06-02</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/06/02/mr-detail-2/">MapReduce具体问题（二）</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>前一篇文章解答了Map任务数、启动人的细节，下面我们解答第二个问题：<br>HDFS的block是否粗暴但忠实的将文件按照64MB分片呢？如果是的话，怎么保证Map获取到的Splits是正确的？具体到wordcount，MR是怎么处理一个单词跨block的情况呢？</p>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/06/02/mr-detail-2/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-05-28T15:11:15.000Z"><a href="/2015/05/28/python-homework-2/">2015-05-28</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/05/28/python-homework-2/">python学习作业（二）</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>需求：生成纯文本格式的表数据，导入ODPS/ADS等。用户可以定义表的格式。<br>最早是想找一个类似DataFactory的工具来做，但今天问了下史进是自己用Java写的，走读了一遍逻辑不太复杂，于是花了些时间写了一个python版本的。</p>
-<p>实现思路非常简单：配置文件使用json格式，python读取配置文件，按每一行的格式随机生成内容，每行生成后写入文件，最后关闭文件，结束。<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/05/28/python-homework-2/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-05-25T00:44:33.000Z"><a href="/2015/05/25/mr-detail-1/">2015-05-25</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/05/25/mr-detail-1/">MapReduce具体问题（一）</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>MapReduce比较基础，但是经常会有一些问题不是很清楚，这一系列文章会解答几个经常问的问题。<br>本文解答第一个问题：是谁决定要起几个Map任务？在什么阶段呢？<br>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/05/25/mr-detail-1/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-    <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-05-20T01:16:04.000Z"><a href="/2015/05/20/hive-intro-1/">2015-05-20</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/05/20/hive-intro-1/">读书笔记：hive简介（一）</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>Hive是一个运行在hadoop之上的数据仓库(dataware)，目的是为精通SQL但不熟悉java的分析师提供一个在hadoop平台上数据分析的工具。<br>Hive提供类似SQL的接口，但并不完全相同：Hive没有完全实现SQL的所有语法，但又结合MR任务提供了一些新的方法。分析师按照HQL的语法提交任务，Hive将HQL语句翻译为MR作业。</p>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/05/20/hive-intro-1/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-  
-
-  <nav id="pagination">
-  
-  
-    <a href="/archives/page/2/" class="alignright next">下一頁</a>
-  
-  <div class="clearfix"></div>
-</nav>
 </div></div>
     <aside id="sidebar" class="alignright">
   <div class="search">
