@@ -4,7 +4,7 @@
   
   <link href="/atom.xml" rel="self"/>
   <link href="http://yoursite.com/"/>
-  <updated>2015-09-16T03:13:42.749Z</updated>
+  <updated>2015-11-11T06:08:13.410Z</updated>
   <id>http://yoursite.com/</id>
   
   <author>
@@ -13,6 +13,31 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title><![CDATA[小玩意：如何让linux上挂死的进程重启？]]></title>
+    <link href="http://yoursite.com/2015/11/11/task-restart/"/>
+    <id>http://yoursite.com/2015/11/11/task-restart/</id>
+    <published>2015-11-11T05:52:06.000Z</published>
+    <updated>2015-11-11T06:08:13.410Z</updated>
+    <content type="html"><![CDATA[<p>需求是这样的：我们在linux服务器上有一个采集进程，担心该进程出现故障挂死或者被人误杀，这种情况下需要能自动重启。使用peacemaker这样的分布式管理工具可以做到进程的监控，但毕竟体量较大，部署也稍嫌麻烦。<br>其实，使用keepalived就可以满足这种需求，部署起来也很简单，做个记录供以后查阅。</p>
+<h3 id="1、安装keepalived">1、安装keepalived</h3><h3 id="2、配置keepalived检测">2、配置keepalived检测</h3><p>修改/etc/keepalived/keepalived.conf<br><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="title">vrrp_script</span> check_dtm &#123;</span><br><span class="line">    <span class="title">script</span> <span class="string">"/etc/keepalived/check_dtm.sh"</span></span><br><span class="line">    interval <span class="number">1</span></span><br><span class="line">    weight -<span class="number">5</span></span><br><span class="line">    fall <span class="number">3</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">vrrp_instance VI_1 &#123;</span><br><span class="line">    <span class="title">state</span> MASTER</span><br><span class="line">    interface eth0</span><br><span class="line">    virtual_router_id <span class="number">51</span></span><br><span class="line">    priority <span class="number">100</span></span><br><span class="line">    advert_int <span class="number">1</span></span><br><span class="line">    authentication &#123;</span><br><span class="line">        <span class="title">auth_type</span> PASS</span><br><span class="line">        auth_pass <span class="number">1111</span></span><br><span class="line">    &#125;</span><br><span class="line">    virtual_ipaddress &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title">track_script</span> &#123;</span><br><span class="line">       <span class="title">check_dtm</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上配置，对VI_1实例配置track脚本，每秒检测一次，实际检测的脚本是check_dtm.sh。<br>由于我们只是使用keepalived的check功能，所以virtual_address和virtual_server的功能都不需要，相关配置全部删除。</p>
+<h3 id="3、配置检测脚本check_dtm-sh">3、配置检测脚本<code>check_dtm.sh</code></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="shebang">#!/bin/bash</span></span><br><span class="line">ps aux|grep dtmonitor|grep java</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> [ $? != <span class="number">0</span> ] ; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="string">"dtmonitor is down, try to restart."</span></span><br><span class="line">    bash /opt/dtmonitor/monitor/start.sh</span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+<p>真正做到重启的地方。简单来说，检查进程是否还在（当然可以做的粒度更准确一些，例如定时写一些文件之类），如果进程没了，则调用采集进程的启动脚本，尝试重启。</p>
+<h3 id="4、采集进程的启动脚本。">4、采集进程的启动脚本。</h3><p>在采集进程的目录中（即/opt/dtmonitor/monitor/）编辑start.sh文件：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="shebang">#!/bin/bash</span><br><span class="line"></span></span><br><span class="line">CURDIR=<span class="string">"`dirname <span class="variable">$0</span>`"</span></span><br><span class="line">java -jar <span class="variable">$CURDIR</span>/dtmonitor.jar &amp;</span><br><span class="line"><span class="built_in">echo</span> <span class="string">"dtmonitor is started."</span></span><br></pre></td></tr></table></figure></p>
+<p>注意当前目录的切换。</p>
+<p>如上，启动keepalived服务后，杀死dtmonitor进程，可以观察到1s左右dtmonitor进程被keepalived服务重启了。</p>
+]]></content>
+    <summary type="html">
+    <![CDATA[<p>需求是这样的：我们在linux服务器上有一个采集进程，担心该进程出现故障挂死或者被人误杀，这种情况下需要能自动重启。使用peacemaker这样的分布式管理工具可以做到进程的监控，但毕竟体量较大，部署也稍嫌麻烦。<br>其实，使用keepalived就可以满足这种需求，部署]]>
+    </summary>
+    
+      <category term="keepalived" scheme="http://yoursite.com/tags/keepalived/"/>
+    
+      <category term="linux" scheme="http://yoursite.com/tags/linux/"/>
+    
+  </entry>
   
   <entry>
     <title><![CDATA[HBase系列（一）]]></title>
@@ -342,86 +367,6 @@
     </summary>
     
       <category term="hadoop" scheme="http://yoursite.com/tags/hadoop/"/>
-    
-  </entry>
-  
-  <entry>
-    <title><![CDATA[读书笔记：hive简介（一）]]></title>
-    <link href="http://yoursite.com/2015/05/20/hive-intro-1/"/>
-    <id>http://yoursite.com/2015/05/20/hive-intro-1/</id>
-    <published>2015-05-20T01:16:04.000Z</published>
-    <updated>2015-05-21T11:01:27.000Z</updated>
-    <content type="html"><![CDATA[<p>Hive是一个运行在hadoop之上的数据仓库(dataware)，目的是为精通SQL但不熟悉java的分析师提供一个在hadoop平台上数据分析的工具。<br>Hive提供类似SQL的接口，但并不完全相同：Hive没有完全实现SQL的所有语法，但又结合MR任务提供了一些新的方法。分析师按照HQL的语法提交任务，Hive将HQL语句翻译为MR作业。</p>
-<a id="more"></a>
-<h3 id="1_安装">1 安装</h3><p>跟以前一样，我是用Cloudera Manager工具安装的hive。CM可以很方便删除、添加某一服务，安装时可以选择服务运行在哪一台具体设备上。CM界面虽然比ambari丑了一点，但是功能强大很多。需要注意impala/hue/oozie都依赖hive。<br>我安装了这几个服务：</p>
-<ul>
-<li>Hive Metastore Server，元数据服务器。配置时需要指定元数据使用的数据库是什么，我这里指定了psql。</li>
-<li>HiveServer2，thrift服务器，通过JDBC/ODBC可以提供命令行之外的编程接口，如使用java、python等。</li>
-<li>WebHCat Server，Hcatalog的REST API服务器。<br><img src="http://7xir15.com1.z0.glb.clouddn.com/hive架构.jpg" alt="hive架构"></li>
-</ul>
-<h4 id="1-1_hive外壳环境">1.1 hive外壳环境</h4><p>外壳环境是一个交互式的、通过HiveQL与hive交互的工具。hive官方推荐使用beeline（参加上面图，beeline是JDBC上的工具）作为交互式工具，由于还不太熟悉，下面我们还是以CLI(<code>hive</code>命令)为shell。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ hive</span><br><span class="line">WARNING: Hive CLI is deprecated and migration to Beeline is recommended.</span><br><span class="line">hive&gt; show databases;</span><br><span class="line">OK</span><br><span class="line">default</span><br><span class="line">Time taken: <span class="number">1.512</span> seconds, Fetched: <span class="number">1</span> row(s)</span><br></pre></td></tr></table></figure></p>
-<p>hive外壳环境有如下三种使用方法：</p>
-<ul>
-<li>可以直接在shell中使用hiveQL进行交互式的数据库操作。</li>
-<li>可以执行脚本：创建一个文件hive.q，将HQL语句写到hive.q中，然后通过<code>hive -f hive.q</code>执行该文件。</li>
-<li>可以执行内嵌语句：<code>hive -e &#39;show tables;&#39;</code></li>
-</ul>
-<h4 id="1-2_示例">1.2 示例</h4><p>下面我们用网上开房数据作为示例，演示下hive是怎么操作的(此处较水)。<br><strong>a 创建一个表record2</strong><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">hive&gt; create table records2(name STRING, cardno INT, descri STRING, ctftp STRING, ctfid STRING, gender STRING, birth INT)</span><br><span class="line">    &gt; row format delimited</span><br><span class="line">    &gt; fields terminated by <span class="string">','</span>;</span><br><span class="line">OK</span><br></pre></td></tr></table></figure></p>
-<p>解释两点：<br>第一点，该数据一共有30+的column，但实际我们可能并不想分析这么多，hive支持创建一个只有前面几列的表。<br>第二点是后面两行。这个数据是csv格式，实际就是文本格式（如下），创建表的时候我们需要指定数据格式：行记录之间用换行区分（即<code>row format delimited</code>），每一行内各段用逗号区分（即<code>fields terminated by &#39;,&#39;</code>）。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ head <span class="number">5000</span>.csv</span><br><span class="line">﻿Name,CardNo,Descriot,CtfTp,CtfId,Gender,Birthday,Address,Zip,Dirty,District1,District2,District3,District4,District5,District6,FirstNm,LastNm,Duty,Mobile,Tel,Fax,EMail,Nation,Taste,Education,Company,CTel,CAddress,CZip,Family,Version,id</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
-<p><strong>b 将本地文件上传加载到hive</strong><br>实际上这里只是文件的复制，将5000.csv复制到了hdfs的<code>/user/hive/warehouse/records2/</code>目录中去（所以hive是个数据仓库）。<br>指定overwrite可以覆盖原来的table。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">hive&gt; load data <span class="built_in">local</span> inpath <span class="string">'5000.csv'</span></span><br><span class="line">    &gt; overwrite into table records2;</span><br><span class="line">Loading data to table default.records2</span><br></pre></td></tr></table></figure></p>
-<p><strong>c 查询</strong><br>我们查一下去开房的年龄最小的是多大。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">hive&gt; select MAX(birth) from records2 <span class="built_in">where</span> (birth &gt;<span class="number">10000000</span> AND birth &lt; <span class="number">20000000</span>);</span><br><span class="line"><span class="number">2015</span>-<span class="number">05</span>-<span class="number">18</span> <span class="number">05</span>:<span class="number">24</span>:<span class="number">16</span>,<span class="number">328</span> Stage-<span class="number">1</span> map = <span class="number">0</span>%,  reduce = <span class="number">0</span>%</span><br><span class="line"><span class="number">2015</span>-<span class="number">05</span>-<span class="number">18</span> <span class="number">05</span>:<span class="number">24</span>:<span class="number">23</span>,<span class="number">631</span> Stage-<span class="number">1</span> map = <span class="number">100</span>%,  reduce = <span class="number">0</span>%, Cumulative CPU <span class="number">1.84</span> sec</span><br><span class="line"><span class="number">2015</span>-<span class="number">05</span>-<span class="number">18</span> <span class="number">05</span>:<span class="number">24</span>:<span class="number">28</span>,<span class="number">765</span> Stage-<span class="number">1</span> map = <span class="number">100</span>%,  reduce = <span class="number">100</span>%, Cumulative CPU <span class="number">3.03</span> sec</span><br><span class="line">MapReduce Total cumulative CPU time: <span class="number">3</span> seconds <span class="number">30</span> msec</span><br><span class="line">Ended Job = job_1431517711165_0014</span><br><span class="line">MapReduce Jobs Launched:</span><br><span class="line">Stage-Stage-<span class="number">1</span>: Map: <span class="number">1</span>  Reduce: <span class="number">1</span>   Cumulative CPU: <span class="number">3.03</span> sec   HDFS Read: <span class="number">7495191</span> HDFS Write: <span class="number">9</span> SUCCESS</span><br><span class="line">Total MapReduce CPU Time Spent: <span class="number">3</span> seconds <span class="number">30</span> msec</span><br><span class="line">OK</span><br><span class="line"><span class="number">20130101</span></span><br></pre></td></tr></table></figure></p>
-<p>查到年龄最小的是2013年出生的小baby，名字叫做123。虽然我在查找的时候已经考虑到了有些数据统计不准确，把出生日期做了限制，但还是查出来一条不太有用的数据。不知道这是不是就是需要“数据清洗”了？</p>
-<h3 id="2_hive运行解析">2 hive运行解析</h3><h4 id="2-1_配置">2.1 配置</h4><p>配置属性按照下面的的顺序优先级依次递减：</p>
-<ul>
-<li><p>hive shell中SET命令。配置项的值查看也是用SET，只是不要带参数。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hive&gt; <span class="built_in">set</span> hive.metastore.warehouse.dir;</span><br><span class="line">hive.metastore.warehouse.dir=/user/hive/warehouse</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>hive命令行中<code>-hiveconf  configfile</code></p>
-</li>
-<li>hive-site.xml</li>
-</ul>
-<h4 id="2-2_日志">2.2 日志</h4><p>hive使用log4j。</p>
-<h4 id="2-3_hive服务端">2.3 hive服务端</h4><ul>
-<li>cli：也就是我们hive进去的交互式命令行接口。</li>
-<li>hive server 2：thrift服务器。</li>
-<li>metastore server：元数据服务器。</li>
-<li>hive web interface:使用web接口代替命令行。我这里没有安装。</li>
-</ul>
-<h4 id="2-4_客户端">2.4 客户端</h4><p>thrift客户端：支持在C++/python/ruby/PHP/java等语言中嵌入hive命令。<br>JDBC驱动：提供给java应用程序访问hive的方法。<br>ODBC驱动：ODBC程序通过ODBC驱动访问hive。</p>
-<h4 id="2-5_metastore">2.5 metastore</h4><p>metastore存放hive的元数据，主要做两件事：服务，数据存储。metastore有如下几种方式：</p>
-<ul>
-<li>与hive服务在同一进程，使用内嵌数据库（如derby）。问题是对于一个metastore来说只能有一个hive会话，只能单用户。</li>
-<li>与hive服务在同一进程，但使用独立数据库（如mysql、psql、oracle）。可以支持多用户（多会话），但有耦合。</li>
-<li>metastore作为一个独立的进程，可以部署在其他机器上；使用独立数据库。CM部署就是采用了这种模式。另外如果要用impala，不能使用derby。</li>
-</ul>
-<h3 id="3_与传统数据库比较">3 与传统数据库比较</h3><p>hive底层依赖HDFS，导致与传统数据库有不同。</p>
-<h4 id="3-1_读时模式_vs_写时模式">3.1 读时模式 vs 写时模式</h4><p>传统数据库采用的是写时模式，即数据写入数据库的时候，就会检查其是否符合数据库的模式（例如数据库定义本列为INT，传入STRING会报错）。<br>hive采用的是读时模式。数据写入数据库的时候并不检查模式是否合法，直到查询的时候才会检查。</p>
-<p>各有各的优势与应用场景。<br>传统数据库的写时模式可以提高查询性能，写入时也可以做压缩；但欠缺灵活，有时数据库写入时不能确定使用什么模式。<br>hive的读时模式有两个优势：一是在写入数据库的时候速度很快，因为只是文件复制，不需要解析数据；二是更灵活，对于同一份数据可以支持多个模式。hive支持外部表，即数据与表分离，一份数据可以创建多个外部表，表删除时<code>drop table xxx</code>数据不会删除，删除的只是元数据。</p>
-<h4 id="3-2_更新、事务和索引">3.2 更新、事务和索引</h4><p>《权威指南》里指出hive因为强调为整个数据的处理，所以并没有更新这种需求。但实际还是需要追加、索引这些功能的，应该还是会逐渐补充进来的。</p>
-<blockquote>
-<p>update:<br>@史进: hive 0.7之后有了索引功能，0.14之后有了插入功能。</p>
-</blockquote>
-<p>另外，通过将hive和hbase集成后，可以获得传统数据库的这些特性，详细可以查看<a href="https://cwiki.apache.org/confluence/display/Hive/HBaseintegration" target="_blank" rel="external">这里</a>。CSDN上有一篇<a href="http://blog.csdn.net/aaronhadoop/article/details/28398157" target="_blank" rel="external">文章</a>，详细写了整合以后的效果，可以参考。</p>
-<h3 id="4_HiveQL">4 HiveQL</h3><p>hiveQL是SQL的一种方言，并没有完整的支持SQL-92的所有特性，其目标更多的还是为了实际使用。但由于基于MR，hive还提供了SQL-92之外的特性，例如多表插入和transform、map、reduce等子句。</p>
-<p>hiveQL支持两类数据类型：</p>
-<ul>
-<li>原子数据类型：<br>TINYINT,SMALLINT,INT,BIGINT,BOOLEAN,FLOAT,DOUBLE,STRING,BINARY,TIMESTAMP,DECIMAL,CHAR,VARCHAR,DATE。原子数据类型支持隐性类型转换，其原则为往表达范围更大的方向转换；也可以使用CAST子句显式转换，如<code>CAST &#39;1&#39; AS INT</code>将字符1转换为整型的1。</li>
-<li>复杂类型：ARRAY,MAP,STRUCT,UNION</li>
-</ul>
-<p>有关各类型的详细信息请参考<a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+Types" target="_blank" rel="external">hive wiki</a></p>
-<blockquote>
-<p>挖坑不止， 未完待续</p>
-</blockquote>
-<p>参考：<br><a href="http://database.51cto.com/art/201407/446692.htm" target="_blank" rel="external">51cto：Hive已为Hadoop带来实时查询机制</a><br>《hadoop权威指南》</p>
-]]></content>
-    <summary type="html">
-    <![CDATA[<p>Hive是一个运行在hadoop之上的数据仓库(dataware)，目的是为精通SQL但不熟悉java的分析师提供一个在hadoop平台上数据分析的工具。<br>Hive提供类似SQL的接口，但并不完全相同：Hive没有完全实现SQL的所有语法，但又结合MR任务提供了一些新的方法。分析师按照HQL的语法提交任务，Hive将HQL语句翻译为MR作业。</p>]]>
-    
-    </summary>
-    
-      <category term="hadoop" scheme="http://yoursite.com/tags/hadoop/"/>
-    
-      <category term="hive" scheme="http://yoursite.com/tags/hive/"/>
     
   </entry>
   

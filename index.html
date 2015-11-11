@@ -81,6 +81,46 @@ _ts(option);
     <header>
       
         <div class="icon"></div>
+        <time datetime="2015-11-11T05:52:06.000Z"><a href="/2015/11/11/task-restart/">2015-11-11</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2015/11/11/task-restart/">小玩意：如何让linux上挂死的进程重启？</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>需求是这样的：我们在linux服务器上有一个采集进程，担心该进程出现故障挂死或者被人误杀，这种情况下需要能自动重启。使用peacemaker这样的分布式管理工具可以做到进程的监控，但毕竟体量较大，部署也稍嫌麻烦。<br>其实，使用keepalived就可以满足这种需求，部署起来也很简单，做个记录供以后查阅。</p>
+<h3 id="1、安装keepalived">1、安装keepalived</h3><h3 id="2、配置keepalived检测">2、配置keepalived检测</h3><p>修改/etc/keepalived/keepalived.conf<br><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="title">vrrp_script</span> check_dtm &#123;</span><br><span class="line">    <span class="title">script</span> <span class="string">"/etc/keepalived/check_dtm.sh"</span></span><br><span class="line">    interval <span class="number">1</span></span><br><span class="line">    weight -<span class="number">5</span></span><br><span class="line">    fall <span class="number">3</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">vrrp_instance VI_1 &#123;</span><br><span class="line">    <span class="title">state</span> MASTER</span><br><span class="line">    interface eth0</span><br><span class="line">    virtual_router_id <span class="number">51</span></span><br><span class="line">    priority <span class="number">100</span></span><br><span class="line">    advert_int <span class="number">1</span></span><br><span class="line">    authentication &#123;</span><br><span class="line">        <span class="title">auth_type</span> PASS</span><br><span class="line">        auth_pass <span class="number">1111</span></span><br><span class="line">    &#125;</span><br><span class="line">    virtual_ipaddress &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title">track_script</span> &#123;</span><br><span class="line">       <span class="title">check_dtm</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上配置，对VI_1实例配置track脚本，每秒检测一次，实际检测的脚本是check_dtm.sh。<br>由于我们只是使用keepalived的check功能，所以virtual_address和virtual_server的功能都不需要，相关配置全部删除。</p>
+<h3 id="3、配置检测脚本check_dtm-sh">3、配置检测脚本<code>check_dtm.sh</code></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="shebang">#!/bin/bash</span></span><br><span class="line">ps aux|grep dtmonitor|grep java</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> [ $? != <span class="number">0</span> ] ; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="string">"dtmonitor is down, try to restart."</span></span><br><span class="line">    bash /opt/dtmonitor/monitor/start.sh</span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+<p>真正做到重启的地方。简单来说，检查进程是否还在（当然可以做的粒度更准确一些，例如定时写一些文件之类），如果进程没了，则调用采集进程的启动脚本，尝试重启。</p>
+<h3 id="4、采集进程的启动脚本。">4、采集进程的启动脚本。</h3><p>在采集进程的目录中（即/opt/dtmonitor/monitor/）编辑start.sh文件：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="shebang">#!/bin/bash</span><br><span class="line"></span></span><br><span class="line">CURDIR=<span class="string">"`dirname <span class="variable">$0</span>`"</span></span><br><span class="line">java -jar <span class="variable">$CURDIR</span>/dtmonitor.jar &amp;</span><br><span class="line"><span class="built_in">echo</span> <span class="string">"dtmonitor is started."</span></span><br></pre></td></tr></table></figure></p>
+<p>注意当前目录的切换。</p>
+<p>如上，启动keepalived服务后，杀死dtmonitor进程，可以观察到1s左右dtmonitor进程被keepalived服务重启了。</p>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+  <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
         <time datetime="2015-09-16T02:57:04.000Z"><a href="/2015/09/16/hbase-1/">2015-09-16</a></time>
       
       
@@ -493,42 +533,6 @@ _ts(option);
 
 
 
-  <article class="post">
-  
-  <div class="post-content">
-    <header>
-      
-        <div class="icon"></div>
-        <time datetime="2015-05-20T01:16:04.000Z"><a href="/2015/05/20/hive-intro-1/">2015-05-20</a></time>
-      
-      
-  
-    <h1 class="title"><a href="/2015/05/20/hive-intro-1/">读书笔记：hive简介（一）</a></h1>
-  
-
-    </header>
-    <div class="entry">
-      
-        <p>Hive是一个运行在hadoop之上的数据仓库(dataware)，目的是为精通SQL但不熟悉java的分析师提供一个在hadoop平台上数据分析的工具。<br>Hive提供类似SQL的接口，但并不完全相同：Hive没有完全实现SQL的所有语法，但又结合MR任务提供了一些新的方法。分析师按照HQL的语法提交任务，Hive将HQL语句翻译为MR作业。</p>
-      
-    </div>
-    <footer>
-      
-        
-          <div class="alignleft">
-            <a href="/2015/05/20/hive-intro-1/#more" class="more-link">Read More</a>
-          </div>
-        
-        
-      
-      <div class="clearfix"></div>
-    </footer>
-  </div>
-</article>
-
-
-
-
 
 <nav id="pagination">
   
@@ -565,7 +569,9 @@ _ts(option);
   
     <li><a href="/tags/hive/">hive</a><small>1</small></li>
   
-    <li><a href="/tags/keepalived/">keepalived</a><small>2</small></li>
+    <li><a href="/tags/keepalived/">keepalived</a><small>3</small></li>
+  
+    <li><a href="/tags/linux/">linux</a><small>1</small></li>
   
     <li><a href="/tags/lvs/">lvs</a><small>1</small></li>
   
