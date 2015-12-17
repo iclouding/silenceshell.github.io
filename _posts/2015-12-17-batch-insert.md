@@ -46,7 +46,8 @@ INSERT INTO t (c1,c2) VALUES ('One',1),('Two',2),('Three',3);
 需要支持批量insert，所幸ADS支持这样的语法。
 
 ### 客户端
-一开始我们认为需要在kettle里面增量开发代码，自己来拼装insert语句（涉世未深啊），但实际上MySQL的JDBC驱动（高于5.1.13）已经支持这样的功能了：开启rewriteBatchedStatements=true，JDBC会自动将应用丢给JDBC驱动的单条insert进行拼装。连接刚建立的时候，JDBC会向服务器发送`show variables like max_allowed_packet`来获取服务器允许的最大拼装长度，之后拼装batch insert语句时会按这个长度来。
+一开始我们认为需要在kettle里面增量开发代码，自己来拼装insert语句（涉世未深啊），但实际上MySQL的JDBC驱动（高于5.1.13）已经支持这样的功能了：开启rewriteBatchedStatements=true，JDBC会自动将应用丢给JDBC驱动的单条insert进行拼装。
+具体来说，连接刚建立的时候，JDBC会向服务器发送`show variables like max_allowed_packet`来获取服务器允许的最大拼装长度，之后拼装batch insert语句时会按这个长度来。
 所以只要kettle在建立跟ADS的连接时，带上rewriteBatchedStatements=true参数即可。
 
 **JDBC支持batch insert源码分析**
@@ -63,6 +64,7 @@ kettle支持对数据源设置变量，这里直接贴图：
 这块代码比较简单，记在这里以备查阅。
 
 DataBaseMeta.java
+
 ```
   @Override
   public String environmentSubstitute( String aString ) {
@@ -78,6 +80,7 @@ DataBaseMeta.java
 ```
 
 MySQLDataBaseMeta.java
+
 ```java
   @Override
   public String getURL( String hostname, String port, String databaseName ) {
@@ -94,6 +97,7 @@ MySQLDataBaseMeta.java
 ```
 
 调用Variables.java
+
 ```java
   @Override
   public String environmentSubstitute( String aString ) {
@@ -107,6 +111,7 @@ MySQLDataBaseMeta.java
 ```
 
 最终在StringUtil.java中根据用户设置下来的systemProperties（包含rewriteBatchedStatements）填写JDBC变量。
+
 ```java
   public static final synchronized String environmentSubstitute( String aString,
     Map<String, String> systemProperties ) {
