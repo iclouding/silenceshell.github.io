@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "如何使用kettle提高ADS插入速度"
-date: 2015-04-30 17:10:59
+date: 2015-12-17 17:10:59
 tags: etl
 author: 伊布
 categories: tech
