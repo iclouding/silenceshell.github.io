@@ -75,18 +75,18 @@ GP支持为Master和Segment配置Mirror以提供高可靠性。
 
 ### 特性
 
-1. Append only table
+#### 1. Append only table
 
-2. column oriented table(列存表)
+#### 2. column oriented table(列存表)
 
-3. Append only table可以压缩
+#### 3. Append only table可以压缩
 
 ```
 CREATE TABLE bar (a int, b text)WITH (appendonly=true, orientation=column) DISTRIBUTED BY (a);
 CREATE TABLE foo (a int, b text)WITH (appendonly=true, compresstype=zlib, compresslevel=5);
 ```
 
-4. 分区表(partition)
+#### 4. 分区表(partition)
 
 可以指定某一列的按range分区。如下例，表中2008年的数据都会根据date每天建立一个分区。
 
@@ -98,7 +98,7 @@ CREATE TABLE sales (id int, date date, amt decimal(10,2))DISTRIBUTED BY (id)PA
 GP的分区表应该能提高查询性能，例如查询时where条件为between..and，由于已经建立了分区，大部分数据可以迅速索引到。而ADS是自行建立了列索引，不需要用户干预。
 
 
-5. 数据可以重分布
+#### 5. 数据可以重分布
 若前期由于数据分区不合适造成数据倾斜，还可以重分布，其实就是数据搬移。但重分布代价较高，尽量在设计表时就确定好分区列。
 
 
