@@ -10,7 +10,7 @@ cover:  "/assets/instacode.png"
 
 *搬运工又上班了！*
 
-###简介
+### 简介
 Greenplum应用在OLAP领域，MPP架构，其底层使用Postgre，支持横向扩展，支持行存储、列存储，支持事务、ACID。
 MPP数据库主打**share nothing**，即各节点间任何资源都不共享，从硬件的CPU/内存/网络/存储，到上层的操作系统，各节点都是独立的；节点间的交互主要通过网络进行通信。由于数据量越来越大，OLAP产品多采用MPP架构，例如阿里的ADS，百度的Palo。
 相对于MPP，也有Oracle RAC这种**share everything**架构，各节点共享存储、内存客户互相访问。SMP由于只能使用一个节点，容易受到具体硬件的限制，但支持事务的效率比较高（不需要跨节点通信）；MPP扩展性好，更适应big data的场景，但多数MPP数据库不支持事务、ACID（例如阿里云ADS）。MPP数据库需要仔细设计数据的存储，避免出现大量的节点间shuffle通信，否则效率极低。
@@ -20,7 +20,7 @@ Greenplum在2015年已经开源，Apache 2.0协议，源码可以访问[Github](
 
 
 
-###安装
+### 安装
 Greenplum在其[官方网站](https://network.pivotal.io/products/pivotal-gpdb#/releases/669/file_groups/348)提供了用于RHEL(CentOS)、SuSE的版本。
 
 GP的架构是典型的Master-Segments，主控节点和计算节点分离。
@@ -54,7 +54,7 @@ Segment支持横向扩展。
 ssh-copy-id -i .ssh/id_rsa.pub root@your_remote_host
 ```
 
-###HA
+### HA
 GP支持为Master和Segment配置Mirror以提供高可靠性。
 
 - Master->Mirror：使用postgre的日志同步功能。可以在部署时配置，也可以在Master运行时配置。
@@ -68,10 +68,10 @@ GP支持为Master和Segment配置Mirror以提供高可靠性。
 
 更多详细HA信息，移步到[GP官网](http://gpdb.docs.pivotal.io/4330/admin_guide/managing/highavail.html)。
 
-###使用
+### 使用
 安装完毕后，用户可以使用Postgre SQL的客户端来访问Greenplum。
 
-###查询详解
+### 查询详解
 
 > todo..
 
