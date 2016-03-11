@@ -4,7 +4,7 @@ title: "Greenplum试用"
 date: 2016-03-11 11:08:02
 author: 伊布
 categories: tech
-tags: Greenplum
+tags: greenplum
 cover:  "/assets/instacode.png"
 ---
 
