@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Greenplum试用"
+title: "Greenplum上手报告"
 date: 2016-03-11 11:08:02
 author: 伊布
 categories: tech
