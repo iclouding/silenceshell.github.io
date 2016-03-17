@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html>
+
+	<script>
+	var _hmt = _hmt || [];
+	(function() {
+	  var hm = document.createElement("script");
+	  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+	  var s = document.getElementsByTagName("script")[0]; 
+	  s.parentNode.insertBefore(hm, s);
+	})();
+	</script>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>MapReduce具体问题（一）</title>
+  <meta name="description" content="MapReduce比较基础，但是经常会有一些问题不是很清楚，这一系列文章会解答几个经常问的问题。本文解答第一个问题：是谁决定要起几个Map任务？在什么阶段呢？还是以wordcount为例。wordcount客户端在初始化job后调用Job.waitForCompletion方法就结束了，真正提交Job给Yarn的...">
+  
+  <meta name="author" content="伊布">
+  <meta name="copyright" content="&copy; 伊布 2016">
+  
+
+  <!-- External libraries -->
+  <!--<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"> -->
+  <link href="//cdn.bootcss.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/styles/solarized-dark.min.css">
+  <!--<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/styles/monokai_sublime.min.css">-->
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/css/lightbox.css">
+
+  <!-- Favicon and other icons (made with http://www.favicon-generator.org/) -->
+  <link rel="shortcut icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" sizes="57x57" href="/assets/icons/apple-icon-57x57.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="/assets/icons/apple-icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="/assets/icons/apple-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="/assets/icons/apple-icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="/assets/icons/apple-icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/assets/icons/apple-icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="/assets/icons/apple-icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/apple-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-icon-180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192"  href="/assets/icons/android-icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/assets/icons/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+  <link rel="manifest" href="/assets/icons/manifest.json">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="msapplication-TileImage" content="/assets/icons/ms-icon-144x144.png">
+  <meta name="theme-color" content="#ffffff">
+
+  
+  <!-- Facebook OGP cards -->
+  <meta property="og:description" content="MapReduce比较基础，但是经常会有一些问题不是很清楚，这一系列文章会解答几个经常问的问题。本文解答第一个问题：是谁决定要起几个Map任务？在什么阶段呢？还是以wordcount为例。wordcount客户端在初始化job后调用Job.waitForCompletion方法就结束了，真正提交Job给Yarn的..." />
+  <meta property="og:url" content="http://silenceshell.gitcafe.io" />
+  <meta property="og:site_name" content="Zlatan Eevee" />
+  <meta property="og:title" content="MapReduce具体问题（一）" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="http://silenceshell.gitcafe.io/assets/instacode.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="612" />
+  <meta property="og:image:height" content="605" />
+  
+
+  
+  <!-- Twitter: card tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="MapReduce具体问题（一）">
+  <meta name="twitter:description" content="MapReduce比较基础，但是经常会有一些问题不是很清楚，这一系列文章会解答几个经常问的问题。本文解答第一个问题：是谁决定要起几个Map任务？在什么阶段呢？还是以wordcount为例。wordcount客户端在初始化job后调用Job.waitForCompletion方法就结束了，真正提交Job给Yarn的...">
+  <meta name="twitter:image" content="http://silenceshell.gitcafe.io/assets/instacode.png">
+  <meta name="twitter:url" content="http://silenceshell.gitcafe.io">
+  
+
+  
+
+  <!-- Site styles -->
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://silenceshell.gitcafe.io/tech/2015/05/25/mr-detail-1.html">
+  <link rel="alternate" type="application/rss+xml" title="Zlatan Eevee" href="http://silenceshell.gitcafe.io/feed.xml" />
+</head>
+
+
+  <body>
+
+    <header class="navigation" role="banner">
+  <div class="navigation-wrapper">
+    <a href="/" class="logo">
+      
+      <img src="/assets/logo.png" alt="Zlatan Eevee">
+      
+    </a>
+    <a href="javascript:void(0)" class="navigation-menu-button" id="js-mobile-menu">
+      <i class="fa fa-bars"></i>
+    </a>
+    <nav role="navigation">
+      <ul id="js-navigation-menu" class="navigation-menu show">
+        
+          
+          <li class="nav-link"><a href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+          <li class="nav-link"><a href="/posts/">Posts</a>
+          
+        
+          
+          <li class="nav-link"><a href="/typography/">Typography</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+        <div class="post">
+
+<div class="post-header-container has-cover" style="background-image: url(/assets/instacode.png);">
+  <div class="scrim has-cover">
+    <header class="post-header">
+      <h1 class="title">MapReduce具体问题（一）</h1>
+      <p class="info">by <strong>伊布</strong></p>
+    </header>
+  </div>
+</div>
+
+<div class="wrapper">
+
+
+
+<section class="post-meta">
+  <div class="post-date">May 25, 2015</div>
+  <div class="post-categories">
+  in 
+    
+    <a href="/category/tech">Tech</a>
+    
+  
+  </div>
+</section>  
+
+<article class="post-content">
+  <p>MapReduce比较基础，但是经常会有一些问题不是很清楚，这一系列文章会解答几个经常问的问题。
+本文解答第一个问题：是谁决定要起几个Map任务？在什么阶段呢？</p>
+
+<p>还是以wordcount为例。
+wordcount客户端在初始化job后调用Job.waitForCompletion方法就结束了，真正提交Job给Yarn的在MapReduce客户端代码的submit里做的。</p>
+
+<p>```java
+  public boolean waitForCompletion(boolean verbose
+                                   ) throws IOException, InterruptedException,
+                                            ClassNotFoundException {
+    if (state == JobState.DEFINE) {
+      submit();
+    }</p>
+
+<p>public void submit()
+        return submitter.submitJobInternal(Job.this, cluster);</p>
+
+<p>JobStatus submitJobInternal(Job job, Cluster cluster)
+      // Create the splits for the job
+      LOG.debug(“Creating splits at “ + jtFs.makeQualified(submitJobDir));
+      int maps = writeSplits(job, submitJobDir);
+      conf.setInt(MRJobConfig.NUM_MAPS, maps);		//确定MR任务数
+      LOG.info(“number of splits:” + maps);
+```</p>
+
+<p>从上面的代码不难看出，Map任务的个数是客户端提交任务到YARN之前就决定了的，其个数由writeSplits结果决定。
+那么Splits是什么？跟HDFS有什么关系呢？</p>
+
+<p>我们知道，HDFS存储大文件的时候，将文件按照每64MB（或者128MB，可以配置）分为若干个块（Block），每个Block又分了若干个副本，分别存储到不同的datanode上去。而在做MapReduce的时候，我们希望能够获得比较好的数据本地性，也就是说计算任务跟它需要的数据，最好在一个节点上，从而可以显著的减少数据在网络上的传输。
+结合上面两点，不难得出一个结论，Map任务的个数（计算任务），实际应该是由MR处理的文件在HDFS上存储的块的个数决定的。</p>
+
+<p>回过头来分析writeSplits，它调用了writeNewSplits。</p>
+
+<p>```java
+class JobSubmitter {
+  private <t extends="" inputsplit="">
+  int writeNewSplits(JobContext job, Path jobSubmitDir) throws IOException,
+      InterruptedException, ClassNotFoundException {
+    Configuration conf = job.getConfiguration();
+    InputFormat<?, ?> input =		//先获取input的格式
+      ReflectionUtils.newInstance(job.getInputFormatClass(), conf);</t></p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>List&lt;InputSplit&gt; splits = input.getSplits(job);		//根据格式获取分片数
+</code></pre>
+</div>
+
+<p>public abstract class InputFormat&lt;K, V&gt; {
+  public abstract
+    List<inputsplit> getSplits(JobContext context
+                               ) throws IOException, InterruptedException;
+```</inputsplit></p>
+
+<p>writeNewSplits先获取input的格式（其实就是根据文件后缀名来判断的，例如gz, bzip2等等），然后再根据对应的格式对象里的getSplits来获取分片数。本例里wordcount要处理的就是一个“纯文本文件”，对应的FileInputFormat是InputFormat的一种。
+下面我们以FileInputFormat来看getSplits是怎么获取分片数的。</p>
+
+<p>```java
+public abstract class FileInputFormat&lt;K, V&gt; extends InputFormat&lt;K, V&gt; {
+  protected boolean isSplitable(JobContext context, Path filename) {
+    return true;
+  }
+  public List<inputsplit> getSplits(JobContext job) throws IOException {
+    long minSize = Math.max(getFormatMinSplitSize(), getMinSplitSize(job));	//最小值，1
+    long maxSize = getMaxSplitSize(job);	//最大值，Long.MAX_VALUE
+..
+        if (isSplitable(job, path)) {		//如果输入可分片
+          long blockSize = file.getBlockSize();		//HDFS的block大小
+          long splitSize = computeSplitSize(blockSize, minSize, maxSize);</inputsplit></p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>      long bytesRemaining = length;
+      while (((double) bytesRemaining)/splitSize &gt; SPLIT_SLOP) {
+        int blkIndex = getBlockIndex(blkLocations, length-bytesRemaining);
+        splits.add(makeSplit(path, length-bytesRemaining, splitSize,
+                    blkLocations[blkIndex].getHosts(),		//注意getHosts
+                    blkLocations[blkIndex].getCachedHosts()));
+        bytesRemaining -= splitSize;
+      }
+
+      if (bytesRemaining != 0) {	//最后一个小分片
+        int blkIndex = getBlockIndex(blkLocations, length-bytesRemaining);
+        splits.add(makeSplit(path, length-bytesRemaining, bytesRemaining,
+                   blkLocations[blkIndex].getHosts(),
+                   blkLocations[blkIndex].getCachedHosts()));
+      }
+    } else { // not splitable		//不可分片的输入
+      splits.add(makeSplit(path, 0, length, blkLocations[0].getHosts(),
+                  blkLocations[0].getCachedHosts()));
+    } ```
+</code></pre>
+</div>
+
+<p>注意getSplits时有个“可分片”的概念，也就是isSplitable。分片的意思是，对于单独一个分片，可以独立的拿给对应的Map任务处理，分片之间无依赖。
+是否所有的Input都是可以分片的呢？对于纯文本来说，从任何一个位置都是可以直接读取的，显然是可分片的；但是对于gz压缩的文件来说，如果我们只拿到了一个分片，是没办法只解压这一个分片的（因为gz压缩是将压缩信息存储到所有分片的，只有一个分片不能得到所有的压缩信息，无法解压）。hadoop的做法其实就是根据文件后缀名来查找codec，然后检查是否<code class="highlighter-rouge">codec instanceof SplittableCompressionCodec;</code>。isSplitable是可以@override的。
+<strong>可分片的Input处理方法：</strong></p>
+
+<ul>
+  <li>确定分片大小。通过<code class="highlighter-rouge">file.getBlockSize()</code>获取HDFS的block大小，然后跟MR自己定义的最大最小值比较来选择一个中间值。MR的最大最小值默认是Long.MAX_VALUE/1，所在wordcount里确定的split大小实际就是HDFS的blck大小。</li>
+  <li>根据文件的总大小，先分整个split大小的，剩余的单独一个分片。每个分片都add到splits数组，add时会获取该block所在的节点地址（有缓存的时候优先使用缓存节点），提交Job后在分配Map任务时会参考这个节点地址，这样就可以将Map任务分配到数据所在的节点上（数据本地）。</li>
+</ul>
+
+<p><strong>对于不可分片的Input处理方法：</strong>
+只add一次，节点就是第一个分片的节点地址。所以对于不可分片的文件，其实是损失了MR的并行运行，多个分片也需要跨节点拷贝，效率比较低。</p>
+
+<p>具体到wordcount，由于我们输入的文件是纯文本的，所以可以分片；而客户端会根据HDFS各个分片所在的节点地址分别添加到待启动的各个MR任务上，任务总数会写到<code class="highlighter-rouge">MRJobConfig.NUM_MAPS</code>，提交了以后使用。</p>
+
+<p>至此，我们明确了Map任务个数的确定者以及其确定阶段。
+下期预告：第二个问题也是大家经常问的一个，HDFS的block是否粗暴但忠实的将文件按照64MB分片呢？如果是的话，怎么保证Map获取到的Splits是正确的？具体到wordcount，MR是怎么处理一个单词跨block的情况呢？</p>
+
+</article>
+
+
+
+<section class="tags">
+  <strong>Tags:</strong> <a href="/tag/hadoop">hadoop</a>
+</section>
+
+
+
+<section class="rss">
+  <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+</section>
+
+<section class="share">
+  <span>Share: </span>
+  
+    
+    
+      <a href="//twitter.com/share?text=MapReduce%E5%85%B7%E4%BD%93%E9%97%AE%E9%A2%98%EF%BC%88%E4%B8%80%EF%BC%89&url=http://silenceshell.gitcafe.io/tech/2015/05/25/mr-detail-1.html&via=瓶子"
+        onclick="window.open(this.href, 'twitter-share', 'width=550,height=255');return false;">
+        <i class="fa fa-twitter-square fa-lg"></i>
+      </a>
+    
+    
+    
+    
+    
+  
+    
+    
+    
+    
+    
+    
+  
+</section>
+
+
+
+</div>
+</div>
+
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h3 class="footer-heading">Zlatan Eevee</h3>
+
+    <div class="site-navigation">
+      
+      <p><strong>Site Map</strong></p>
+      <ul class="pages">
+        
+        
+          <li class="nav-link"><a href="/about/">About</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+          <li class="nav-link"><a href="/posts/">Posts</a>
+        
+        
+        
+          <li class="nav-link"><a href="/typography/">Typography</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+      </ul>
+    </div>
+
+    <div class="site-contact">
+
+      <p><strong>Contact</strong></p>
+      <ul class="social-media-list">
+        <li>
+          <a href="mailto:hubottle@gmail.com">
+            <i class="fa fa-envelope-o"></i>
+            <span class="username">hubottle@gmail.com</span>
+          </a>
+        </li>
+
+        
+          
+          <li>
+            <a href="https://twitter.com/hubottle" title="Follow me on Twitter">
+              <i class="fa fa-twitter"></i>
+              <span class="username">瓶子</span>
+            </a>
+          </li>
+          
+        
+          
+          <li>
+            <a href="https://github.com/silenceshell" title="Fork me on GitHub">
+              <i class="fa fa-github"></i>
+              <span class="username">silenceshell</span>
+            </a>
+          </li>
+          
+        
+
+      </ul>
+    </div>
+
+    <div class="site-signature">
+      <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+      <p class="text"></p>
+    </div>
+
+  </div>
+
+</footer>
+
+<!-- Scripts -->
+<script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/highlight.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/js/lightbox.min.js"></script>
+<script>
+
+$(document).ready(function() {
+
+  // Syntax highlighting
+  hljs.initHighlightingOnLoad();
+
+  // Header
+  var menuToggle = $('#js-mobile-menu').unbind();
+  $('#js-navigation-menu').removeClass("show");
+  menuToggle.on('click', function(e) {
+    e.preventDefault();
+    $('#js-navigation-menu').slideToggle(function(){
+      if($('#js-navigation-menu').is(':hidden')) {
+        $('#js-navigation-menu').removeAttr('style');
+      }
+    });
+  });
+
+
+});
+
+</script>
+
+
+
+
+  </body>
+
+</html>

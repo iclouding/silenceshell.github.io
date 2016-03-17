@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html>
+
+	<script>
+	var _hmt = _hmt || [];
+	(function() {
+	  var hm = document.createElement("script");
+	  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+	  var s = document.getElementsByTagName("script")[0]; 
+	  s.parentNode.insertBefore(hm, s);
+	})();
+	</script>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>笔记：mesos简介</title>
+  <meta name="description" content="1 概述来自著名的加州大学伯克利分校，解决多样化环境里资源隔离和分享的问题。官网的介绍非常形象：Program against your datacenter like it’s a single pool of resourcesmesos源码是用c++写的，但是API支持Java, Python, c++。1...">
+  
+  <meta name="author" content="伊布">
+  <meta name="copyright" content="&copy; 伊布 2016">
+  
+
+  <!-- External libraries -->
+  <!--<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"> -->
+  <link href="//cdn.bootcss.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/styles/solarized-dark.min.css">
+  <!--<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/styles/monokai_sublime.min.css">-->
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/css/lightbox.css">
+
+  <!-- Favicon and other icons (made with http://www.favicon-generator.org/) -->
+  <link rel="shortcut icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" sizes="57x57" href="/assets/icons/apple-icon-57x57.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="/assets/icons/apple-icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="/assets/icons/apple-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="/assets/icons/apple-icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="/assets/icons/apple-icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/assets/icons/apple-icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="/assets/icons/apple-icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/apple-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-icon-180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192"  href="/assets/icons/android-icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/assets/icons/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+  <link rel="manifest" href="/assets/icons/manifest.json">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="msapplication-TileImage" content="/assets/icons/ms-icon-144x144.png">
+  <meta name="theme-color" content="#ffffff">
+
+  
+  <!-- Facebook OGP cards -->
+  <meta property="og:description" content="1 概述来自著名的加州大学伯克利分校，解决多样化环境里资源隔离和分享的问题。官网的介绍非常形象：Program against your datacenter like it’s a single pool of resourcesmesos源码是用c++写的，但是API支持Java, Python, c++。1..." />
+  <meta property="og:url" content="http://silenceshell.gitcafe.io" />
+  <meta property="og:site_name" content="Zlatan Eevee" />
+  <meta property="og:title" content="笔记：mesos简介" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="http://silenceshell.gitcafe.io/assets/instacode.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="612" />
+  <meta property="og:image:height" content="605" />
+  
+
+  
+  <!-- Twitter: card tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="笔记：mesos简介">
+  <meta name="twitter:description" content="1 概述来自著名的加州大学伯克利分校，解决多样化环境里资源隔离和分享的问题。官网的介绍非常形象：Program against your datacenter like it’s a single pool of resourcesmesos源码是用c++写的，但是API支持Java, Python, c++。1...">
+  <meta name="twitter:image" content="http://silenceshell.gitcafe.io/assets/instacode.png">
+  <meta name="twitter:url" content="http://silenceshell.gitcafe.io">
+  
+
+  
+
+  <!-- Site styles -->
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://silenceshell.gitcafe.io/tech/2015/05/01/mesos.html">
+  <link rel="alternate" type="application/rss+xml" title="Zlatan Eevee" href="http://silenceshell.gitcafe.io/feed.xml" />
+</head>
+
+
+  <body>
+
+    <header class="navigation" role="banner">
+  <div class="navigation-wrapper">
+    <a href="/" class="logo">
+      
+      <img src="/assets/logo.png" alt="Zlatan Eevee">
+      
+    </a>
+    <a href="javascript:void(0)" class="navigation-menu-button" id="js-mobile-menu">
+      <i class="fa fa-bars"></i>
+    </a>
+    <nav role="navigation">
+      <ul id="js-navigation-menu" class="navigation-menu show">
+        
+          
+          <li class="nav-link"><a href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+          <li class="nav-link"><a href="/posts/">Posts</a>
+          
+        
+          
+          <li class="nav-link"><a href="/typography/">Typography</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+        <div class="post">
+
+<div class="post-header-container has-cover" style="background-image: url(/assets/instacode.png);">
+  <div class="scrim has-cover">
+    <header class="post-header">
+      <h1 class="title">笔记：mesos简介</h1>
+      <p class="info">by <strong>伊布</strong></p>
+    </header>
+  </div>
+</div>
+
+<div class="wrapper">
+
+
+
+<section class="post-meta">
+  <div class="post-date">May 1, 2015</div>
+  <div class="post-categories">
+  in 
+    
+    <a href="/category/tech">Tech</a>
+    
+  
+  </div>
+</section>  
+
+<article class="post-content">
+  <h3 id="section">1 概述</h3>
+<p>来自著名的加州大学伯克利分校，解决多样化环境里资源隔离和分享的问题。官网的介绍非常形象：
+<code class="highlighter-rouge">
+Program against your datacenter like it’s a single pool of resources
+</code></p>
+
+<p>mesos源码是用<code class="highlighter-rouge">c++</code>写的，但是API支持Java, Python, c++。</p>
+
+<h4 id="mesos">1.1 mesos组件</h4>
+<p>mesos与yarn组件对比：</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left">mesos</th>
+      <th style="text-align: left">yarn</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left">master</td>
+      <td style="text-align: left">Resource Manager</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">slave</td>
+      <td style="text-align: left">Node Manager</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">framwork scheduler</td>
+      <td style="text-align: left">Application MAster</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">framwork executor</td>
+      <td style="text-align: left">Node Manager</td>
+    </tr>
+  </tbody>
+</table>
+
+<h4 id="section-1">1.2 资源</h4>
+<p>与yarn一样，mesos的资源分配也是<strong>双层调度框架</strong>：Mesos Master分配资源给Framwork，Framwork Scheduler将这些资源分配给不同的任务。
+目前资源仅指cpu和内存，通过cgroups资源隔离。内存资源的监控与yarn不同，yarn采用了更灵活的线程监控方案。</p>
+
+<h3 id="section-2">2 底层通信协议</h3>
+<p>mesos使用了libprocess，在socket之上的封装；序列化使用了protocal buffers(业界用的很多，感兴趣可以看这篇<a href="http://www.cnblogs.com/stephen-liu74/archive/2013/01/02/2841485.html">文章</a>)。
+以server为例说明流程：</p>
+
+<ul>
+  <li>继承ProtobufProcess，实际就是定义message server</li>
+  <li>注册消息处理器(回调)</li>
+  <li>定义PB消息</li>
+  <li>编写消息处理器</li>
+  <li>main启动server</li>
+</ul>
+
+<p>跟普通的socket编程相比，mesos将消息格式化为PB消息。</p>
+
+<h3 id="mesos-1">3 mesos四大服务：</h3>
+<p>Master, Slave, Scheduler Process, Executor Process
+（框架实现Allocator, Framework Scheduler, Framwork Executor）
+<img src="http://7xir15.com1.z0.glb.clouddn.com/mesos主要服务组件.PNG" alt="mesos主要服务组件" /></p>
+
+<p><strong>框架注册过程</strong>：
+Framwork创建一个Driver对象，由此对象探测到mesos的master，并与之注册，并返回注册结果给Framwork。
+Framwork Executor的过程类似，不同的是与mesos的slave注册。</p>
+
+<p><strong>任务运行过程</strong>：Framwork Scheduler向Master申请资源，申请到后launch task到Master，由Master封装RunTaskMessage给Slave，Slave提交到Executor process。
+Executor Process收到消息后查看是否已经启动了Framwork Executor，若否则启动之，然后启动任务。
+<strong>任务状态更新</strong>：由Framwork Executor报给Slave，Slave提交给Master，Master发送updateStatus消息给Framwork Scheduler，任务状态更新后发送ack消息给Slave。
+(Q: 为什么不直接由Framwork Executor更新状态给Scheduler？)</p>
+
+<h3 id="section-3">4 资源分配策略</h3>
+<p>背景：不同的框架，需要的资源是不一样的。考虑这样一种情况：MR和spark在一个集群上的情况，spark希望得到内存更大的资源。
+解决办法：mesos只实现基础的资源分配策略<a href="http://blog.csdn.net/pelick/article/details/19326865">DRF主资源公平</a>，将资源授权给框架后，由框架决定如何给任务分配资源。
+三种机制：</p>
+
+<ul>
+  <li>资源拒绝：Framwork可以拒绝master分配的资源，要求重新分配</li>
+  <li>资源过滤：当master发现该Framwork总是拒绝某种资源，则设置规则，只分配给该框架特定类型的资源，减少通信压力。</li>
+  <li>资源回收：要了不用，过期回收</li>
+</ul>
+
+<p>对比yarn的label schedule算法：yarn将不同的服务器打上不同的标签，application申请时带上标签，解决异构环境资源随机分配的问题。</p>
+
+<h3 id="section-4">5 容错机制</h3>
+<ul>
+  <li>master:zookeeper监控master节点，发现故障后重新选举master，各slave重新注册，master重构；Framwork Scheduler重新注册。</li>
+  <li>slave:超时检测+快照机制</li>
+</ul>
+
+<p><strong>slave故障</strong>，master与slave之间有心跳，发现slave故障后通知给Framwork Scheduler，认为该slave之上的任务失败；
+<strong>slave升级</strong>，将之前的信息做了快照，重启后从快照恢复（类似V7的DBM）。具体来说，slave启动带<code class="highlighter-rouge">-checkpoint</code>参数，会适时的将信息保存起来；重新启动时带<code class="highlighter-rouge">-recovery</code>参数会先从快照来恢复相应信息。slave不会关闭正在跑的任务。</p>
+
+<p>mesos比yarn优秀的地方是实现在slave的快照，可以比较好的快速恢复。</p>
+
+<h3 id="section-5">6 应用实例</h3>
+<p>目前可以在mesos上运行的实例比较多：MR/Spark/Storm/MPI。
+mesos为了支持MR、Storm，提供了不同的组件，看起来不太自然。（<strong>还需要再了解：是否每个框架都需要自己的组件？</strong>）
+下图摘自董西成博客，比较好的总体概括了各框架是如何跑在mesos上的。
+<img src="http://dongxicheng.org/wp-content/uploads/2012/04/mesos-arch.jpg" alt="mesos-arch" /></p>
+
+<h3 id="mesosyarn">7 mesos与YARN对比</h3>
+<p>从机制上来看，mesos与YARN很相似（mesos出现的更早），不同主要体现在以下几点：</p>
+
+<ul>
+  <li>资源分配策略
+对比来说，yarn走了一条比较艰难的路，有新的分配需求，yarn就需要提供新的特性（例如yarn新引入了label based scheduling，用来解决异构环境下，不同计算模型的不同需求），但可能这样会吸引更多的计算框架，生态会更加丰富。</li>
+  <li>内存资源的监控</li>
+</ul>
+
+<p>参考
+1 <a href="http://blog.csdn.net/pelick/article/details/21236837">Mesos实战总结</a>
+2 <a href="http://dongxicheng.org/mapreduce-nextgen/hadoop-yarn-label-based-scheduling/">Hadoop YARN新特性—label based scheduling</a>
+3 <a href="http://dongxicheng.org/category/apache-mesos/">董西成的博客mesos分类</a></p>
+
+</article>
+
+
+
+<section class="tags">
+  <strong>Tags:</strong> <a href="/tag/mesos">mesos</a>
+</section>
+
+
+
+<section class="rss">
+  <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+</section>
+
+<section class="share">
+  <span>Share: </span>
+  
+    
+    
+      <a href="//twitter.com/share?text=%E7%AC%94%E8%AE%B0%EF%BC%9Amesos%E7%AE%80%E4%BB%8B&url=http://silenceshell.gitcafe.io/tech/2015/05/01/mesos.html&via=瓶子"
+        onclick="window.open(this.href, 'twitter-share', 'width=550,height=255');return false;">
+        <i class="fa fa-twitter-square fa-lg"></i>
+      </a>
+    
+    
+    
+    
+    
+  
+    
+    
+    
+    
+    
+    
+  
+</section>
+
+
+
+</div>
+</div>
+
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h3 class="footer-heading">Zlatan Eevee</h3>
+
+    <div class="site-navigation">
+      
+      <p><strong>Site Map</strong></p>
+      <ul class="pages">
+        
+        
+          <li class="nav-link"><a href="/about/">About</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+          <li class="nav-link"><a href="/posts/">Posts</a>
+        
+        
+        
+          <li class="nav-link"><a href="/typography/">Typography</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+      </ul>
+    </div>
+
+    <div class="site-contact">
+
+      <p><strong>Contact</strong></p>
+      <ul class="social-media-list">
+        <li>
+          <a href="mailto:hubottle@gmail.com">
+            <i class="fa fa-envelope-o"></i>
+            <span class="username">hubottle@gmail.com</span>
+          </a>
+        </li>
+
+        
+          
+          <li>
+            <a href="https://twitter.com/hubottle" title="Follow me on Twitter">
+              <i class="fa fa-twitter"></i>
+              <span class="username">瓶子</span>
+            </a>
+          </li>
+          
+        
+          
+          <li>
+            <a href="https://github.com/silenceshell" title="Fork me on GitHub">
+              <i class="fa fa-github"></i>
+              <span class="username">silenceshell</span>
+            </a>
+          </li>
+          
+        
+
+      </ul>
+    </div>
+
+    <div class="site-signature">
+      <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+      <p class="text"></p>
+    </div>
+
+  </div>
+
+</footer>
+
+<!-- Scripts -->
+<script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/highlight.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/js/lightbox.min.js"></script>
+<script>
+
+$(document).ready(function() {
+
+  // Syntax highlighting
+  hljs.initHighlightingOnLoad();
+
+  // Header
+  var menuToggle = $('#js-mobile-menu').unbind();
+  $('#js-navigation-menu').removeClass("show");
+  menuToggle.on('click', function(e) {
+    e.preventDefault();
+    $('#js-navigation-menu').slideToggle(function(){
+      if($('#js-navigation-menu').is(':hidden')) {
+        $('#js-navigation-menu').removeAttr('style');
+      }
+    });
+  });
+
+
+});
+
+</script>
+
+
+
+
+  </body>
+
+</html>

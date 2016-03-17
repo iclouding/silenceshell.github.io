@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+
+	<script>
+	var _hmt = _hmt || [];
+	(function() {
+	  var hm = document.createElement("script");
+	  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+	  var s = document.getElementsByTagName("script")[0]; 
+	  s.parentNode.insertBefore(hm, s);
+	})();
+	</script>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>笔记：DAG计算框架Tez</title>
+  <meta name="description" content="1 介绍目前的问题：如果作业由多个MR任务完成，则必然经过多次完整的Map–shuffer–Reduce，中间节点的数据多次写入HDFS，浪费IO读写。（可以将HDFS理解为多个任务之间的共享存储。）Tez的引入可以较小的代价的解决这一问题。Tez采用了DAG（有向无环图）来组织MR任务。核心思想：将Map任务和...">
+  
+  <meta name="author" content="伊布">
+  <meta name="copyright" content="&copy; 伊布 2016">
+  
+
+  <!-- External libraries -->
+  <!--<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"> -->
+  <link href="//cdn.bootcss.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/styles/solarized-dark.min.css">
+  <!--<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/styles/monokai_sublime.min.css">-->
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/css/lightbox.css">
+
+  <!-- Favicon and other icons (made with http://www.favicon-generator.org/) -->
+  <link rel="shortcut icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" sizes="57x57" href="/assets/icons/apple-icon-57x57.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="/assets/icons/apple-icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="/assets/icons/apple-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="/assets/icons/apple-icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="/assets/icons/apple-icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/assets/icons/apple-icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="/assets/icons/apple-icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/apple-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-icon-180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192"  href="/assets/icons/android-icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/assets/icons/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+  <link rel="manifest" href="/assets/icons/manifest.json">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="msapplication-TileImage" content="/assets/icons/ms-icon-144x144.png">
+  <meta name="theme-color" content="#ffffff">
+
+  
+  <!-- Facebook OGP cards -->
+  <meta property="og:description" content="1 介绍目前的问题：如果作业由多个MR任务完成，则必然经过多次完整的Map–shuffer–Reduce，中间节点的数据多次写入HDFS，浪费IO读写。（可以将HDFS理解为多个任务之间的共享存储。）Tez的引入可以较小的代价的解决这一问题。Tez采用了DAG（有向无环图）来组织MR任务。核心思想：将Map任务和..." />
+  <meta property="og:url" content="http://silenceshell.gitcafe.io" />
+  <meta property="og:site_name" content="Zlatan Eevee" />
+  <meta property="og:title" content="笔记：DAG计算框架Tez" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="http://silenceshell.gitcafe.io/assets/instacode.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="612" />
+  <meta property="og:image:height" content="605" />
+  
+
+  
+  <!-- Twitter: card tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="笔记：DAG计算框架Tez">
+  <meta name="twitter:description" content="1 介绍目前的问题：如果作业由多个MR任务完成，则必然经过多次完整的Map–shuffer–Reduce，中间节点的数据多次写入HDFS，浪费IO读写。（可以将HDFS理解为多个任务之间的共享存储。）Tez的引入可以较小的代价的解决这一问题。Tez采用了DAG（有向无环图）来组织MR任务。核心思想：将Map任务和...">
+  <meta name="twitter:image" content="http://silenceshell.gitcafe.io/assets/instacode.png">
+  <meta name="twitter:url" content="http://silenceshell.gitcafe.io">
+  
+
+  
+
+  <!-- Site styles -->
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://silenceshell.gitcafe.io/tech/2015/05/11/tez-intro.html">
+  <link rel="alternate" type="application/rss+xml" title="Zlatan Eevee" href="http://silenceshell.gitcafe.io/feed.xml" />
+</head>
+
+
+  <body>
+
+    <header class="navigation" role="banner">
+  <div class="navigation-wrapper">
+    <a href="/" class="logo">
+      
+      <img src="/assets/logo.png" alt="Zlatan Eevee">
+      
+    </a>
+    <a href="javascript:void(0)" class="navigation-menu-button" id="js-mobile-menu">
+      <i class="fa fa-bars"></i>
+    </a>
+    <nav role="navigation">
+      <ul id="js-navigation-menu" class="navigation-menu show">
+        
+          
+          <li class="nav-link"><a href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+          <li class="nav-link"><a href="/posts/">Posts</a>
+          
+        
+          
+          <li class="nav-link"><a href="/typography/">Typography</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+        <div class="post">
+
+<div class="post-header-container has-cover" style="background-image: url(/assets/instacode.png);">
+  <div class="scrim has-cover">
+    <header class="post-header">
+      <h1 class="title">笔记：DAG计算框架Tez</h1>
+      <p class="info">by <strong>伊布</strong></p>
+    </header>
+  </div>
+</div>
+
+<div class="wrapper">
+
+
+
+<section class="post-meta">
+  <div class="post-date">May 11, 2015</div>
+  <div class="post-categories">
+  in 
+    
+    <a href="/category/tech">Tech</a>
+    
+  
+  </div>
+</section>  
+
+<article class="post-content">
+  <h3 id="section">1 介绍</h3>
+<p>目前的问题：如果作业由多个MR任务完成，则必然经过多次完整的Map–shuffer–Reduce，中间节点的数据多次写入HDFS，浪费IO读写。（可以将HDFS理解为多个任务之间的共享存储。）Tez的引入可以较小的代价的解决这一问题。</p>
+
+<p>Tez采用了DAG（有向无环图）来组织MR任务。
+核心思想：将Map任务和Reduce任务进一步拆分，Map任务拆分为Input-Processor-Sort-Merge-Output，Reduce任务拆分为Input-Shuffer-Sort-Merge-Process-output，Tez将若干小任务灵活重组，形成一个大的DAG作业。
+Tez与oozie不同：oozie只能以MR任务为整体来管理、组织，本质上仍然是多个MR任务的执行，不能解决上面提到的多个任务之间硬盘IO冗余的问题。
+Tez只是一个Client，部署很方便。
+目前Hive使用了Tez（Hive是一个将用户的SQL请求翻译为MR任务，最终查询HDFS的工具）。下图对一个典型的join动作的两种方案做了对比。
+<img src="http://hortonworks.com/wp-content/uploads/2013/02/pighivetez.png" alt="Hive+Tez" /></p>
+
+<h3 id="section-1">2 数据处理引擎</h3>
+<p>####2.1 6种应用程序接口：</p>
+
+<ul>
+  <li>Input:解析输入数据，输出key/value</li>
+  <li>Output:将key/value写入到HDFS</li>
+  <li>Parititioner:数据分片</li>
+  <li>Processor:计算单元抽象</li>
+  <li>Task:Input-&gt;Processor-&gt;Output</li>
+</ul>
+
+<h4 id="section-2">2.2 数据处理引擎</h4>
+<p>略。</p>
+
+<h3 id="dag">3 DAG编程模型</h3>
+<p>Tez通过有向无环图组织任务。一个DAG由若干Vertex(顶点，即处理逻辑，例如Map/Reduce)和连接Vertex的Edge（定义了Vertex之间的通信方式，例如Shuffle）组成。
+以Tez的wordcount中的createDAG为例：</p>
+
+<p>```java
+    //定义2个Vertex
+    Vertex tokenizerVertex = Vertex.create(TOKENIZER, ProcessorDescriptor.create(
+        TokenProcessor.class.getName())).addDataSource(INPUT, dataSource);
+        //TokenProcessor为Vertex的处理逻辑
+    Vertex summationVertex = Vertex.create(SUMMATION,
+        ProcessorDescriptor.create(SumProcessor.class.getName()), numPartitions)
+        .addDataSink(OUTPUT, dataSink);
+        //SumProcessor为Vertex的处理逻辑</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>DAG dag = DAG.create("WordCount");
+dag.addVertex(tokenizerVertex)	//DAG
+    .addVertex(summationVertex)
+    .addEdge(	//定义连接token和summation的Edge
+        Edge.create(tokenizerVertex, summationVertex, edgeConf.createDefaultEdgeProperty())); ```
+</code></pre>
+</div>
+
+<p>上面定义的两个Processor可以分别类比Map Task和Reduce Task，定义的Edge可以类比Shuffle。</p>
+
+<h3 id="tez">4 Tez带来的优化技术</h3>
+<p>1 Application Master Pool
+初始化AM池。Tez先将作业提交到AMPoolServer服务上。AMPoolServer服务启动时就申请多个AM，Tez提交作业会优先使用缓冲池资源。
+2 Container Pool
+AM启动时会预先申请多个Container。
+3 Container重用</p>
+
+<h3 id="section-3">5 总结</h3>
+<p>相对oozie组织MR任务的方案，Tez带来3个提升：</p>
+
+<ul>
+  <li>避免了中间结果读写HDFS，减少磁盘+网络的开销</li>
+  <li>Map结果数据量较小时可以写入内存（MPv1版本，Map的结果必须写入硬盘）</li>
+  <li>减少作业启动时间（AM池、Container池）</li>
+</ul>
+
+<p>2.x的hadoop将Hive新版本将Tez引入作为自己的数据处理引擎，号称性能提升极大。
+相对于Tez，Spark引入了RDD（弹性分布式数据集），使得频繁使用的数据集可以做到不同任务之间重用和共享，更优越一些。</p>
+
+<h3 id="section-4">6 示例</h3>
+<p>Ambari把hadoop安装到了/usr/hdp。</p>
+
+<p>```bash
+$ cd /usr/hdp/current/tez-client/
+$ su hdfs
+$ hadoop fs -ls /tmp
+-rw-r–r–   3 hdfs      hdfs       1974 2015-04-29 20:38 /tmp/ida50a5665_date382915
+-rw-r–r–   3 hdfs      hdfs       1974 2015-04-30 13:59 /tmp/ida50a5665_date593015
+$ hadoop jar tez-examples-0.5.2.2.2.4.2-2.jar  wordcount /tmp/ida50a5665_date382915 /tmp/aaa
+15/05/09 10:06:21 INFO client.RMProxy: Connecting to ResourceManager at ronaldo7.dtdream.com/10.165.101.86:8050
+15/05/09 10:06:22 INFO client.TezClient: Submitting DAG application with id: application_1430310917645_0011
+15/05/09 10:06:23 INFO client.TezClient: Submitting DAG to YARN, applicationId=application_1430310917645_0011, dagName=WordCount
+#向YARN提交DAG任务。DAG作为AM。
+15/05/09 10:06:23 INFO impl.YarnClientImpl: Submitted application application_1430310917645_0011
+15/05/09 10:06:23 INFO client.RMProxy: Connecting to ResourceManager at ronaldo7.dtdream.com/10.165.101.86:8050
+15/05/09 10:06:23 INFO client.DAGClientImpl: Waiting for DAG to start running
+15/05/09 10:06:28 INFO client.DAGClientImpl: DAG initialized: CurrentState=Running
+#DAG开始运行，一共2个task
+15/05/09 10:06:28 INFO client.DAGClientImpl: DAG: State: RUNNING Progress: 0% TotalTasks: 2 Succeeded: 0 Running: 0 Failed: 0 Killed: 0
+15/05/09 10:06:28 INFO client.DAGClientImpl: 	VertexStatus: VertexName: Tokenizer Progress: 0% TotalTasks: 1 Succeeded: 0 Running: 0 Failed: 0 Killed: 0
+15/05/09 10:06:28 INFO client.DAGClientImpl: 	VertexStatus: VertexName: Summation Progress: 0% TotalTasks: 1 Succeeded: 0 Running: 0 Failed: 0 Killed: 0
+#先运行Tokenizer(Vertex)
+15/05/09 10:06:32 INFO client.DAGClientImpl: DAG: State: RUNNING Progress: 50% TotalTasks: 2 Succeeded: 1 Running: 1 Failed: 0 Killed: 0
+15/05/09 10:06:32 INFO client.DAGClientImpl: 	VertexStatus: VertexName: Tokenizer Progress: 100% TotalTasks: 1 Succeeded: 1 Running: 0 Failed: 0 Killed: 0
+15/05/09 10:06:32 INFO client.DAGClientImpl: 	VertexStatus: VertexName: Summation Progress: 0% TotalTasks: 1 Succeeded: 0 Running: 1 Failed: 0 Killed: 0
+#再运行Summation(Vertex)
+15/05/09 10:06:32 INFO client.DAGClientImpl: DAG: State: SUCCEEDED Progress: 100% TotalTasks: 2 Succeeded: 2 Running: 0 Failed: 0 Killed: 0
+15/05/09 10:06:32 INFO client.DAGClientImpl: 	VertexStatus: VertexName: Tokenizer Progress: 100% TotalTasks: 1 Succeeded: 1 Running: 0 Failed: 0 Killed: 0
+15/05/09 10:06:32 INFO client.DAGClientImpl: 	VertexStatus: VertexName: Summation Progress: 100% TotalTasks: 1 Succeeded: 1 Running: 0 Failed: 0 Killed: 0
+15/05/09 10:06:32 INFO client.DAGClientImpl: DAG completed. FinalState=SUCCEEDED</p>
+
+<p>```</p>
+
+<p>示例代码将结果写到了两个文件中：</p>
+
+<p><code class="highlighter-rouge">bash
+$ hadoop fs -ls /tmp/aaa/
+Found 3 items
+-rw-r--r--   3 hdfs hdfs          0 2015-05-09 09:35 /tmp/aaa/_SUCCESS
+-rw-r--r--   3 hdfs hdfs       2090 2015-05-08 14:44 /tmp/aaa/part-r-00000
+-rw-r--r--   3 hdfs hdfs       2090 2015-05-09 09:35 /tmp/aaa/part-v001-o000-00000
+$ hadoop fs -cat /tmp/aaa/part-v001-o000-00000
+Daemon:/:/sbin/nologin	1
+HTTPFS:/var/run/hadoop/httpfs:/bin/bash	1
+SSH:/var/empty/sshd:/sbin/nologin	1
+...
+</code></p>
+
+<p>参考：
+<a href="http://tez.apache.org/">Tez官方网站</a>
+<a href="http://dongxicheng.org/mapreduce-nextgen/apache-tez/">Apache Tez：一个运行在YARN之上支持DAG作业的计算框架</a>， 董西成
+<a href="http://zcdeng.iteye.com/blog/1897208">Apache Tez DAG计算应用框架</a>
+<a href="https://issues.apache.org/jira/secure/attachment/12588887/Tez%20Design%20v1.1.pdf">Tez Design</a></p>
+
+</article>
+
+
+
+<section class="tags">
+  <strong>Tags:</strong> <a href="/tag/tez">tez</a>,&nbsp;<a href="/tag/hadoop">hadoop</a>
+</section>
+
+
+
+<section class="rss">
+  <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+</section>
+
+<section class="share">
+  <span>Share: </span>
+  
+    
+    
+      <a href="//twitter.com/share?text=%E7%AC%94%E8%AE%B0%EF%BC%9ADAG%E8%AE%A1%E7%AE%97%E6%A1%86%E6%9E%B6Tez&url=http://silenceshell.gitcafe.io/tech/2015/05/11/tez-intro.html&via=瓶子"
+        onclick="window.open(this.href, 'twitter-share', 'width=550,height=255');return false;">
+        <i class="fa fa-twitter-square fa-lg"></i>
+      </a>
+    
+    
+    
+    
+    
+  
+    
+    
+    
+    
+    
+    
+  
+</section>
+
+
+
+</div>
+</div>
+
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h3 class="footer-heading">Zlatan Eevee</h3>
+
+    <div class="site-navigation">
+      
+      <p><strong>Site Map</strong></p>
+      <ul class="pages">
+        
+        
+          <li class="nav-link"><a href="/about/">About</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+          <li class="nav-link"><a href="/posts/">Posts</a>
+        
+        
+        
+          <li class="nav-link"><a href="/typography/">Typography</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+      </ul>
+    </div>
+
+    <div class="site-contact">
+
+      <p><strong>Contact</strong></p>
+      <ul class="social-media-list">
+        <li>
+          <a href="mailto:hubottle@gmail.com">
+            <i class="fa fa-envelope-o"></i>
+            <span class="username">hubottle@gmail.com</span>
+          </a>
+        </li>
+
+        
+          
+          <li>
+            <a href="https://twitter.com/hubottle" title="Follow me on Twitter">
+              <i class="fa fa-twitter"></i>
+              <span class="username">瓶子</span>
+            </a>
+          </li>
+          
+        
+          
+          <li>
+            <a href="https://github.com/silenceshell" title="Fork me on GitHub">
+              <i class="fa fa-github"></i>
+              <span class="username">silenceshell</span>
+            </a>
+          </li>
+          
+        
+
+      </ul>
+    </div>
+
+    <div class="site-signature">
+      <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+      <p class="text"></p>
+    </div>
+
+  </div>
+
+</footer>
+
+<!-- Scripts -->
+<script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/highlight.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/js/lightbox.min.js"></script>
+<script>
+
+$(document).ready(function() {
+
+  // Syntax highlighting
+  hljs.initHighlightingOnLoad();
+
+  // Header
+  var menuToggle = $('#js-mobile-menu').unbind();
+  $('#js-navigation-menu').removeClass("show");
+  menuToggle.on('click', function(e) {
+    e.preventDefault();
+    $('#js-navigation-menu').slideToggle(function(){
+      if($('#js-navigation-menu').is(':hidden')) {
+        $('#js-navigation-menu').removeAttr('style');
+      }
+    });
+  });
+
+
+});
+
+</script>
+
+
+
+
+  </body>
+
+</html>

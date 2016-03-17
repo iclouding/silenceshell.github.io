@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+
+	<script>
+	var _hmt = _hmt || [];
+	(function() {
+	  var hm = document.createElement("script");
+	  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+	  var s = document.getElementsByTagName("script")[0]; 
+	  s.parentNode.insertBefore(hm, s);
+	})();
+	</script>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>如何使用kettle提高ADS插入速度</title>
+  <meta name="description" content="背景介绍我们需要从kettle将数据导入到ADS，但导入性能不理想，32并发线程，单个ADS接入节点，也只有最多六七千条每秒的样子。从kettle日志来分析，其抽取机制是每个线程先从源端读取5W条，然后再向目的端写入5W条。2015/12/15 10:38:30 - step1.0 - linenr 900000...">
+  
+  <meta name="author" content="伊布">
+  <meta name="copyright" content="&copy; 伊布 2016">
+  
+
+  <!-- External libraries -->
+  <!--<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"> -->
+  <link href="//cdn.bootcss.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/styles/solarized-dark.min.css">
+  <!--<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/styles/monokai_sublime.min.css">-->
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/css/lightbox.css">
+
+  <!-- Favicon and other icons (made with http://www.favicon-generator.org/) -->
+  <link rel="shortcut icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" sizes="57x57" href="/assets/icons/apple-icon-57x57.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="/assets/icons/apple-icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="/assets/icons/apple-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="/assets/icons/apple-icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="/assets/icons/apple-icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/assets/icons/apple-icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="/assets/icons/apple-icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/apple-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-icon-180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192"  href="/assets/icons/android-icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/assets/icons/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+  <link rel="manifest" href="/assets/icons/manifest.json">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="msapplication-TileImage" content="/assets/icons/ms-icon-144x144.png">
+  <meta name="theme-color" content="#ffffff">
+
+  
+  <!-- Facebook OGP cards -->
+  <meta property="og:description" content="背景介绍我们需要从kettle将数据导入到ADS，但导入性能不理想，32并发线程，单个ADS接入节点，也只有最多六七千条每秒的样子。从kettle日志来分析，其抽取机制是每个线程先从源端读取5W条，然后再向目的端写入5W条。2015/12/15 10:38:30 - step1.0 - linenr 900000..." />
+  <meta property="og:url" content="http://silenceshell.gitcafe.io" />
+  <meta property="og:site_name" content="Zlatan Eevee" />
+  <meta property="og:title" content="如何使用kettle提高ADS插入速度" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="http://silenceshell.gitcafe.io/assets/instacode.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="612" />
+  <meta property="og:image:height" content="605" />
+  
+
+  
+  <!-- Twitter: card tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="如何使用kettle提高ADS插入速度">
+  <meta name="twitter:description" content="背景介绍我们需要从kettle将数据导入到ADS，但导入性能不理想，32并发线程，单个ADS接入节点，也只有最多六七千条每秒的样子。从kettle日志来分析，其抽取机制是每个线程先从源端读取5W条，然后再向目的端写入5W条。2015/12/15 10:38:30 - step1.0 - linenr 900000...">
+  <meta name="twitter:image" content="http://silenceshell.gitcafe.io/assets/instacode.png">
+  <meta name="twitter:url" content="http://silenceshell.gitcafe.io">
+  
+
+  
+
+  <!-- Site styles -->
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://silenceshell.gitcafe.io/tech/2015/12/18/batch-insert.html">
+  <link rel="alternate" type="application/rss+xml" title="Zlatan Eevee" href="http://silenceshell.gitcafe.io/feed.xml" />
+</head>
+
+
+  <body>
+
+    <header class="navigation" role="banner">
+  <div class="navigation-wrapper">
+    <a href="/" class="logo">
+      
+      <img src="/assets/logo.png" alt="Zlatan Eevee">
+      
+    </a>
+    <a href="javascript:void(0)" class="navigation-menu-button" id="js-mobile-menu">
+      <i class="fa fa-bars"></i>
+    </a>
+    <nav role="navigation">
+      <ul id="js-navigation-menu" class="navigation-menu show">
+        
+          
+          <li class="nav-link"><a href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+          <li class="nav-link"><a href="/posts/">Posts</a>
+          
+        
+          
+          <li class="nav-link"><a href="/typography/">Typography</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+        <div class="post">
+
+<div class="post-header-container has-cover" style="background-image: url(/assets/instacode.png);">
+  <div class="scrim has-cover">
+    <header class="post-header">
+      <h1 class="title">如何使用kettle提高ADS插入速度</h1>
+      <p class="info">by <strong>伊布</strong></p>
+    </header>
+  </div>
+</div>
+
+<div class="wrapper">
+
+
+
+<section class="post-meta">
+  <div class="post-date">December 18, 2015</div>
+  <div class="post-categories">
+  in 
+    
+    <a href="/category/tech">Tech</a>
+    
+  
+  </div>
+</section>  
+
+<article class="post-content">
+  <h2 id="section">背景介绍</h2>
+
+<p>我们需要从kettle将数据导入到ADS，但导入性能不理想，32并发线程，单个ADS接入节点，也只有最多六七千条每秒的样子。</p>
+
+<p>从kettle日志来分析，其抽取机制是每个线程先从源端读取5W条，然后再向目的端写入5W条。</p>
+
+<p><code class="highlighter-rouge">
+2015/12/15 10:38:30 - step1.0 - linenr 900000
+2015/12/15 10:38:54 - step2.0 - linenr 900000
+2015/12/15 10:40:27 - step1.0 - linenr 950000
+2015/12/15 10:40:52 - step2.0 - linenr 950000
+</code></p>
+
+<p>默认kettle的插入是一条insert语句插入一条记录。这样会有2个影响</p>
+
+<ul>
+  <li>从网络通信角度来看，报文的负载较高，传输效率低，并且大量的时间浪费在了报文收发上</li>
+  <li>数据端需要对每条insert都需要单独处理，如事务、存储、加解锁等</li>
+</ul>
+
+<h2 id="section-1">解决方法</h2>
+<p>既然单条insert效率不高，那么一条insert语句插入多条记录（batch insert）就可以解决这个问题。具体举例如下：
+batch insert之前，在服务器端看到的插入是这样的：</p>
+
+<p><code class="highlighter-rouge">
+INSERT INTO t (c1,c2) VALUES ('One',1);
+INSERT INTO t (c1,c2) VALUES ('Two',2);
+INSERT INTO t (c1,c2) VALUES ('Three',3);
+</code></p>
+
+<p>batch insert以后，在服务器端看到的插入是这样的：</p>
+
+<p><code class="highlighter-rouge">
+INSERT INTO t (c1,c2) VALUES ('One',1),('Two',2),('Three',3);
+</code></p>
+
+<h3 id="section-2">服务器端</h3>
+<p>需要支持批量insert，所幸ADS支持这样的语法。</p>
+
+<h3 id="section-3">客户端</h3>
+<p>一开始我们认为需要在kettle里面增量开发代码，自己来拼装insert语句（涉世未深啊），但实际上MySQL的JDBC驱动（高于5.1.13）已经支持这样的功能了：开启rewriteBatchedStatements=true，JDBC会自动将应用丢给JDBC驱动的单条insert进行拼装。
+具体来说，连接刚建立的时候，JDBC会向服务器发送<code class="highlighter-rouge">show variables like max_allowed_packet</code>来获取服务器允许的最大拼装长度，之后拼装batch insert语句时会按这个长度来。
+所以只要kettle在建立跟ADS的连接时，带上rewriteBatchedStatements=true参数即可。</p>
+
+<p><strong>JDBC支持batch insert源码分析</strong></p>
+
+<blockquote>
+  <p>todo</p>
+</blockquote>
+
+<h3 id="section-4">设置方式</h3>
+
+<p>kettle支持对数据源设置变量，这里直接贴图：</p>
+
+<p><img src="http://7xir15.com1.z0.glb.clouddn.com/kettle_batch_insert.png" alt="kettle_batch_insert" /></p>
+
+<p><strong>kettle支持batch insert源码分析</strong>
+这块代码比较简单，记在这里以备查阅。</p>
+
+<p>DataBaseMeta.java</p>
+
+<p>```
+  @Override
+  public String environmentSubstitute( String aString ) {
+    return variables.environmentSubstitute( aString );
+  }</p>
+
+<p>public String getURL( String partitionId ) throws KettleDatabaseException {
+…
+    //先获取JDBC URL
+    baseUrl = databaseInterface.getURL( hostname, port, databaseName );
+    //再添加环境变量
+    StringBuffer url = new StringBuffer( environmentSubstitute( baseUrl ) );
+```</p>
+
+<p>MySQLDataBaseMeta.java</p>
+
+<p><code class="highlighter-rouge">java
+  @Override
+  public String getURL( String hostname, String port, String databaseName ) {
+    if ( getAccessType() == DatabaseMeta.TYPE_ACCESS_ODBC ) {
+      return "jdbc:odbc:" + databaseName;
+    } else {
+      if ( Const.isEmpty( port ) ) {
+        return "jdbc:mysql://" + hostname + "/" + databaseName;
+      } else {
+        return "jdbc:mysql://" + hostname + ":" + port + "/" + databaseName;
+      }
+    }
+  }
+</code></p>
+
+<p>调用Variables.java</p>
+
+<p>```java
+  @Override
+  public String environmentSubstitute( String aString ) {
+    if ( aString == null || aString.length() == 0 ) {
+      return aString;
+    }</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>return StringUtil.environmentSubstitute( aString, properties );   }
+</code></pre>
+</div>
+
+<p>```</p>
+
+<p>最终在StringUtil.java中根据用户设置下来的systemProperties（包含rewriteBatchedStatements）填写JDBC变量。</p>
+
+<p><code class="highlighter-rouge">java
+  public static final synchronized String environmentSubstitute( String aString,
+    Map&lt;String, String&gt; systemProperties ) {
+    Map&lt;String, String&gt; sysMap = new HashMap&lt;String, String&gt;();
+    synchronized ( sysMap ) {
+      sysMap.putAll( Collections.synchronizedMap( systemProperties ) );
+...
+      return aString;
+    }
+  }
+</code></p>
+
+
+</article>
+
+
+
+<section class="tags">
+  <strong>Tags:</strong> <a href="/tag/etl">etl</a>
+</section>
+
+
+
+<section class="rss">
+  <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+</section>
+
+<section class="share">
+  <span>Share: </span>
+  
+    
+    
+      <a href="//twitter.com/share?text=%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8kettle%E6%8F%90%E9%AB%98ADS%E6%8F%92%E5%85%A5%E9%80%9F%E5%BA%A6&url=http://silenceshell.gitcafe.io/tech/2015/12/18/batch-insert.html&via=瓶子"
+        onclick="window.open(this.href, 'twitter-share', 'width=550,height=255');return false;">
+        <i class="fa fa-twitter-square fa-lg"></i>
+      </a>
+    
+    
+    
+    
+    
+  
+    
+    
+    
+    
+    
+    
+  
+</section>
+
+
+
+</div>
+</div>
+
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h3 class="footer-heading">Zlatan Eevee</h3>
+
+    <div class="site-navigation">
+      
+      <p><strong>Site Map</strong></p>
+      <ul class="pages">
+        
+        
+          <li class="nav-link"><a href="/about/">About</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+          <li class="nav-link"><a href="/posts/">Posts</a>
+        
+        
+        
+          <li class="nav-link"><a href="/typography/">Typography</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+      </ul>
+    </div>
+
+    <div class="site-contact">
+
+      <p><strong>Contact</strong></p>
+      <ul class="social-media-list">
+        <li>
+          <a href="mailto:hubottle@gmail.com">
+            <i class="fa fa-envelope-o"></i>
+            <span class="username">hubottle@gmail.com</span>
+          </a>
+        </li>
+
+        
+          
+          <li>
+            <a href="https://twitter.com/hubottle" title="Follow me on Twitter">
+              <i class="fa fa-twitter"></i>
+              <span class="username">瓶子</span>
+            </a>
+          </li>
+          
+        
+          
+          <li>
+            <a href="https://github.com/silenceshell" title="Fork me on GitHub">
+              <i class="fa fa-github"></i>
+              <span class="username">silenceshell</span>
+            </a>
+          </li>
+          
+        
+
+      </ul>
+    </div>
+
+    <div class="site-signature">
+      <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+      <p class="text"></p>
+    </div>
+
+  </div>
+
+</footer>
+
+<!-- Scripts -->
+<script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/highlight.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/js/lightbox.min.js"></script>
+<script>
+
+$(document).ready(function() {
+
+  // Syntax highlighting
+  hljs.initHighlightingOnLoad();
+
+  // Header
+  var menuToggle = $('#js-mobile-menu').unbind();
+  $('#js-navigation-menu').removeClass("show");
+  menuToggle.on('click', function(e) {
+    e.preventDefault();
+    $('#js-navigation-menu').slideToggle(function(){
+      if($('#js-navigation-menu').is(':hidden')) {
+        $('#js-navigation-menu').removeAttr('style');
+      }
+    });
+  });
+
+
+});
+
+</script>
+
+
+
+
+  </body>
+
+</html>

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html>
+
+	<script>
+	var _hmt = _hmt || [];
+	(function() {
+	  var hm = document.createElement("script");
+	  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+	  var s = document.getElementsByTagName("script")[0]; 
+	  s.parentNode.insertBefore(hm, s);
+	})();
+	</script>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>流式计算框架Storm介绍</title>
+  <meta name="description" content="1 背景：MR的问题  启动时间长。多采用pull模型，没有JVM缓存池  调度开销大  中间数据写磁盘storm的出现，可以比较好的解决上面的问题。2 Storm的优势实时计算、流式计算。水管不停的产生数据，流向中间的螺栓(处理逻辑)。Storm出现之前的解决方法：消息队列，读取消息队列，更新数据库，通知其他消...">
+  
+  <meta name="author" content="伊布">
+  <meta name="copyright" content="&copy; 伊布 2016">
+  
+
+  <!-- External libraries -->
+  <!--<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"> -->
+  <link href="//cdn.bootcss.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/styles/solarized-dark.min.css">
+  <!--<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/styles/monokai_sublime.min.css">-->
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/css/lightbox.css">
+
+  <!-- Favicon and other icons (made with http://www.favicon-generator.org/) -->
+  <link rel="shortcut icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" sizes="57x57" href="/assets/icons/apple-icon-57x57.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="/assets/icons/apple-icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="/assets/icons/apple-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="/assets/icons/apple-icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="/assets/icons/apple-icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/assets/icons/apple-icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="/assets/icons/apple-icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/apple-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-icon-180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192"  href="/assets/icons/android-icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/assets/icons/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+  <link rel="manifest" href="/assets/icons/manifest.json">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="msapplication-TileImage" content="/assets/icons/ms-icon-144x144.png">
+  <meta name="theme-color" content="#ffffff">
+
+  
+  <!-- Facebook OGP cards -->
+  <meta property="og:description" content="1 背景：MR的问题  启动时间长。多采用pull模型，没有JVM缓存池  调度开销大  中间数据写磁盘storm的出现，可以比较好的解决上面的问题。2 Storm的优势实时计算、流式计算。水管不停的产生数据，流向中间的螺栓(处理逻辑)。Storm出现之前的解决方法：消息队列，读取消息队列，更新数据库，通知其他消..." />
+  <meta property="og:url" content="http://silenceshell.gitcafe.io" />
+  <meta property="og:site_name" content="Zlatan Eevee" />
+  <meta property="og:title" content="流式计算框架Storm介绍" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="http://silenceshell.gitcafe.io/assets/instacode.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="612" />
+  <meta property="og:image:height" content="605" />
+  
+
+  
+  <!-- Twitter: card tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="流式计算框架Storm介绍">
+  <meta name="twitter:description" content="1 背景：MR的问题  启动时间长。多采用pull模型，没有JVM缓存池  调度开销大  中间数据写磁盘storm的出现，可以比较好的解决上面的问题。2 Storm的优势实时计算、流式计算。水管不停的产生数据，流向中间的螺栓(处理逻辑)。Storm出现之前的解决方法：消息队列，读取消息队列，更新数据库，通知其他消...">
+  <meta name="twitter:image" content="http://silenceshell.gitcafe.io/assets/instacode.png">
+  <meta name="twitter:url" content="http://silenceshell.gitcafe.io">
+  
+
+  
+
+  <!-- Site styles -->
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://silenceshell.gitcafe.io/tech/2015/05/11/storm-intro.html">
+  <link rel="alternate" type="application/rss+xml" title="Zlatan Eevee" href="http://silenceshell.gitcafe.io/feed.xml" />
+</head>
+
+
+  <body>
+
+    <header class="navigation" role="banner">
+  <div class="navigation-wrapper">
+    <a href="/" class="logo">
+      
+      <img src="/assets/logo.png" alt="Zlatan Eevee">
+      
+    </a>
+    <a href="javascript:void(0)" class="navigation-menu-button" id="js-mobile-menu">
+      <i class="fa fa-bars"></i>
+    </a>
+    <nav role="navigation">
+      <ul id="js-navigation-menu" class="navigation-menu show">
+        
+          
+          <li class="nav-link"><a href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+          <li class="nav-link"><a href="/posts/">Posts</a>
+          
+        
+          
+          <li class="nav-link"><a href="/typography/">Typography</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+        <div class="post">
+
+<div class="post-header-container has-cover" style="background-image: url(/assets/instacode.png);">
+  <div class="scrim has-cover">
+    <header class="post-header">
+      <h1 class="title">流式计算框架Storm介绍</h1>
+      <p class="info">by <strong>伊布</strong></p>
+    </header>
+  </div>
+</div>
+
+<div class="wrapper">
+
+
+
+<section class="post-meta">
+  <div class="post-date">May 11, 2015</div>
+  <div class="post-categories">
+  in 
+    
+    <a href="/category/tech">Tech</a>
+    
+  
+  </div>
+</section>  
+
+<article class="post-content">
+  <h3 id="mr">1 背景：MR的问题</h3>
+<ul>
+  <li>启动时间长。多采用pull模型，没有JVM缓存池</li>
+  <li>调度开销大</li>
+  <li>中间数据写磁盘</li>
+</ul>
+
+<p>storm的出现，可以比较好的解决上面的问题。</p>
+
+<h3 id="storm">2 Storm的优势</h3>
+<p>实时计算、流式计算。水管不停的产生数据，流向中间的螺栓(处理逻辑)。
+<img src="http://tech.uc.cn/wp-content/uploads/2013/09/topology%E4%BE%8B%E5%AD%902.jpg" alt="stom模型" />
+Storm出现之前的解决方法：消息队列，读取消息队列，更新数据库，通知其他消息队列，存在缺点：自动化、健壮性、伸缩性。可以参考知乎的一个<a href="http://www.zhihu.com/question/20028515">问答</a>：
+&gt; 问：实时处理系统（类似s4, storm）对比直接用MQ来做好处在哪里？
+&gt; 答：好处是它帮你做了： 1) 集群控制。2) 任务分配。3) 任务分发 4) 监控 等等。</p>
+
+<p>总结Storm的优势：</p>
+
+<ul>
+  <li>分布式：只要修改并发任务数，就可以获得更好的分布式性能</li>
+  <li>运维简单</li>
+  <li>高度容错：模块无状态，随时可重启</li>
+  <li>无数据丢失：ack消息追踪记录</li>
+  <li>多语言编程接口：貌似还是以java为主</li>
+</ul>
+
+<h3 id="section">3 编程模型</h3>
+<p>Tuple：数据表示模型，数据库中的一行记录，可以为integer、long，也可以自定义的序列化。
+Stream：消息流。每个Tuple认为是一个消息，消息流就是Tuple队列。
+Topology：应用程序处理逻辑，不会终止的MR作业。
+Spout：消息源
+Bolt：消息处理逻辑。多个Bolt之间有依赖关系，DAG组织。
+Task：Spout和Bolt可以被并行化拆分为多个处理单元，每个单元为一个Task
+Stream Grouping：消息分发策略，7种：随机、按字段、广播等。
+如下图：
+<img src="http://7xir15.com1.z0.glb.clouddn.com/storm组件.PNG" alt="Storm各组件" /></p>
+
+<h4 id="wordcount">3.1 wordcount示例</h4>
+<p>还是以wordcount为例，代码在github上：<a href="https://github.com/apache/storm/tree/master/examples/storm-starter">点这里</a>
+wordcount分为1个Spout和2个Bolt，流程很简单:
+RandomSentenceSpout-&gt;SplitSentence-&gt;WordCount</p>
+
+<p><strong>创建TopologyBuilder，设置Spout、bolt，然后提交此拓扑。</strong></p>
+
+<p>```java
+  public static void main(String[] args) throws Exception {</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>TopologyBuilder builder = new TopologyBuilder();
+
+builder.setSpout("spout", new RandomSentenceSpout(), 5);		//5为并发消息源任务数
+
+//8为Split并发任务数；shuffleGrouping指定了从Spout到SplitBolt的消息分发策略：随机
+builder.setBolt("split", new SplitSentence(), 8).shuffleGrouping("spout");
+//12为计数并发任务书；fieldsGrouping指定了从SplitBolt到WordCount Bolt的消息分发策略：按字段分组，保证同一单词分配到同一task
+builder.setBolt("count", new WordCount(), 12).fieldsGrouping("split", new Fields("word"));
+...
+  cluster.submitTopology("word-count", conf, builder.createTopology()); ```
+</code></pre>
+</div>
+
+<p>Spout的作用就是源源不断的产生数据，形象的描述就是一个“水龙头”。
+示例代码中的Spout在open中先定义了一个随机数生成器，之后Storm框架会不断的调用<code class="highlighter-rouge">nextTuple</code>，每次随机从5条字符串中选取一条作为Tuple送到后面的Bolt。</p>
+
+<p>```java
+public class RandomSentenceSpout extends BaseRichSpout {
+  @Override
+  public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
+    _collector = collector;
+    _rand = new Random();
+  }</p>
+
+<p>@Override
+  public void nextTuple() {
+    Utils.sleep(100);
+    String[] sentences = new String[]{ “the cow jumped over the moon”, “an apple a day keeps the doctor away”,
+        “four score and seven years ago”, “snow white and the seven dwarfs”, “i am at two with nature” };
+    String sentence = sentences[_rand.nextInt(sentences.length)];	//随机抽取一条字符串
+    _collector.emit(new Values(sentence));
+  }
+```</p>
+
+<p><strong>Spolt丢出来的Tuple消息是一个多个单词组成的字符串，SplitBolt会先把它Split为多个单词</strong></p>
+
+<p>```java
+public static class SplitSentence extends ShellBolt implements IRichBolt {</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>public SplitSentence() {	//调用python脚本来拆字符串
+  super("python", "splitsentence.py");
+} ```
+</code></pre>
+</div>
+
+<p>脚本将字符串Split以后再emit（发射）出去给下一个bolt。注意每次发射的是单个单词。
+此脚本的路径是<code class="highlighter-rouge">./multilang/resources/splitsentence.py</code></p>
+
+<p>```python
+import storm</p>
+
+<p>class SplitSentenceBolt(storm.BasicBolt):
+    def process(self, tup):
+        words = tup.values[0].split(“ “)
+        for word in words:
+          storm.emit([word])</p>
+
+<p>SplitSentenceBolt().run()
+```</p>
+
+<p><strong>WordCount bolt将前面bolt发射出来的单词汇总起来，建立单词与词频的映射关系</strong>
+由于采用了Field Grouping策略，WordCount bolt只要写入Map即可。</p>
+
+<p>```java
+  public static class WordCount extends BaseBasicBolt {
+    Map&lt;String, Integer&gt; counts = new HashMap&lt;String, Integer&gt;();</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>@Override
+public void execute(Tuple tuple, BasicOutputCollector collector) {
+  String word = tuple.getString(0);
+  Integer count = counts.get(word);
+  if (count == null)
+    count = 0;
+  count++;
+  counts.put(word, count);		//写入Map表
+  collector.emit(new Values(word, count));	//继续向后发射
+} ```
+</code></pre>
+</div>
+
+<h3 id="section-1">4 基本架构</h3>
+<p>Storm仍然为M/S架构，通过zookeeper通信。主要由下面几个组件构成：</p>
+
+<ul>
+  <li>控制节点：Nimbus，类似job tracker，分发代码、工作任务</li>
+  <li>工作节点：Supervisor，类似task tracker，根据需要启动关闭工作进程(Worker)</li>
+  <li>Worker：负责执行具体任务的逻辑</li>
+  <li>Task: Worker中每一个Spout/Bolt称为一个Task。0.8以后可以在一个线程中运行多个Spout/Bolt，这个线程称为Executor。</li>
+</ul>
+
+<p>下图描述了一个任务的启动过程：
+<img src="http://tech.uc.cn/wp-content/uploads/2013/09/%E6%8F%90%E4%BA%A42.jpg" alt="" /></p>
+
+<p>Numbus和SupervisorNumbus和Supervisor不直接交互，状态都保存在zookeeper上，故而重启不影响Storm。
+Worker之间使用MQ传递消息。
+<img src="http://tech.uc.cn/wp-content/uploads/2013/09/%E6%95%B0%E6%8D%AE%E6%B5%81%E5%9B%BE.png" alt="nimbus and Supervisor" /></p>
+
+<h3 id="section-2">5 记录级容错</h3>
+<p>所谓记录级，指的是一条tuple被所有应该走到的节点处理完毕。Storm的记录级容错使用了这样一个数学原理：
+A xor A = 0.
+A xor B…xor B xor A = 0，其中每一个操作数出现且仅出现两次。
+Storm要求Spout发射消息时，将tuple id告知acker；要求Bolt发射消息时，将处理的tuple id和新生成的tuple id告知acker。这样所有节点处理完毕后，acker的异或结果为0。
+如果acker在超时时间内检查不为0，则此记录失败。下面链接中淘宝的文章详细的说明了这一过程，不再赘述。</p>
+
+<p>参考：
+<a href="http://www.searchtb.com/2012/09/introduction-to-storm.html">淘宝：storm简介</a>
+<a href="http://tech.uc.cn/?p=2159">UC：Storm：最火的流式处理框架</a></p>
+
+</article>
+
+
+
+<section class="tags">
+  <strong>Tags:</strong> <a href="/tag/storm">storm</a>
+</section>
+
+
+
+<section class="rss">
+  <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+</section>
+
+<section class="share">
+  <span>Share: </span>
+  
+    
+    
+      <a href="//twitter.com/share?text=%E6%B5%81%E5%BC%8F%E8%AE%A1%E7%AE%97%E6%A1%86%E6%9E%B6Storm%E4%BB%8B%E7%BB%8D&url=http://silenceshell.gitcafe.io/tech/2015/05/11/storm-intro.html&via=瓶子"
+        onclick="window.open(this.href, 'twitter-share', 'width=550,height=255');return false;">
+        <i class="fa fa-twitter-square fa-lg"></i>
+      </a>
+    
+    
+    
+    
+    
+  
+    
+    
+    
+    
+    
+    
+  
+</section>
+
+
+
+</div>
+</div>
+
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h3 class="footer-heading">Zlatan Eevee</h3>
+
+    <div class="site-navigation">
+      
+      <p><strong>Site Map</strong></p>
+      <ul class="pages">
+        
+        
+          <li class="nav-link"><a href="/about/">About</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+          <li class="nav-link"><a href="/posts/">Posts</a>
+        
+        
+        
+          <li class="nav-link"><a href="/typography/">Typography</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+      </ul>
+    </div>
+
+    <div class="site-contact">
+
+      <p><strong>Contact</strong></p>
+      <ul class="social-media-list">
+        <li>
+          <a href="mailto:hubottle@gmail.com">
+            <i class="fa fa-envelope-o"></i>
+            <span class="username">hubottle@gmail.com</span>
+          </a>
+        </li>
+
+        
+          
+          <li>
+            <a href="https://twitter.com/hubottle" title="Follow me on Twitter">
+              <i class="fa fa-twitter"></i>
+              <span class="username">瓶子</span>
+            </a>
+          </li>
+          
+        
+          
+          <li>
+            <a href="https://github.com/silenceshell" title="Fork me on GitHub">
+              <i class="fa fa-github"></i>
+              <span class="username">silenceshell</span>
+            </a>
+          </li>
+          
+        
+
+      </ul>
+    </div>
+
+    <div class="site-signature">
+      <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+      <p class="text"></p>
+    </div>
+
+  </div>
+
+</footer>
+
+<!-- Scripts -->
+<script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/highlight.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/js/lightbox.min.js"></script>
+<script>
+
+$(document).ready(function() {
+
+  // Syntax highlighting
+  hljs.initHighlightingOnLoad();
+
+  // Header
+  var menuToggle = $('#js-mobile-menu').unbind();
+  $('#js-navigation-menu').removeClass("show");
+  menuToggle.on('click', function(e) {
+    e.preventDefault();
+    $('#js-navigation-menu').slideToggle(function(){
+      if($('#js-navigation-menu').is(':hidden')) {
+        $('#js-navigation-menu').removeAttr('style');
+      }
+    });
+  });
+
+
+});
+
+</script>
+
+
+
+
+  </body>
+
+</html>

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+
+	<script>
+	var _hmt = _hmt || [];
+	(function() {
+	  var hm = document.createElement("script");
+	  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+	  var s = document.getElementsByTagName("script")[0]; 
+	  s.parentNode.insertBefore(hm, s);
+	})();
+	</script>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Fullnat系列（二）：如何使用fullnat</title>
+  <meta name="description" content="如果要让你的服务器支持fullnat，需要如下修改：  内核打阿里开源的fullnat补丁  使用ali开源的keepalived  使用ali开源的ipvsadmFullnat所有的代码，阿里都在github上开源了，附送了一批使用手册，相对来说已经比较完善。内核打fullnat补丁我的环境使用的是centos...">
+  
+  <meta name="author" content="伊布">
+  <meta name="copyright" content="&copy; 伊布 2016">
+  
+
+  <!-- External libraries -->
+  <!--<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"> -->
+  <link href="//cdn.bootcss.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/styles/solarized-dark.min.css">
+  <!--<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/styles/monokai_sublime.min.css">-->
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/css/lightbox.css">
+
+  <!-- Favicon and other icons (made with http://www.favicon-generator.org/) -->
+  <link rel="shortcut icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" sizes="57x57" href="/assets/icons/apple-icon-57x57.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="/assets/icons/apple-icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="/assets/icons/apple-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="/assets/icons/apple-icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="/assets/icons/apple-icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/assets/icons/apple-icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="/assets/icons/apple-icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/apple-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-icon-180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192"  href="/assets/icons/android-icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/assets/icons/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+  <link rel="manifest" href="/assets/icons/manifest.json">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="msapplication-TileImage" content="/assets/icons/ms-icon-144x144.png">
+  <meta name="theme-color" content="#ffffff">
+
+  
+  <!-- Facebook OGP cards -->
+  <meta property="og:description" content="如果要让你的服务器支持fullnat，需要如下修改：  内核打阿里开源的fullnat补丁  使用ali开源的keepalived  使用ali开源的ipvsadmFullnat所有的代码，阿里都在github上开源了，附送了一批使用手册，相对来说已经比较完善。内核打fullnat补丁我的环境使用的是centos..." />
+  <meta property="og:url" content="http://silenceshell.gitcafe.io" />
+  <meta property="og:site_name" content="Zlatan Eevee" />
+  <meta property="og:title" content="Fullnat系列（二）：如何使用fullnat" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="http://silenceshell.gitcafe.io/assets/instacode.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="612" />
+  <meta property="og:image:height" content="605" />
+  
+
+  
+  <!-- Twitter: card tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Fullnat系列（二）：如何使用fullnat">
+  <meta name="twitter:description" content="如果要让你的服务器支持fullnat，需要如下修改：  内核打阿里开源的fullnat补丁  使用ali开源的keepalived  使用ali开源的ipvsadmFullnat所有的代码，阿里都在github上开源了，附送了一批使用手册，相对来说已经比较完善。内核打fullnat补丁我的环境使用的是centos...">
+  <meta name="twitter:image" content="http://silenceshell.gitcafe.io/assets/instacode.png">
+  <meta name="twitter:url" content="http://silenceshell.gitcafe.io">
+  
+
+  
+
+  <!-- Site styles -->
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://silenceshell.gitcafe.io/tech/2015/12/09/fullnat-2.html">
+  <link rel="alternate" type="application/rss+xml" title="Zlatan Eevee" href="http://silenceshell.gitcafe.io/feed.xml" />
+</head>
+
+
+  <body>
+
+    <header class="navigation" role="banner">
+  <div class="navigation-wrapper">
+    <a href="/" class="logo">
+      
+      <img src="/assets/logo.png" alt="Zlatan Eevee">
+      
+    </a>
+    <a href="javascript:void(0)" class="navigation-menu-button" id="js-mobile-menu">
+      <i class="fa fa-bars"></i>
+    </a>
+    <nav role="navigation">
+      <ul id="js-navigation-menu" class="navigation-menu show">
+        
+          
+          <li class="nav-link"><a href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+          <li class="nav-link"><a href="/posts/">Posts</a>
+          
+        
+          
+          <li class="nav-link"><a href="/typography/">Typography</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+        <div class="post">
+
+<div class="post-header-container has-cover" style="background-image: url(/assets/instacode.png);">
+  <div class="scrim has-cover">
+    <header class="post-header">
+      <h1 class="title">Fullnat系列（二）：如何使用fullnat</h1>
+      <p class="info">by <strong>伊布</strong></p>
+    </header>
+  </div>
+</div>
+
+<div class="wrapper">
+
+
+
+<section class="post-meta">
+  <div class="post-date">December 9, 2015</div>
+  <div class="post-categories">
+  in 
+    
+    <a href="/category/tech">Tech</a>
+    
+  
+  </div>
+</section>  
+
+<article class="post-content">
+  <p>如果要让你的服务器支持fullnat，需要如下修改：</p>
+
+<ul>
+  <li>内核打阿里开源的fullnat补丁</li>
+  <li>使用ali开源的keepalived</li>
+  <li>使用ali开源的ipvsadm</li>
+</ul>
+
+<p>Fullnat所有的代码，阿里都在github上<a href="https://github.com/alibaba/LVS">开源</a>了，附送了一批使用手册，相对来说已经比较完善。</p>
+
+<h2 id="fullnat">内核打fullnat补丁</h2>
+
+<p>我的环境使用的是centos6.5，其内核版本是2.6.32-431。按千户最早的想法，为了避免影响原来系统的稳定性，我们觉得重编ip_vs相关ko并替换原有内核模块，风险相对小一点；但很奇葩的是，centos6.5的yum源里，只有2.6.32-573版本的内核了。所以如果要支持fullnat，就需要升级内核，并打补丁，相对来说比较繁琐。
+所幸，阿里开源时直接提供了一个打过补丁的内核包，其版本是2.6.32-220，我们可以直接用这个包来编译内核。</p>
+
+<p>如果你也要编译，可以直接参考lvs官网的一篇<a href="http://kb.linuxvirtualserver.org/wiki/IPVS_FULLNAT_and_SYNPROXY">文档</a>。我这里使用了centos6.5发行版的config，下面写下操作的步骤。</p>
+
+<p><code class="highlighter-rouge">bash
+wget http://kb.linuxvirtualserver.org/images/b/b7/Linux-2.6.32-220.23.1.el6.x86_64.lvs.src.tar.gz
+tar xvf Linux-2.6.32-220.23.1.el6.x86_64.lvs.src.tar.gz
+# ----不要被tar.gz骗了，实际这只是个tar包
+cd linux-2.6.32-220.23.1.el6.x86_64.lvs
+# 用发行版的config，覆盖.config
+cp /boot/config-2.6.32-431.el6.x86_64 .config
+sh -c 'yes "" | make oldconfig'
+# 开始编译，内存有多少G，就-j多少
+make -j16
+# 安装module
+make modules_install;
+# 安装内核
+make install;
+</code></p>
+
+<p>安装完了以后，查看/boot/下的initrd-2.6.32、vmlinuz等文件，其时间都更新了；修改/boot/grub/menu.list，修改default为0，即2.6.32（默认default是1，即发行版的2.6.32-431）。</p>
+
+<p>```
+default=0
+timeout=5
+splashimage=(hd0,0)/grub/splash.xpm.gz
+hiddenmenu
+title CentOS (2.6.32)
+        root (hd0,0)
+        kernel /vmlinuz-2.6.32 ro …
+        initrd /initramfs-2.6.32.img
+title CentOS (2.6.32-431.el6.x86_64)
+        root (hd0,0)</p>
+
+<p>```</p>
+
+<p>到这里，内核就升级完毕了，重启后使用的就是支持fullnat的2.6.32-200了。</p>
+
+<h2 id="keepalivedipvsadm">编译安装keepalived和ipvsadm</h2>
+<p>由于fullnat是新的packet-forwarding-method，所以ipsvadm是必须要用阿里开源的版本。但是在编译的时候，发现它居然还依赖keepalived囧。</p>
+
+<h3 id="keepalivedlvs">编译、安装keepalived（下面是从LVS官网抄的）</h3>
+<p><code class="highlighter-rouge">
+ cd /root/keepalived
+ ./configure --with-kernel-dir="/lib/modules/`uname -r`/build"
+ make
+ make install
+</code></p>
+
+<h3 id="ipvsadmlvs">编译、安装ipvsadm（下面也是从LVS官网抄的）</h3>
+<p><code class="highlighter-rouge">
+ cd /root/ipvsadm
+ make
+ make install
+</code></p>
+
+<p>我没有编译quaage。</p>
+
+<p>好了，按上面2步，内核升级OK、ipvsadm、keepalived安装OK，重启即可。</p>
+
+<h2 id="fullnat-1">fullnat使用</h2>
+
+<p>相对centos发行版的ipvsadm，阿里开源的ipvsadm要支持fullnat，主要是加了如下2种命令：</p>
+
+<h3 id="real-server">添加Real Server</h3>
+<p><code class="highlighter-rouge">bash
+ipvsadm -a -t service-address -r server-address -b
+</code></p>
+
+<p>其中-b是指<code class="highlighter-rouge">--fullnat      -b                   fullnat mode</code>。我们向Virtual Service添加的所有RS，都需要加-b参数（之前是-m，masquerading）。</p>
+
+<h3 id="local-address">添加、查看Local Address</h3>
+<p><code class="highlighter-rouge">
+#add
+ipvsadm -P -t service-address -z local-address
+#get
+ipvsadm -G -t service-address
+#delete
+ipvsadm -Q -t service-address -z local-address
+</code></p>
+
+<p>为什么需要Local Address呢？参照前一篇文章里对Fullnat的说明，syn报文经过LVS，转发给Real Server时，除了要做DNAT修改目的地址为Real Server的地址，还需要做SNAT，修改源地址。那么源地址填谁呢？</p>
+
+<p>通常来说，LVS自己可以根据目的地址和路由信息，从本机选择一个最匹配的源地址填写到报文中去。但很不幸，Fullnat有一个的缺陷，造成我们必须手工来指定一个Local Address作为源地址。</p>
+
+<p>缺陷是什么呢？当我们配置virtual service时（-A -t x.x.x.1:port），命令下发后，会发现无法ssh连接x.x.x.1了！咨询阿里的同学，原来下发了以后，内核fullnat会对<strong><em>所有</em></strong>报文都做转发，不再上送（其实就是转发的时候没有查inpcb，看过这块代码的同学能明白，其实实现还是比较粗暴的）。所以我们在接口上配置2个地址，一个虚地址给fullnat用，一个给ssh用。</p>
+
+<p>回到刚刚选择源地址的问题，如果让内核自己来选源地址，ipvsadm下发生效后我们就不能再ssh到内核选中的源地址了，这样显然是非常不合适的，因为我们不知道内核选的是哪个地址。所以Fullnat额外要求用户必须自己再配置一个Local Address。</p>
+
+<p>最终，查看到的配置及连接信息如下：</p>
+
+<p><code class="highlighter-rouge">bash
+[root@lvs ~]# ipvsadm -l -n
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port Scheduler Flags
+  -&gt; RemoteAddress:Port           Forward Weight ActiveConn InActConn
+TCP  192.168.104.84:10000 wrr
+  -&gt; 192.168.103.98:9999          FullNat 1      17         0
+  -&gt; 192.168.103.99:9999          FullNat 1      15         0
+[root@lvs ~]# ipvsadm -l -n -c
+IPVS connection entries
+pro expire state       source             virtual            destination
+TCP 04:30  C0A86762    192.168.104.83:52861 192.168.104.84:10000 192.168.103.84:12354
+TCP 04:30  C0A86762    192.168.104.83:52850 192.168.104.84:10000 192.168.103.84:12352
+</code></p>
+
+<p>state那里是个bug，正常应该是ESTA/SYN_RECV之类，回头改掉。</p>
+
+
+</article>
+
+
+
+<section class="tags">
+  <strong>Tags:</strong> <a href="/tag/fullnat">fullnat</a>
+</section>
+
+
+
+<section class="rss">
+  <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+</section>
+
+<section class="share">
+  <span>Share: </span>
+  
+    
+    
+      <a href="//twitter.com/share?text=Fullnat%E7%B3%BB%E5%88%97%EF%BC%88%E4%BA%8C%EF%BC%89%EF%BC%9A%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8fullnat&url=http://silenceshell.gitcafe.io/tech/2015/12/09/fullnat-2.html&via=瓶子"
+        onclick="window.open(this.href, 'twitter-share', 'width=550,height=255');return false;">
+        <i class="fa fa-twitter-square fa-lg"></i>
+      </a>
+    
+    
+    
+    
+    
+  
+    
+    
+    
+    
+    
+    
+  
+</section>
+
+
+
+</div>
+</div>
+
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h3 class="footer-heading">Zlatan Eevee</h3>
+
+    <div class="site-navigation">
+      
+      <p><strong>Site Map</strong></p>
+      <ul class="pages">
+        
+        
+          <li class="nav-link"><a href="/about/">About</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+          <li class="nav-link"><a href="/posts/">Posts</a>
+        
+        
+        
+          <li class="nav-link"><a href="/typography/">Typography</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+      </ul>
+    </div>
+
+    <div class="site-contact">
+
+      <p><strong>Contact</strong></p>
+      <ul class="social-media-list">
+        <li>
+          <a href="mailto:hubottle@gmail.com">
+            <i class="fa fa-envelope-o"></i>
+            <span class="username">hubottle@gmail.com</span>
+          </a>
+        </li>
+
+        
+          
+          <li>
+            <a href="https://twitter.com/hubottle" title="Follow me on Twitter">
+              <i class="fa fa-twitter"></i>
+              <span class="username">瓶子</span>
+            </a>
+          </li>
+          
+        
+          
+          <li>
+            <a href="https://github.com/silenceshell" title="Fork me on GitHub">
+              <i class="fa fa-github"></i>
+              <span class="username">silenceshell</span>
+            </a>
+          </li>
+          
+        
+
+      </ul>
+    </div>
+
+    <div class="site-signature">
+      <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+      <p class="text"></p>
+    </div>
+
+  </div>
+
+</footer>
+
+<!-- Scripts -->
+<script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/highlight.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/js/lightbox.min.js"></script>
+<script>
+
+$(document).ready(function() {
+
+  // Syntax highlighting
+  hljs.initHighlightingOnLoad();
+
+  // Header
+  var menuToggle = $('#js-mobile-menu').unbind();
+  $('#js-navigation-menu').removeClass("show");
+  menuToggle.on('click', function(e) {
+    e.preventDefault();
+    $('#js-navigation-menu').slideToggle(function(){
+      if($('#js-navigation-menu').is(':hidden')) {
+        $('#js-navigation-menu').removeAttr('style');
+      }
+    });
+  });
+
+
+});
+
+</script>
+
+
+
+
+  </body>
+
+</html>

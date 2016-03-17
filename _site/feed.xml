@@ -1,0 +1,1301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Zlatan Eevee</title>
+    <description></description>
+    <link>http://silenceshell.gitcafe.io/</link>
+    <atom:link href="http://silenceshell.gitcafe.io/feed.xml" rel="self" type="application/rss+xml"/>
+    <pubDate>Thu, 17 Mar 2016 22:40:41 +0800</pubDate>
+    <lastBuildDate>Thu, 17 Mar 2016 22:40:41 +0800</lastBuildDate>
+    <generator>Jekyll v3.0.1</generator>
+    
+      <item>
+        <title>-----Redis简介2</title>
+        <description>&lt;h3 id=&quot;section&quot;&gt;背景介绍&lt;/h3&gt;
+&lt;p&gt;随着数据收集的手段不断丰富，数据量也随之增大，而针对这些数据的分析需求也越来越旺盛，旧的RDBMS数据库（如oracle），可能无法承受OLAP的需求；而完全将这些数据迁移到bigdata的方案上，又很难满足ACID等需求。通常比较折衷的方案是，OLTP的应用仍然使用旧的oracle数据库，而OLAP的应用使用bigdata方案，例如hadoop、阿里云ADS等。有的人将这种方案形象的成为“读写分离”。&lt;/p&gt;
+
+&lt;p&gt;接下来，要解决数据如何从oracle同步到ADS。一般来说有两种：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;批量同步。可以使用开源的kettle，将数据从源端select出来后，再批量insert到目的端。kettle可以做到定时调度，通过定义抽取变量，可以做到每隔一段时间同步一次。目前国内的数据同步软件很多都是在kettle的基础上改的；如果目的端是一些比较特殊的数据库，可以通过为kettle编写插件来支持。&lt;/li&gt;
+  &lt;li&gt;实时同步。显然，批量同步的缺点是同步周期长，无法满足一些对时延要求比较高的情景，需要Oracle GoldenGate这样的软件来做到实时或者准实时的同步。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;section-1&quot;&gt;整体架构&lt;/h3&gt;
+&lt;p&gt;OGG的整体结构略微复杂，官方图描述了一个比较典型的数据同步过程。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://docs.oracle.com/goldengate/1212/gg-winux/GWUAD/img/logicalarch2.jpg&quot; alt=&quot;Oracle GoldenGate Logical Architecture&quot; /&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Manager：管理GoldenGate整体各进程的起动/停止、监视、管理，Trail文件的生成、删除&lt;/li&gt;
+  &lt;li&gt;Trail文件：将DB变更信息以逻辑形式存储的、GoldenGate中间文件。配置时需要指定Trail文件的路径。&lt;/li&gt;
+  &lt;li&gt;Extract：数据同步的起点。从REDO日志文件获取变更信息，以最小10ms间隔读取Redo日志，将变更信息输出到Trail文件。&lt;/li&gt;
+  &lt;li&gt;DataPump：Trail文件可以直接放到目的端机器，也可以先放在本地，然后通过通过tcp连接传给目的端的Collector，发送时数据可以压缩。DataPump也是一种Extract，一般讲上面的Extract叫做primary Extract，将DataPump叫做secondly Extract。我们用的是第二种做法。&lt;/li&gt;
+  &lt;li&gt;Collector：收集DataPump发过来的数据库变更信息，生成Trial文件。&lt;/li&gt;
+  &lt;li&gt;Replicat：将Trail文件转为SQL语句在目的DB上执行，实现最终数据&lt;strong&gt;复制&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;其中，Manager和Extract、Collector、Replicate通过共享内存来通信；源、目的端的Trial文件复制通过TCP连接。&lt;/p&gt;
+
+&lt;p&gt;OGG装好后，源端和目的端都可以使用其目录下的ggsci来配置，不过这个东西不支持上下箭头（貌似是readline授权协议的原因），可以使用rlwrap在外面包一层，具体参考这篇&lt;a href=&quot;http://blog.itpub.net/29485627/viewspace-1766786/&quot;&gt;博客&lt;/a&gt;。&lt;/p&gt;
+
+&lt;p&gt;由于我们的目的端是阿里云的ADS，虽然其接入方式为mysql，但并不是一个完整实现，如果直接使用官方OGG的mysql连接来同步数据，甚至连接都建立不起来。所以，我们需要自己来实现一个OGG的插件。
+阿里在github上开源了他们为datahub实现的插件&lt;a href=&quot;https://github.com/aliyun/aliyun-odps-ogg-plugin&quot;&gt;aliyun-odps-ogg-plugin&lt;/a&gt;。我们暂时还不能开源，不过实现思路基本是一样的，两个插件的作者还曾经是室友。&lt;/p&gt;
+
+&lt;h3 id=&quot;ads&quot;&gt;ADS插件&lt;/h3&gt;
+
+&lt;p&gt;插件编写方式参见&lt;a href=&quot;https://docs.oracle.com/goldengate/bd1221/gg-bd/GBDIN/java_msgdel_custom.htm#GBDIN326&quot;&gt;官方说明&lt;/a&gt;的&lt;em&gt;11.3 Coding a Custom Handler in Java&lt;/em&gt;。需要注意一点，使用JAVA自定义插件时，我们会替换掉原来的Replict，而是改用Exract+Plugin（即在目的端再配置一个Extract，类似DataPump，并配置该Extract的同名.properties）。&lt;/p&gt;
+
+&lt;p&gt;数据流向：源端写入目的端的Trial文件，Extract从Trail文件中抽取记录并做回放，并将数据传递给JAVA自定义插件，插件再将框架给的数据转为SQL，再发送给ADS执行，完成数据更新。&lt;/p&gt;
+
+&lt;h3 id=&quot;section-2&quot;&gt;性能调优&lt;/h3&gt;
+&lt;p&gt;实测发现，数据更新性能很差，我们基于kettle做的产品可以做到8000+的批量同步速度，但是OGG只有300左右，虽然OGG的处理相对复杂一些，但不应该差距如此之大。
+优化思路有两个：&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;优化插件代码，提高单线程的写入速度&lt;/li&gt;
+  &lt;li&gt;并发，人多好干事。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;下面会详细说明第二个做法。&lt;/p&gt;
+
+&lt;h4 id=&quot;section-3&quot;&gt;并发详解&lt;/h4&gt;
+
+&lt;p&gt;如下图，OGG的DataPump和Replicat都支持配置成并发的模式。实际使用中，由于Replicate的工作相对比较复杂，所以通常会成为瓶颈，需要考虑拆分；而Extract性能比较高，一般不需要考虑优化（有人给的数据是，单个extract进程可处理日志一般为30-50G/小时，单个replicat进程一般只能处理1G队列/小时）。官方的配置参见&lt;a href=&quot;https://docs.oracle.com/goldengate/1212/gg-winux/GWUAD/wu_data_distribution.htm#GWUAD243&quot;&gt;这里&lt;/a&gt;。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://docs.oracle.com/goldengate/1212/gg-winux/GWUAD/img/data_pump_multi.jpg&quot; alt=&quot;Oracle GoldenGate Configuration Elements for Data Distribution&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Replicate并发&lt;/strong&gt;
+Replicate的并发粒度控制比较细，可以多个表分给不同的Replicate，如果表比较大，也可以将单个表按主键做hash，分配给不同的Replicate。我没有做过Replicate的并发，就不啰嗦了。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Extract并发&lt;/strong&gt;
+等下，刚刚不是说一般不用配置Extract并发吗？对，但是由于我们这里是自定义的JAVA插件，并没有Replicate，所以优化对象就落在JAVA插件上了；而JAVA插件的数据来源，就是目的端上的Extract，因此在目的端配置多个Extract，就可以得到多个并发复制线程啦。&lt;/p&gt;
+
+&lt;p&gt;那么，多个并发线程之间，如何保证多条数据之间不会出现时序冲突呢？比如对同一条数据先insert后delete，但多线程处理时delete先到了ADS，这就悲剧了，数据残留（Replicate在多表多Replicate时不会有问题，但对单表多Replicate时也会有同样的问题）。实际上这个问题也很好处理，只要保证同一条数据按主键能分配到同一个线程即可，我们并不关注多条数据的插入顺序，保证最终一致性即可。&lt;/p&gt;
+
+&lt;p&gt;下面我直接给出一个配置例子。表很简单，只有3列：c1 int, c2 varchar, c3 varchar，c1为主键。&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;目的端配置第1个Extract，取名为adstest1，其param如下：&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+EXTRACT adstest1
+SourceDefs ./dirdef/togg.def
+CUserExit libggjava_ue.so CUSEREXIT PassThru IncludeUpdateBefores
+GETUPDATEBEFORES
+Table ogg_owner.togg , FILTER((c1 \ 3)=0);
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;解释一下，多条数据分流，靠的就是这里的FILTER。其中’&#39;是取余计算（对，不是mod，也不是%，而且不要丢掉两边的空格）。
+FILTER比较强大。这里一开始我用的是SQLPREDICATE，但貌似没什么效果，不太明白。&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;配置adstest1这个extract同名的properties文件adstest1.properties&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;指定改handler的type是JAVA类，SimpleOGG也是框架导入数据的入口。&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+gg.handlerlist=simpletest
+gg.handler.simpletest.type=com.dtdream.dthink.ads.ogg.SimpleOGG
+...
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;配置第二、三个Extract(adstest2、adstest3)，与adstest1不同的是FILTER条件，分别是“=1”、“=2”&lt;/li&gt;
+  &lt;li&gt;start adstest1/2/3&lt;/li&gt;
+  &lt;li&gt;info all查看各进程状态&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;在这个例子中，我配置了3个并发Extract，源数据根据主键c1对3取模，分为三个线程分别写入到ADS。
+如果你的表的主键有多个，或者表的主键不是数值类型，可以通过修改FILTER来做。我想DBA应该比较了解吧 :)&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;感谢实习生张靓云和包衍同学对这个插件做出的巨大贡献。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+</description>
+        <pubDate>Thu, 17 Mar 2016 03:47:44 +0800</pubDate>
+        <link>http://silenceshell.gitcafe.io/tech/2016/03/17/ogg-p.html</link>
+        <guid isPermaLink="true">http://silenceshell.gitcafe.io/tech/2016/03/17/ogg-p.html</guid>
+        
+        <category>redis</category>
+        
+        
+        <category>tech</category>
+        
+      </item>
+    
+      <item>
+        <title>Greenplum试用</title>
+        <description>&lt;p&gt;&lt;em&gt;搬运工又上班了！&lt;/em&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;section&quot;&gt;简介&lt;/h3&gt;
+&lt;p&gt;Greenplum应用在OLAP领域，MPP架构，其底层使用Postgre，支持横向扩展，支持行存储、列存储，支持事务、ACID。&lt;/p&gt;
+
+&lt;p&gt;MPP数据库主打&lt;strong&gt;share nothing&lt;/strong&gt;，即各节点间任何资源都不共享，从硬件的CPU/内存/网络/存储，到上层的操作系统，各节点都是独立的；节点间的交互主要通过网络进行通信。由于数据量越来越大，OLAP产品多采用MPP架构，例如阿里的ADS，百度的Palo。
+相对于MPP，也有Oracle RAC这种&lt;strong&gt;share everything&lt;/strong&gt;架构，各节点共享存储、内存客户互相访问。SMP由于只能使用一个节点，容易受到具体硬件的限制，但支持事务的效率比较高（不需要跨节点通信）；MPP扩展性好，更适应big data的场景，但多数MPP数据库不支持事务、ACID（例如阿里云ADS）。MPP数据库需要仔细设计数据的存储，避免出现大量的节点间shuffle通信，否则效率极低。&lt;/p&gt;
+
+&lt;p&gt;关于GP的架构分析，可以参考&lt;a href=&quot;http://www.cnblogs.com/daduxiong/archive/2010/10/13/1850411.html&quot;&gt;这篇文章&lt;/a&gt;。&lt;/p&gt;
+
+&lt;p&gt;Greenplum在2015年已经开源，Apache 2.0协议，源码可以访问&lt;a href=&quot;https://github.com/greenplum-db/gpdb&quot;&gt;Github&lt;/a&gt;。GP使用C语言，据说其代码非常漂亮。不过Greenplum的开源并不彻底，没有包含其新一代优化器orca（核心资产，咳咳）。不过从一些测试结果来看，开源版本与商业版本的性能差别不大，后面我们可能看到很多基于Greenplum包装的OLAP产品。&lt;/p&gt;
+
+&lt;p&gt;GP的架构是典型的Master-Segments，主控节点和计算节点分离，类似HDFS。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://raw.githubusercontent.com/greenplum-db/gpdb-sandbox-tutorials/gh-pages/images/highlevel_arch.jpg&quot; alt=&quot;High-Level Greenplum Database Architecture&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Master中只提供接入服务和元数据存储，用户实际数据存储在Segments中。GP使用UDP通信，但在UDP之上做了确认机制。没有使用TCP的原因是，TCP会限制最多1000个Segments（为什么呢？）。但从阿里实际使用的情况来看，UDP并不稳定，他们还是改用了TCP。&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;创建表时，需要指定distributed by（类似ADS的分区列，可以指定单列或多列，据此判断数据分布到哪个Segment）。如果不指定则使用第一列（吐槽下这个特性，建表这种频率很低的事情不应该以方便为主，而应该强制要求，避免用户不熟悉出错）。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+create table faa.d_airports (airport_code text, airport_desc text) distributed  by (airport_code);
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;插入时，根据规则（如hash），不同主键的数据分配到不同的Segment存储。GP的hash算法可以做到数据基本均匀分布到各个Segment。GP也可以配置为数据随机分布到各个Segment。&lt;/li&gt;
+  &lt;li&gt;查询时，由Master根据当前的Segments情况生成SQL执行计划，交给各个Segment执行；Master汇总各Segment执行结果，并返回给client&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://raw.githubusercontent.com/greenplum-db/gpdb-sandbox-tutorials/gh-pages/images/dispatch.jpg&quot; alt=&quot;Dispatching the Parallel Query Plan&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;但是GP的查询会发生shuffle。&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;数据装载时，使用gpfdist直接从外部数据源并行拖到Segments上，并且各Segments下载时并不是只下载自己的数据，而是先下载，发现不是自己的数据，再丢给正确的Segment。并行装载号称1小时2TB。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://raw.githubusercontent.com/greenplum-db/gpdb-sandbox-tutorials/gh-pages/images/ext_tables.jpg&quot; alt=&quot;External Tables Using Greenplum Parallel File Server (gpfdist)&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Segment支持横向扩展。&lt;/p&gt;
+
+&lt;h3 id=&quot;section-1&quot;&gt;安装&lt;/h3&gt;
+&lt;p&gt;Greenplum在其&lt;a href=&quot;https://network.pivotal.io/products/pivotal-gpdb#/releases/669/file_groups/348&quot;&gt;官方网站&lt;/a&gt;提供了用于RHEL(CentOS)、SuSE的版本。&lt;/p&gt;
+
+&lt;p&gt;我的环境使用了3台虚拟机：1M+2S，虚拟机安装CentOS6.5，安装步骤参考&lt;a href=&quot;http://blog.csdn.net/gnail_oug/article/details/46945283&quot;&gt;这篇文章&lt;/a&gt;，非常详细。不过我这出过一个错误，免密码打通的时候，root没成功，后面手工配置的（比较奇怪，必须使用下面的命令来copy公钥，不能拷贝方式）。
+&lt;code class=&quot;highlighter-rouge&quot;&gt;
+ssh-copy-id -i .ssh/id_rsa.pub root@your_remote_host
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;ha&quot;&gt;HA&lt;/h3&gt;
+&lt;p&gt;GP支持为Master和Segment配置Mirror以提供高可靠性。&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;Master-&amp;gt;Mirror：使用postgre的日志同步功能。可以在部署时配置，也可以在Master运行时配置。
+&lt;img src=&quot;http://gpdb.docs.pivotal.io/4330/graphics/standby_master.jpg&quot; alt=&quot;Master Mirroring in Greenplum Database&quot; /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Segment-&amp;gt;Mirror：如下图，一个Segment host可以配置多个Segment instance；以一个DB为例，配置mirror后，某一Segment instance会在另一Segment host上提供mirror instance。&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://gpdb.docs.pivotal.io/4330/graphics/mirrorsegs.png&quot; alt=&quot;Segment Data Mirroring in Greenplum Database &quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;相比GP，ADS的计算节点（类比Segment）可以2个实例同时工作，一定程度上可以提高查询性能。ADS管控节点（类比Master）也是单独的实例（主备），但以进程的形式存在，并不需要同步。GP的HA设计的不算太好，以Segment为例，默认HA策略是切换为Read-only，即只能读不能写；如果HA策略是continue，仍然可以读写，但当故障节点恢复后，最终需要重启GP集群。（能忍？）&lt;/p&gt;
+
+&lt;p&gt;更多详细HA信息，移步到&lt;a href=&quot;http://gpdb.docs.pivotal.io/4330/admin_guide/managing/highavail.html&quot;&gt;GP官网&lt;/a&gt;。&lt;/p&gt;
+
+&lt;h3 id=&quot;section-2&quot;&gt;使用&lt;/h3&gt;
+&lt;p&gt;安装完毕后，用户可以使用Postgre SQL的客户端来访问Greenplum；一些BI系统可以直接对接。&lt;/p&gt;
+
+&lt;h3 id=&quot;section-3&quot;&gt;特性&lt;/h3&gt;
+
+&lt;h4 id=&quot;append-only-table&quot;&gt;1. Append only table&lt;/h4&gt;
+
+&lt;h4 id=&quot;column-oriented-table&quot;&gt;2. column oriented table(列存表)&lt;/h4&gt;
+
+&lt;h4 id=&quot;append-only-table-1&quot;&gt;3. Append only table可以压缩&lt;/h4&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+CREATE TABLE bar (a int, b text)
+WITH (appendonly=true, orientation=column) DISTRIBUTED BY (a);
+CREATE TABLE foo (a int, b text)
+WITH (appendonly=true, compresstype=zlib, compresslevel=5);
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;partition&quot;&gt;4. 分区表(partition)&lt;/h4&gt;
+
+&lt;p&gt;可以指定某一列的按range分区。如下例，表中2008年的数据都会根据date每天建立一个分区。&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+CREATE TABLE sales (id int, date date, amt decimal(10,2))
+DISTRIBUTED BY (id)
+PARTITION BY RANGE (date)
+( START (date &#39;2008-01-01&#39;) INCLUSIVE END (date &#39;2009-01-01&#39;) EXCLUSIVE EVERY (INTERVAL &#39;1 day&#39;) );
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;这一点ADS与GP不同。以ADS为例，其一级分区与GP是类似的，是按照分区列hash到不同的节点；而二级分区不同，ADS实际是一种“指定”，上传一批数据时，额外指定其时间属性，该列并不在上传数据中。
+GP的分区表应该能提高查询性能，例如查询时where条件为between..and，由于已经建立了分区，大部分数据可以迅速索引到。而ADS是自行建立了列索引，不需要用户干预。&lt;/p&gt;
+
+&lt;h4 id=&quot;section-4&quot;&gt;5. 数据可以重分布&lt;/h4&gt;
+&lt;p&gt;若前期由于数据分区不合适造成数据倾斜，还可以重分布，其实就是数据搬移。但重分布代价较高，尽量在设计表时就确定好分区列。&lt;/p&gt;
+
+&lt;h3 id=&quot;section-5&quot;&gt;查询详解&lt;/h3&gt;
+
+&lt;p&gt;GP会将查询分为一个一个的slice，并分配到各个segment执行。
+举个例子。&lt;/p&gt;
+
+&lt;p&gt;先创建测试表及测试数据。GP/Pg支持直接生成测试数据，不得不说这个功能实在是太暖心了，特别是在POC的时候。&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+create table t1(id int primary key,cn int,name varchar(40)) distributed by (id);
+create table t2(id int primary key,cn int,name varchar(40)) distributed by (id) ;
+create table t3(id int primary key,cn int,name varchar(40)) distributed by (id) ;
+insert into t1 select generate_series(1,1000000),generate_series(1,1000000),generate_series (1,1000000);
+insert into t2 select generate_series(1,1000000),generate_series(1,1000000),generate_series (1,1000000);
+insert into t3 select generate_series(1,100),generate_series(1,100),generate_series(1,100);
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;GP在scan、group by等基础上，增加了motion。motion是指查询过程中涉及其他segment的数据在各个节点间移动。主要有三种：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Broadcast Motion(N:N)，即广播数据，每个节点向其他节点广播需要发送的数据。&lt;/li&gt;
+  &lt;li&gt;Redistribute Motion(N:N)，重新分布数据，利用join的列值hash不同，将筛选后的数据在其他segment重新分布。&lt;/li&gt;
+  &lt;li&gt;Gather Motion(N:1)，聚合汇总数据，每个节点将join后的数据发到一个单节点上，通常是发到主节点master。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;scanmotion&quot;&gt;1. 最简单的全表scan、聚合、motion。&lt;/h4&gt;
+
+&lt;p&gt;```
+postgres=# explain select count(*) from t1;
+ Aggregate  (cost=13863.86..13863.87 rows=1 width=8)
+   -&amp;gt;  Gather Motion 2:1  (slice1; segments: 2)  (cost=13863.80..13863.84 rows=1 width=8)
+         -&amp;gt;  Aggregate  (cost=13863.80..13863.81 rows=1 width=8)
+               -&amp;gt;  Seq Scan on t1  (cost=0.00..11360.24 rows=500712 width=0)
+ Optimizer status: legacy query optimizer&lt;/p&gt;
+
+&lt;p&gt;postgres=#  select count(*) from t1;
+ 1000000
+```&lt;/p&gt;
+
+&lt;p&gt;说明:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;cost只该操作返回第一行的时间，比如seq scan的cost总是0，但Aggregate集约函数的cost较大，因为得先合并。&lt;/li&gt;
+  &lt;li&gt;rows为该操作影响到的行数。由于我的环境有2个segment，所以差不多一个是50W左右&lt;/li&gt;
+  &lt;li&gt;倒着往上看（废话）&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;本例中最终所有结果汇总到了master。&lt;/p&gt;
+
+&lt;h4 id=&quot;section-6&quot;&gt;2. 根据分区列做聚合&lt;/h4&gt;
+&lt;p&gt;如下，id即为表t1的分区列，数据进GP的时候就已经按照id分配到了不同的segment，所以聚合时只要各个segment简单相加即可。&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+postgres=# explain select id,count(*) from t1 group by id;
+                                        QUERY PLAN
+-------------------------------------------------------------------------------------------
+ Gather Motion 2:1  (slice1; segments: 2)  (cost=19447.91..35046.26 rows=1001424 width=12)
+   -&amp;gt;  HashAggregate  (cost=19447.91..35046.26 rows=500712 width=12)
+         Group By: id
+         -&amp;gt;  Seq Scan on t1  (cost=0.00..11360.24 rows=500712 width=4)
+ Optimizer status: legacy query optimizer
+(5 rows)
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;section-7&quot;&gt;3. 非分区列做聚合&lt;/h4&gt;
+
+&lt;p&gt;```
+postgres=# explain select name,count(*) from t1 group by name;
+ Gather Motion 2:1  (slice2; segments: 2)  (cost=69888.29..88359.38 rows=1001424 width=106)
+   -&amp;gt;  HashAggregate  (cost=69888.29..88359.38 rows=500712 width=106)
+         Group By: t1.name
+         -&amp;gt;  Redistribute Motion 2:2  (slice1; segments: 2)  (cost=16367.36..48913.64 rows=500712 width=106)
+               Hash Key: t1.name
+               -&amp;gt;  HashAggregate  (cost=16367.36..28885.16 rows=500712 width=106)
+                     Group By: t1.name
+                     -&amp;gt;  Seq Scan on t1  (cost=0.00..11360.24 rows=500712 width=6)
+ Optimizer status: legacy query optimizer&lt;/p&gt;
+
+&lt;p&gt;```
+name不是分区列，因此需要各segment处理完本地数据后，再根据name做hash distribution，重分布。&lt;/p&gt;
+
+&lt;h4 id=&quot;section-8&quot;&gt;4. 大小表&lt;/h4&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+postgres=# explain select t1.id,t1.name,t3.name from t1,t3 where t1.cn=t3.cn;
+                                            QUERY PLAN
+---------------------------------------------------------------------------------------------------
+ Gather Motion 2:1  (slice2; segments: 2)  (cost=8.50..13873.80 rows=101 width=12)
+   -&amp;gt;  Hash Join  (cost=8.50..13873.80 rows=51 width=12)
+         Hash Cond: t1.cn = t3.cn
+         -&amp;gt;  Seq Scan on t1  (cost=0.00..11360.24 rows=500712 width=14)
+         -&amp;gt;  Hash  (cost=6.00..6.00 rows=100 width=6)
+               -&amp;gt;  Broadcast Motion 2:2  (slice1; segments: 2)  (cost=0.00..6.00 rows=100 width=6)
+                     -&amp;gt;  Seq Scan on t3  (cost=0.00..3.00 rows=50 width=6)
+ Optimizer status: legacy query optimizer
+(8 rows)
+&lt;/code&gt;
+GP选择将t2全表扫描后，广播给所有节点，然后在各节点上做hash join（就是where ..）。相比之下ADS的做法更聪明（当然也更粗暴），为了避免大量的网络通信（小表也是表啊），ADS将此类小表定义为&lt;strong&gt;维度表&lt;/strong&gt;，每个物理节点一份，这样做join的时候直接读取即可，连broadcast都不需要。&lt;/p&gt;
+
+</description>
+        <pubDate>Fri, 11 Mar 2016 19:08:02 +0800</pubDate>
+        <link>http://silenceshell.gitcafe.io/tech/2016/03/11/greenplum.html</link>
+        <guid isPermaLink="true">http://silenceshell.gitcafe.io/tech/2016/03/11/greenplum.html</guid>
+        
+        <category>greenplum</category>
+        
+        
+        <category>tech</category>
+        
+      </item>
+    
+      <item>
+        <title>Redis简介</title>
+        <description>&lt;p&gt;接触到Redis是因为某天同事告诉说我的某集群里的一台服务器的redis服务有未授权漏洞，可以直接访问redis服务，甚至将自己的公钥写入该用户的&lt;code class=&quot;highlighter-rouge&quot;&gt;~/.ssh/authorized_keys&lt;/code&gt;中，直接登录到该服务器上。
+这个漏洞其实是很早之前就有，具体可以参照&lt;a href=&quot;https://help.aliyun.com/knowledge_detail/5988808.html&quot;&gt;阿里云上的介绍&lt;/a&gt;。&lt;/p&gt;
+
+&lt;h3 id=&quot;section&quot;&gt;介绍&lt;/h3&gt;
+
+&lt;p&gt;Redis的几个特点：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;内存key-value数据库，性能很好；也可以将数据持久化到磁盘中，不过想来不会太美&lt;/li&gt;
+  &lt;li&gt;开源，使用c编码，总共40K+&lt;/li&gt;
+  &lt;li&gt;数据可以复制到任意数量的从服务器中，可以做分布式&lt;/li&gt;
+  &lt;li&gt;支持的数据类型丰富，如字符串、Hash、集合、列表、有序列表、&lt;strong&gt;地理空间&lt;/strong&gt;、&lt;strong&gt;订阅&lt;/strong&gt;&lt;/li&gt;
+  &lt;li&gt;原子操作，支持事务&lt;/li&gt;
+  &lt;li&gt;支持lua脚本&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Redis可以用做数据库、缓存、消息队列。&lt;/p&gt;
+
+&lt;h3 id=&quot;section-1&quot;&gt;安装&lt;/h3&gt;
+&lt;p&gt;ubuntu可以直接apt-get安装，centos6上还需要源码安装，比较简单。Redis比较特别的一点是它不会拷贝redis.conf到/etc/下，要手工拷贝，并且默认配置是不开认证的。&lt;/p&gt;
+
+&lt;h3 id=&quot;section-2&quot;&gt;使用&lt;/h3&gt;
+&lt;p&gt;类似mysql，Redis以Daemon形式提供服务，用户可以使用redis-cli命令行工具，或者桌面的Redis Desktop Manager登录到Redis服务上来操作数据。
+下面贴几行Redis操作的例子。&lt;/p&gt;
+
+&lt;p&gt;```bash
+#String
+redis 127.0.0.1:6379&amp;gt; SET mykey “heihei”
+OK
+redis 127.0.0.1:6379&amp;gt; GET mykey
+“heihei”&lt;/p&gt;
+
+&lt;h1 id=&quot;hash&quot;&gt;hash&lt;/h1&gt;
+&lt;p&gt;redis 127.0.0.1:6379&amp;gt; HMSET myhash name “xiaoming” age 8 gen male
+OK
+redis 127.0.0.1:6379&amp;gt; HMGET myhash name
+1) “xiaoming”&lt;/p&gt;
+
+&lt;h1 id=&quot;section-3&quot;&gt;集合&lt;/h1&gt;
+&lt;p&gt;redis 127.0.0.1:6379&amp;gt; SADD myset aaa
+(integer) 1
+redis 127.0.0.1:6379&amp;gt; SADD myset bbb
+(integer) 1
+redis 127.0.0.1:6379&amp;gt; SADD myset aaa
+(integer) 0
+redis 127.0.0.1:6379&amp;gt; SADD myset ccc
+(integer) 1
+redis 127.0.0.1:6379&amp;gt; SMEMBERS myset
+1) “bbb”
+2) “ccc”
+3) “aaa”
+```&lt;/p&gt;
+
+&lt;p&gt;感受下就好了，还有其他的类型。Redis没有表的概念，但是可以分为多个DB。&lt;/p&gt;
+
+&lt;h3 id=&quot;section-4&quot;&gt;编码&lt;/h3&gt;
+&lt;p&gt;Java开发者可以使用Jedis包来操作Redis。&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;以上详细内容都可以比较方便的Google到，就不在这做搬运工了。&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;越来越水，我都不能原谅自己了&lt;/em&gt;&lt;/p&gt;
+
+</description>
+        <pubDate>Fri, 04 Mar 2016 03:47:44 +0800</pubDate>
+        <link>http://silenceshell.gitcafe.io/tech/2016/03/04/redis.html</link>
+        <guid isPermaLink="true">http://silenceshell.gitcafe.io/tech/2016/03/04/redis.html</guid>
+        
+        <category>redis</category>
+        
+        
+        <category>tech</category>
+        
+      </item>
+    
+      <item>
+        <title>反向过滤是个什么鬼？</title>
+        <description>&lt;h2 id=&quot;section&quot;&gt;1.背景介绍&lt;/h2&gt;
+
+&lt;p&gt;场景跟前面提到的fullnat是一样的。&lt;/p&gt;
+
+&lt;p&gt;如下组网，ADS集群内存在计算节点1（10.0.103.96）写sysdb保存数据的情景；而sysdb的服务器可能在计算节点2（10.0.103.97）、计算节点3（10.0.103.98）上，通过SLB对外提供接入服务，如10.0.104.107:10000。
+因此，计算节点1写sysdb时，需要从10.0.103.96发报文到10.0.104.107（源地址：目的地址为10.0.103.96:10.0.104.107），然后SLB做FULLNAT，将源地址、目的地址替换为10.0.103.107:10.0.103.97。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://7xir15.com1.z0.glb.clouddn.com/temp4cj.png&quot; alt=&quot;组网图&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;这里有一个问题，就是如何指导计算节点1将报文发送给SLB（10.0.104.107）？&lt;/p&gt;
+
+&lt;h2 id=&quot;section-1&quot;&gt;2.解决方法&lt;/h2&gt;
+&lt;p&gt;### 2.1 粗暴的解决方法&lt;/p&gt;
+
+&lt;p&gt;很简单，就是在各个计算节点上配置路由为SLB的内部IP（10.0.103.107），即报文直接经VLAN 60转给SLB，报文从eth1口送上去给SLB；应答报文仍然经过eth1送给计算节点。
+但这要求用户手工配置计算节点的路由，在部署的时候略为麻烦（部署时还需要yum安装一些包，但这必须配置路由为网关）。&lt;/p&gt;
+
+&lt;h3 id=&quot;section-2&quot;&gt;2.2 正确的解决方法&lt;/h3&gt;
+
+&lt;p&gt;按照最早的想法，如果将计算节点的网关配置为vlan 60的地址，报文可以经过vlan 60转到vlan 70，然后从eth0口上送给SLB；SLB将报文处理完毕后，根据目的地址将应答报文再从eth1发送给计算节点。&lt;/p&gt;
+
+&lt;p&gt;但实测发现，SLB直接将报文丢弃了，并没有应答，连接建立失败，而且也没有应答ICMP差错报文。
+linux有一个叫做反向过滤（reverse path filter）的功能，简单来说就是为了防DDOS攻击，会检查报文源地址的合法性，如果反查源地址的路由表，发现源地址下一跳的最佳出接口并不是收到报文的入接口，则将报文丢弃。所以只要把反向过滤关掉就可以搞定了。&lt;/p&gt;
+
+&lt;h4 id=&quot;section-3&quot;&gt;2.2.1 配置方法&lt;/h4&gt;
+
+&lt;p&gt;内核sysctl中的rp_filter变量可以控制反向过滤。其取值如下（定义在Documentation/networking/ip-sysctl.txt）：&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;bash
+rp_filter - INTEGER
+	0 - No source validation.
+	1 - Strict mode as defined in RFC3704 Strict Reverse Path
+	    Each incoming packet is tested against the FIB and if the interface
+	    is not the best reverse path the packet check will fail.
+	    By default failed packets are discarded.
+	2 - Loose mode as defined in RFC3704 Loose Reverse Path
+	    Each incoming packet&#39;s source address is also tested against the FIB
+	    and if the source address is not reachable via any interface
+	    the packet check will fail.
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;针对我们的需求，需要禁用反向过滤，所以这里将变量设置为0（其实配置为2更合适，只有不可达的才丢，回头试一下）。sysctl变量修改有多种办法，可以直接修改/proc/sys/net/ipv4/conf/${ethx}/rp_filter的值，也可以使用sysctl命令配置，不过这两种做法在机器重启以后都会失效；如果要一直生效，可以修改/etc/sysctl.conf：&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;bash
+# Controls source route verification
+net.ipv4.conf.default.rp_filter = 0
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;section-4&quot;&gt;2.2.2 代码解析&lt;/h4&gt;
+
+&lt;p&gt;这个过程发生在报文上送阶段，由于是第一个包，所以走的是慢路径：&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;c
+static int ip_route_input_slow(struct sk_buff *skb, __be32 daddr, __be32 saddr,
+			       u8 tos, struct net_device *dev)
+{
+	struct fib_result res;
+	struct in_device *in_dev = in_dev_get(dev);
+	struct flowi fl = { .nl_u = { .ip4_u =
+				      { .daddr = daddr,
+					.saddr = saddr,
+...
+	/* 查FIB决定报文路由。原来FIB不是华三独创呀。 */
+	/*
+	 *	Now we are ready to route packet.
+	 */
+	if ((err = fib_lookup(net, &amp;amp;fl, &amp;amp;res)) != 0) {
+		if (!IN_DEV_FORWARD(in_dev))
+			goto e_hostunreach;
+		goto no_route;
+	}
+...
+    /* 报文是上送本机的 */
+	if (res.type == RTN_LOCAL) {
+		int result;
+		/* 检查源地址是否合法，不合法丢弃。反向过滤就是在这里做的检查 */
+		result = fib_validate_source(saddr, daddr, tos,
+					     net-&amp;gt;loopback_dev-&amp;gt;ifindex,
+					     dev, &amp;amp;spec_dst, &amp;amp;itag, skb-&amp;gt;mark);
+		if (result &amp;lt; 0)
+			goto martian_source;
+		...
+	}
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;源地址检查：&lt;/p&gt;
+
+&lt;p&gt;```c
+int fib_validate_source(__be32 src, __be32 dst, u8 tos, int oif,
+			struct net_device &lt;em&gt;dev, __be32 *spec_dst,
+			u32 *itag, u32 mark)
+{
+	struct in_device *in_dev;
+	struct flowi fl = { .nl_u = { .ip4_u =
+				      { .daddr = src,
+					.saddr = dst,
+		/&lt;/em&gt; 对，就是这里将源地址、目的地址做了反向，下面查询FIB会用 */
+					.tos = tos } },
+			    .mark = mark,
+			    .iif = oif };&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;struct fib_result res;
+int no_addr, rpf;
+int ret;
+struct net *net;
+
+no_addr = rpf = 0;
+rcu_read_lock();
+in_dev = __in_dev_get_rcu(dev);
+if (in_dev) {
+	//入接口上没有地址？
+	no_addr = in_dev-&amp;gt;ifa_list == NULL;
+	//入接口支持反向过滤的情况，0/1/2
+	rpf = IN_DEV_RPFILTER(in_dev);
+	if (mark &amp;amp;&amp;amp; !IN_DEV_SRC_VMARK(in_dev))
+		fl.mark = 0;
+}
+rcu_read_unlock();
+
+if (in_dev == NULL)
+	goto e_inval;
+
+net = dev_net(dev);
+//反向查FIB信息
+if (fib_lookup(net, &amp;amp;fl, &amp;amp;res))
+	goto last_resort;
+if (res.type != RTN_UNICAST)
+	goto e_inval_res;
+*spec_dst = FIB_RES_PREFSRC(res);
+fib_combine_itag(itag, &amp;amp;res); #ifdef CONFIG_IP_ROUTE_MULTIPATH
+if (FIB_RES_DEV(res) == dev || res.fi-&amp;gt;fib_nhs &amp;gt; 1) #else
+if (FIB_RES_DEV(res) == dev) #endif
+{
+	//源地址查路由的下一跳出接口，跟入接口一致，检查成功返回（多路径的情况不太一样，只要多于1条即可）
+	ret = FIB_RES_NH(res).nh_scope &amp;gt;= RT_SCOPE_HOST;
+	fib_res_put(&amp;amp;res);
+	return ret;
+}
+fib_res_put(&amp;amp;res);
+//查路由
+if (no_addr)
+	goto last_resort;
+//1表示严格反向过滤。走到这说明出入接口不一致，rpfilter生效，返回-EINVAL，指导入报文慢路径丢弃报文。
+if (rpf == 1)
+	goto e_inval;
+fl.oif = dev-&amp;gt;ifindex;
+
+ret = 0;
+if (fib_lookup(net, &amp;amp;fl, &amp;amp;res) == 0) {
+	if (res.type == RTN_UNICAST) {
+		*spec_dst = FIB_RES_PREFSRC(res);
+		ret = FIB_RES_NH(res).nh_scope &amp;gt;= RT_SCOPE_HOST;
+	}
+	fib_res_put(&amp;amp;res);
+}
+return ret;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;last_resort:
+	//入接口没有地址，或者查不到路由信息的情况
+	if (rpf)	//对应1或者2，都会丢掉包
+		goto e_inval;
+	//这儿没看懂。如果关闭了反向过滤，为什么这里要给spec_dst赋值呢？外面貌似也没用到。
+	*spec_dst = inet_select_addr(dev, 0, RT_SCOPE_UNIVERSE);
+	*itag = 0;
+	return 0;&lt;/p&gt;
+
+&lt;p&gt;e_inval_res:
+	fib_res_put(&amp;amp;res);
+e_inval:
+	return -EINVAL;
+}&lt;/p&gt;
+
+&lt;p&gt;```&lt;/p&gt;
+
+&lt;p&gt;不过代码还有些地方没搞懂。比如，为什么fib_validate_source后面又查了一次fib，是为了处理rp_filter为2的情况吗？只是设置了oif。后面慢慢写写各个linux network的一些重点流程吧。
+另外，我在mac上用Clion看内核源码不能跳转，哪位大神知道是神马原因吗？解决了可以获得支付宝巨额奖励一块钱。&lt;/p&gt;
+
+</description>
+        <pubDate>Thu, 21 Jan 2016 05:34:59 +0800</pubDate>
+        <link>http://silenceshell.gitcafe.io/tech/2016/01/21/rpfilter.html</link>
+        <guid isPermaLink="true">http://silenceshell.gitcafe.io/tech/2016/01/21/rpfilter.html</guid>
+        
+        <category>kernel</category>
+        
+        
+        <category>tech</category>
+        
+      </item>
+    
+      <item>
+        <title>如何使用kettle提高ADS插入速度</title>
+        <description>&lt;h2 id=&quot;section&quot;&gt;背景介绍&lt;/h2&gt;
+
+&lt;p&gt;我们需要从kettle将数据导入到ADS，但导入性能不理想，32并发线程，单个ADS接入节点，也只有最多六七千条每秒的样子。&lt;/p&gt;
+
+&lt;p&gt;从kettle日志来分析，其抽取机制是每个线程先从源端读取5W条，然后再向目的端写入5W条。&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+2015/12/15 10:38:30 - step1.0 - linenr 900000
+2015/12/15 10:38:54 - step2.0 - linenr 900000
+2015/12/15 10:40:27 - step1.0 - linenr 950000
+2015/12/15 10:40:52 - step2.0 - linenr 950000
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;默认kettle的插入是一条insert语句插入一条记录。这样会有2个影响&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;从网络通信角度来看，报文的负载较高，传输效率低，并且大量的时间浪费在了报文收发上&lt;/li&gt;
+  &lt;li&gt;数据端需要对每条insert都需要单独处理，如事务、存储、加解锁等&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;section-1&quot;&gt;解决方法&lt;/h2&gt;
+&lt;p&gt;既然单条insert效率不高，那么一条insert语句插入多条记录（batch insert）就可以解决这个问题。具体举例如下：
+batch insert之前，在服务器端看到的插入是这样的：&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+INSERT INTO t (c1,c2) VALUES (&#39;One&#39;,1);
+INSERT INTO t (c1,c2) VALUES (&#39;Two&#39;,2);
+INSERT INTO t (c1,c2) VALUES (&#39;Three&#39;,3);
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;batch insert以后，在服务器端看到的插入是这样的：&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+INSERT INTO t (c1,c2) VALUES (&#39;One&#39;,1),(&#39;Two&#39;,2),(&#39;Three&#39;,3);
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;section-2&quot;&gt;服务器端&lt;/h3&gt;
+&lt;p&gt;需要支持批量insert，所幸ADS支持这样的语法。&lt;/p&gt;
+
+&lt;h3 id=&quot;section-3&quot;&gt;客户端&lt;/h3&gt;
+&lt;p&gt;一开始我们认为需要在kettle里面增量开发代码，自己来拼装insert语句（涉世未深啊），但实际上MySQL的JDBC驱动（高于5.1.13）已经支持这样的功能了：开启rewriteBatchedStatements=true，JDBC会自动将应用丢给JDBC驱动的单条insert进行拼装。
+具体来说，连接刚建立的时候，JDBC会向服务器发送&lt;code class=&quot;highlighter-rouge&quot;&gt;show variables like max_allowed_packet&lt;/code&gt;来获取服务器允许的最大拼装长度，之后拼装batch insert语句时会按这个长度来。
+所以只要kettle在建立跟ADS的连接时，带上rewriteBatchedStatements=true参数即可。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;JDBC支持batch insert源码分析&lt;/strong&gt;&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;todo&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&quot;section-4&quot;&gt;设置方式&lt;/h3&gt;
+
+&lt;p&gt;kettle支持对数据源设置变量，这里直接贴图：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://7xir15.com1.z0.glb.clouddn.com/kettle_batch_insert.png&quot; alt=&quot;kettle_batch_insert&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;kettle支持batch insert源码分析&lt;/strong&gt;
+这块代码比较简单，记在这里以备查阅。&lt;/p&gt;
+
+&lt;p&gt;DataBaseMeta.java&lt;/p&gt;
+
+&lt;p&gt;```
+  @Override
+  public String environmentSubstitute( String aString ) {
+    return variables.environmentSubstitute( aString );
+  }&lt;/p&gt;
+
+&lt;p&gt;public String getURL( String partitionId ) throws KettleDatabaseException {
+…
+    //先获取JDBC URL
+    baseUrl = databaseInterface.getURL( hostname, port, databaseName );
+    //再添加环境变量
+    StringBuffer url = new StringBuffer( environmentSubstitute( baseUrl ) );
+```&lt;/p&gt;
+
+&lt;p&gt;MySQLDataBaseMeta.java&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;java
+  @Override
+  public String getURL( String hostname, String port, String databaseName ) {
+    if ( getAccessType() == DatabaseMeta.TYPE_ACCESS_ODBC ) {
+      return &quot;jdbc:odbc:&quot; + databaseName;
+    } else {
+      if ( Const.isEmpty( port ) ) {
+        return &quot;jdbc:mysql://&quot; + hostname + &quot;/&quot; + databaseName;
+      } else {
+        return &quot;jdbc:mysql://&quot; + hostname + &quot;:&quot; + port + &quot;/&quot; + databaseName;
+      }
+    }
+  }
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;调用Variables.java&lt;/p&gt;
+
+&lt;p&gt;```java
+  @Override
+  public String environmentSubstitute( String aString ) {
+    if ( aString == null || aString.length() == 0 ) {
+      return aString;
+    }&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;return StringUtil.environmentSubstitute( aString, properties );   }
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;```&lt;/p&gt;
+
+&lt;p&gt;最终在StringUtil.java中根据用户设置下来的systemProperties（包含rewriteBatchedStatements）填写JDBC变量。&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;java
+  public static final synchronized String environmentSubstitute( String aString,
+    Map&amp;lt;String, String&amp;gt; systemProperties ) {
+    Map&amp;lt;String, String&amp;gt; sysMap = new HashMap&amp;lt;String, String&amp;gt;();
+    synchronized ( sysMap ) {
+      sysMap.putAll( Collections.synchronizedMap( systemProperties ) );
+...
+      return aString;
+    }
+  }
+&lt;/code&gt;&lt;/p&gt;
+
+</description>
+        <pubDate>Fri, 18 Dec 2015 01:10:59 +0800</pubDate>
+        <link>http://silenceshell.gitcafe.io/tech/2015/12/18/batch-insert.html</link>
+        <guid isPermaLink="true">http://silenceshell.gitcafe.io/tech/2015/12/18/batch-insert.html</guid>
+        
+        <category>etl</category>
+        
+        
+        <category>tech</category>
+        
+      </item>
+    
+      <item>
+        <title>Fullnat系列（三）：为什么经过fullnat了以后，select查询变慢了呢？</title>
+        <description>&lt;p&gt;问题现象是这样的：我们在客户的环境上，通过LVS设备访问ADS的时候，发现在对一个宽表select * from查询时，响应的时间很规律的发生的倍增：&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+1 row in set (0.22 sec)
+1 row in set (0.42 sec)
+1 row in set (0.83 sec)
+1 row in set (1.62 sec)
+1 row in set (3.23 sec)
+...
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;如果断开重连，又从0.22重新开始倍增。
+一开始我们认为是后端ADS的处理有问题，但绕过LVS直接访问ADS的时候，响应时间是不变的，那么显然问题出在LVS上。内核LVS的调试信息比较少，在LVS机器的ADS侧抓包，我们看到了一个奇怪的现象：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://7xir15.com1.z0.glb.clouddn.com/cap-1.jpg&quot; alt=&quot;抓包&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;看上去是LVS机器收到了一个1913的包，处理不了，所以回了ICMP差错报文，告诉ADS端要分片Fragment；ADS端收到差错报文后重传，由于是同一条连接，所以每次收到ICMP报文后，重传定时器都进行了指数退避，现象上来看就是select的时间发生了倍增。
+这里有3个问题：&lt;/p&gt;
+
+&lt;h3 id=&quot;section&quot;&gt;问题1：为什么会有超过1500的大包？&lt;/h3&gt;
+&lt;p&gt;之前在交换机上，报文发送时会查看mtu，如果超出，总是会分片；但在服务器上，如果有的网卡支持TSO/GSO/GRO，那么发送的报文大小会超过mtu，也就是上面我们看到的1912这种报文。下面是从 &lt;a href=&quot;http://seitran.com/2015/04/13/01-gso-gro-lro/&quot;&gt;Chenny的部落格&lt;/a&gt;抄过来的：&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;GSO（generic-segmentation-offload）/ TSO（TCP-segmentation-offload）&lt;/strong&gt;
+所谓的GSO，实际上是对TSO的增强。TSO将tcp协议的一些处理下放到网卡完成以减轻协议栈处理占用CPU的负载。通常以太网的MTU是1500Bytes，除去IP头（标准情况下20Bytes）、TCP头（标准情况下20Bytes），TCP的MSS (Max Segment Size)大小是1460Bytes。当应用层下发的数据超过了mss时，协议栈会对这样的payload进行分片，保证生成的报文长度不超过MTU的大小。但是对于支持TSO/GSO的网卡而言，就没这个必要了，可以把最多64K大小的payload直接往下传给协议栈，此时IP层也不会进行分片，一直会传给网卡驱动，支持TSO/GSO的网卡会自己生成TCP/IP包头和帧头，这样可以offload很多协议栈上的内存操作，checksum计算等原本靠CPU来做的工作都移给了网卡。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;GRO（generic-receive-offload）/ LRO（large-receive-offload）&lt;/strong&gt;
+LRO通过将接收到的多个TCP数据聚合成一个大的数据包，然后传递给网络协议栈处理，以减少上层协议栈处理 开销，提高系统接收TCP数据包的能力。
+而GRO的基本思想跟LRO类似，克服了LRO的一些缺点，更通用。后续的驱动都使用GRO的接口，而不是LRO。&lt;/p&gt;
+
+&lt;p&gt;问题1的解决方法很简单，将涉及到的硬件关闭TSO/GSO/GRO/LRO即可。&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;bash
+$ ethtool -K etho tso off
+$ ethtool -K etho gso off
+$ ethtool -K etho gro off
+$ ethtool -K etho lro off
+$ ethtool  -k eth0
+Features for eth0:
+rx-checksumming: on
+tx-checksumming: on
+scatter-gather: on
+tcp-segmentation-offload: off
+udp-fragmentation-offload: off
+generic-segmentation-offload: off
+generic-receive-offload: off
+large-receive-offload: off
+rx-vlan-offload: on
+tx-vlan-offload: on
+ntuple-filters: on
+receive-hashing: on
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;不过这样重启后就失效了，还是需要写到配置文件里去。&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;todo：还不知道怎么在ifcfg-ethx里记录，所以我把上面几条命令写到/etc/rc.local里了。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&quot;mtulvsicmp&quot;&gt;问题2：为什么超过mtu的报文，LVS返回了ICMP差错报文？&lt;/h3&gt;
+
+&lt;p&gt;额。没有为什么，支持Fullnat以后，内核对于超过mtu的报文会直接丢弃并返回ICMP差错报文，具体查看patch里代码：&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;c
++/* Response transmit icmp to client
++ * Used for NAT / local client / FULLNAT.
++ */
++int
++ip_vs_fnat_response_icmp_xmit(struct sk_buff *skb, struct ip_vs_protocol *pp,
++			      struct ip_vs_conn *cp, int offset)
++{
++	struct rtable *rt;	/* Route to the other host */
++	int mtu;
++	struct iphdr *iph = ip_hdr(skb);
++
++	/* lookup route table */
++	if (!(rt = ip_vs_get_rt(&amp;amp;cp-&amp;gt;caddr, RT_TOS(iph-&amp;gt;tos))))
++		goto tx_error_icmp;
++
++	/* MTU checking */
++	mtu = dst_mtu(&amp;amp;rt-&amp;gt;u.dst);
++	if ((skb-&amp;gt;len &amp;gt; mtu) &amp;amp;&amp;amp; (iph-&amp;gt;frag_off &amp;amp; htons(IP_DF))) {
++		ip_rt_put(rt);
++		IP_VS_DBG_RL_PKT(0, pp, skb, 0,
++				 &quot;fnat_response_icmp(): frag needed for&quot;);
++		goto tx_error;
++	}
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;吐槽一下，内核真的没法accept这样的patch：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;收到目的地址是virtual service的报文，不管报文端口号跟virtual service的端口对不对的上，全部做转发&lt;/li&gt;
+  &lt;li&gt;超过mtu的报文直接drop&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;section-1&quot;&gt;问题3：为什么我们实验室的环境并没有出现这个问题？&lt;/h3&gt;
+
+&lt;p&gt;这个问题困扰了我好几天。一开始是怀疑客户现场对LVS的ADS侧配置了聚合口，但真的不科学。后来看了下实验室环境的LVS虚拟机里的ethtool，才恍然大悟。&lt;/p&gt;
+
+&lt;p&gt;原因说起来也很简单，我们的LVS是个虚拟机，其网卡是qemu-kvm虚拟的。实验室环境网卡的Device model是&lt;strong&gt;Hypervisor default&lt;/strong&gt;，在qemu-kvm环境里实际是老旧的RTL8139网卡，它不支持TSO等特性；而在客户现场的Device model是virtio，它支持TSO等，所以LVS在内核里会收到超过mtu的报文。&lt;/p&gt;
+
+</description>
+        <pubDate>Mon, 14 Dec 2015 21:13:11 +0800</pubDate>
+        <link>http://silenceshell.gitcafe.io/tech/2015/12/14/fullnat-3.html</link>
+        <guid isPermaLink="true">http://silenceshell.gitcafe.io/tech/2015/12/14/fullnat-3.html</guid>
+        
+        <category>fullnat</category>
+        
+        
+        <category>tech</category>
+        
+      </item>
+    
+      <item>
+        <title>Fullnat系列（二）：如何使用fullnat</title>
+        <description>&lt;p&gt;如果要让你的服务器支持fullnat，需要如下修改：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;内核打阿里开源的fullnat补丁&lt;/li&gt;
+  &lt;li&gt;使用ali开源的keepalived&lt;/li&gt;
+  &lt;li&gt;使用ali开源的ipvsadm&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Fullnat所有的代码，阿里都在github上&lt;a href=&quot;https://github.com/alibaba/LVS&quot;&gt;开源&lt;/a&gt;了，附送了一批使用手册，相对来说已经比较完善。&lt;/p&gt;
+
+&lt;h2 id=&quot;fullnat&quot;&gt;内核打fullnat补丁&lt;/h2&gt;
+
+&lt;p&gt;我的环境使用的是centos6.5，其内核版本是2.6.32-431。按千户最早的想法，为了避免影响原来系统的稳定性，我们觉得重编ip_vs相关ko并替换原有内核模块，风险相对小一点；但很奇葩的是，centos6.5的yum源里，只有2.6.32-573版本的内核了。所以如果要支持fullnat，就需要升级内核，并打补丁，相对来说比较繁琐。
+所幸，阿里开源时直接提供了一个打过补丁的内核包，其版本是2.6.32-220，我们可以直接用这个包来编译内核。&lt;/p&gt;
+
+&lt;p&gt;如果你也要编译，可以直接参考lvs官网的一篇&lt;a href=&quot;http://kb.linuxvirtualserver.org/wiki/IPVS_FULLNAT_and_SYNPROXY&quot;&gt;文档&lt;/a&gt;。我这里使用了centos6.5发行版的config，下面写下操作的步骤。&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;bash
+wget http://kb.linuxvirtualserver.org/images/b/b7/Linux-2.6.32-220.23.1.el6.x86_64.lvs.src.tar.gz
+tar xvf Linux-2.6.32-220.23.1.el6.x86_64.lvs.src.tar.gz
+# ----不要被tar.gz骗了，实际这只是个tar包
+cd linux-2.6.32-220.23.1.el6.x86_64.lvs
+# 用发行版的config，覆盖.config
+cp /boot/config-2.6.32-431.el6.x86_64 .config
+sh -c &#39;yes &quot;&quot; | make oldconfig&#39;
+# 开始编译，内存有多少G，就-j多少
+make -j16
+# 安装module
+make modules_install;
+# 安装内核
+make install;
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;安装完了以后，查看/boot/下的initrd-2.6.32、vmlinuz等文件，其时间都更新了；修改/boot/grub/menu.list，修改default为0，即2.6.32（默认default是1，即发行版的2.6.32-431）。&lt;/p&gt;
+
+&lt;p&gt;```
+default=0
+timeout=5
+splashimage=(hd0,0)/grub/splash.xpm.gz
+hiddenmenu
+title CentOS (2.6.32)
+        root (hd0,0)
+        kernel /vmlinuz-2.6.32 ro …
+        initrd /initramfs-2.6.32.img
+title CentOS (2.6.32-431.el6.x86_64)
+        root (hd0,0)&lt;/p&gt;
+
+&lt;p&gt;```&lt;/p&gt;
+
+&lt;p&gt;到这里，内核就升级完毕了，重启后使用的就是支持fullnat的2.6.32-200了。&lt;/p&gt;
+
+&lt;h2 id=&quot;keepalivedipvsadm&quot;&gt;编译安装keepalived和ipvsadm&lt;/h2&gt;
+&lt;p&gt;由于fullnat是新的packet-forwarding-method，所以ipsvadm是必须要用阿里开源的版本。但是在编译的时候，发现它居然还依赖keepalived囧。&lt;/p&gt;
+
+&lt;h3 id=&quot;keepalivedlvs&quot;&gt;编译、安装keepalived（下面是从LVS官网抄的）&lt;/h3&gt;
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+ cd /root/keepalived
+ ./configure --with-kernel-dir=&quot;/lib/modules/`uname -r`/build&quot;
+ make
+ make install
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;ipvsadmlvs&quot;&gt;编译、安装ipvsadm（下面也是从LVS官网抄的）&lt;/h3&gt;
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+ cd /root/ipvsadm
+ make
+ make install
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;我没有编译quaage。&lt;/p&gt;
+
+&lt;p&gt;好了，按上面2步，内核升级OK、ipvsadm、keepalived安装OK，重启即可。&lt;/p&gt;
+
+&lt;h2 id=&quot;fullnat-1&quot;&gt;fullnat使用&lt;/h2&gt;
+
+&lt;p&gt;相对centos发行版的ipvsadm，阿里开源的ipvsadm要支持fullnat，主要是加了如下2种命令：&lt;/p&gt;
+
+&lt;h3 id=&quot;real-server&quot;&gt;添加Real Server&lt;/h3&gt;
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;bash
+ipvsadm -a -t service-address -r server-address -b
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;其中-b是指&lt;code class=&quot;highlighter-rouge&quot;&gt;--fullnat      -b                   fullnat mode&lt;/code&gt;。我们向Virtual Service添加的所有RS，都需要加-b参数（之前是-m，masquerading）。&lt;/p&gt;
+
+&lt;h3 id=&quot;local-address&quot;&gt;添加、查看Local Address&lt;/h3&gt;
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+#add
+ipvsadm -P -t service-address -z local-address
+#get
+ipvsadm -G -t service-address
+#delete
+ipvsadm -Q -t service-address -z local-address
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;为什么需要Local Address呢？参照前一篇文章里对Fullnat的说明，syn报文经过LVS，转发给Real Server时，除了要做DNAT修改目的地址为Real Server的地址，还需要做SNAT，修改源地址。那么源地址填谁呢？&lt;/p&gt;
+
+&lt;p&gt;通常来说，LVS自己可以根据目的地址和路由信息，从本机选择一个最匹配的源地址填写到报文中去。但很不幸，Fullnat有一个的缺陷，造成我们必须手工来指定一个Local Address作为源地址。&lt;/p&gt;
+
+&lt;p&gt;缺陷是什么呢？当我们配置virtual service时（-A -t x.x.x.1:port），命令下发后，会发现无法ssh连接x.x.x.1了！咨询阿里的同学，原来下发了以后，内核fullnat会对&lt;strong&gt;&lt;em&gt;所有&lt;/em&gt;&lt;/strong&gt;报文都做转发，不再上送（其实就是转发的时候没有查inpcb，看过这块代码的同学能明白，其实实现还是比较粗暴的）。所以我们在接口上配置2个地址，一个虚地址给fullnat用，一个给ssh用。&lt;/p&gt;
+
+&lt;p&gt;回到刚刚选择源地址的问题，如果让内核自己来选源地址，ipvsadm下发生效后我们就不能再ssh到内核选中的源地址了，这样显然是非常不合适的，因为我们不知道内核选的是哪个地址。所以Fullnat额外要求用户必须自己再配置一个Local Address。&lt;/p&gt;
+
+&lt;p&gt;最终，查看到的配置及连接信息如下：&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;bash
+[root@lvs ~]# ipvsadm -l -n
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port Scheduler Flags
+  -&amp;gt; RemoteAddress:Port           Forward Weight ActiveConn InActConn
+TCP  192.168.104.84:10000 wrr
+  -&amp;gt; 192.168.103.98:9999          FullNat 1      17         0
+  -&amp;gt; 192.168.103.99:9999          FullNat 1      15         0
+[root@lvs ~]# ipvsadm -l -n -c
+IPVS connection entries
+pro expire state       source             virtual            destination
+TCP 04:30  C0A86762    192.168.104.83:52861 192.168.104.84:10000 192.168.103.84:12354
+TCP 04:30  C0A86762    192.168.104.83:52850 192.168.104.84:10000 192.168.103.84:12352
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;state那里是个bug，正常应该是ESTA/SYN_RECV之类，回头改掉。&lt;/p&gt;
+
+</description>
+        <pubDate>Wed, 09 Dec 2015 17:10:23 +0800</pubDate>
+        <link>http://silenceshell.gitcafe.io/tech/2015/12/09/fullnat-2.html</link>
+        <guid isPermaLink="true">http://silenceshell.gitcafe.io/tech/2015/12/09/fullnat-2.html</guid>
+        
+        <category>fullnat</category>
+        
+        
+        <category>tech</category>
+        
+      </item>
+    
+      <item>
+        <title>Fullnat系列（一）：到底什么时候需要用fullnat呢？</title>
+        <description>&lt;p&gt;来，我再写篇小水文。&lt;/p&gt;
+
+&lt;p&gt;服务器为了提高性能，通常会选择横向扩展，一般有2种做法：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;前置DNS服务器，同一个域名（Virtual Service）对应不同的真实服务器（Real Server），解析域名的时候，DNS服务器会轮询返回不同的服务器，这样真正提供服务的，就是不同的机器，达到负载分担的目的。&lt;/li&gt;
+  &lt;li&gt;前置负载分担（LB）设备。可以是专业的LB设备，也可以是linux服务器开启LVS（4层）或者Nginx（7层）。LVS的使用可以参考前面的一篇文章。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;目前的发行版，内核默认会集成LVS module，可以自检下：
+&lt;code class=&quot;highlighter-rouge&quot;&gt;
+[root@lvs ~]# lsmod |grep ip_vs
+ip_vs_wrr               2275  4 
+ip_vs                 161155  8 ip_vs_wrr
+ipv6                  323428  60 ip_vs,ip6t_REJECT,nf_conntrack_ipv6,nf_defrag_ipv6
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;社区的linux发行版的LVS提供的报文转发模式有三种：NAT/DR/TUNNEL。阿里云SLB在NAT基础上还支持了FULLNAT模式，该模式在一般的开源版本中不提供，需要打补丁重新编译内核。在了解FULLNAT之前，我们先来看看NAT模式。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://7xir15.com1.z0.glb.clouddn.com/snat+dnat.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;如上图。NAT模式对入报文做了DNAT，即将报文的目的地址改为RS的地址，但源地址不变；RS上配置路由策略（如网关），出报文到了LVS设备上后做SNAT，即将报文的源地址改为LVS设备上的地址，目的地址不变。NAT模式的劣势是必须要在RS上配置路由策略（其实还可以解决一个很重要的场景，下文会提到）。&lt;/p&gt;
+
+&lt;p&gt;而FULLNAT，顾名思义，就是在出入两个方向均做了SNAT+DNAT。
+&lt;img src=&quot;http://7xir15.com1.z0.glb.clouddn.com/fullnat.png&quot; alt=&quot;&quot; /&gt;
+如上图。FULLNAT模式对入报文做了DNAT+SNAT，即将报文的目的地址改为RS的地址，源地址改为LVS设备地址；RS上不需要配置路由策略，出报文到了LVS设备上后做SNAT+DNAT，即将报文的源地址改为LVS设备上的地址，目的地址改为真实的用户地址。&lt;/p&gt;
+
+&lt;p&gt;一般来说，我们不需要使用FULLNAT，但是有一种场景，必须使用FULLNAT（或者类似的技术）：
+通常LVS是为了解决外部访问集群内部的问题，但是在我们的一个生产环境上，我们遇到了必须在集群内部的server1，向server2/server3（提供sysdb）写log的场景。
+server2/server3对外提供了VIP，用户可以从集群外部通过LVS来访问，但是server1访问sysdb的时候，会有路由问题。server1发出的syn报文，经由LVS转发给了server2，而server2应答的syn+ack报文，由于syn报文的源地址是server1，而server1跟server2在同一局域网内，所以server1会直接将该报文转发给server1，而不经过LVS。
+所以就会不通。&lt;/p&gt;
+
+&lt;p&gt;有了fullnat，syn报文经过LVS的处理以后，源地址改为LVS的LIP(Local IP)、目的地址改为了server2的地址，所以，对于server2来说，该syn请求就是LVS发起的，所以syn+ack报文还是会应答给LVS服务器；而应答报文再经过LVS处理，源地址改为LVS的EIP(External IP)，目的地址改为server1的地址，所以对于server1来说，请求得到了正确的应答，连接可以建立。&lt;/p&gt;
+
+&lt;p&gt;fullnat解决了集群内部互相访问的问题。在阿里内部，应该还有更广阔的应用（例如虚机之间通信）。不过，据说青云曾经指出fullnat的一个弊端，即对于Real Server来说，无法审计真实的客户端，只能向LVS（阿里叫做SLB）请求。&lt;/p&gt;
+
+&lt;p&gt;下一篇文章讲如何给内核打fullnat补丁。&lt;/p&gt;
+</description>
+        <pubDate>Wed, 09 Dec 2015 04:36:38 +0800</pubDate>
+        <link>http://silenceshell.gitcafe.io/tech/2015/12/09/fullnat.html</link>
+        <guid isPermaLink="true">http://silenceshell.gitcafe.io/tech/2015/12/09/fullnat.html</guid>
+        
+        <category>fullnat</category>
+        
+        
+        <category>tech</category>
+        
+      </item>
+    
+      <item>
+        <title>小玩意：如何让linux上挂死的进程重启？</title>
+        <description>&lt;p&gt;需求是这样的：我们在linux服务器上有一个采集进程，担心该进程出现故障挂死或者被人误杀，这种情况下需要能自动重启。使用peacemaker这样的分布式管理工具可以做到进程的监控，但毕竟体量较大，部署也稍嫌麻烦。
+其实，使用keepalived就可以满足这种需求，部署起来也很简单，做个记录供以后查阅。&lt;/p&gt;
+
+&lt;h3 id=&quot;keepalived&quot;&gt;1、安装keepalived&lt;/h3&gt;
+
+&lt;h3 id=&quot;keepalived-1&quot;&gt;2、配置keepalived检测&lt;/h3&gt;
+&lt;p&gt;修改/etc/keepalived/keepalived.conf&lt;/p&gt;
+
+&lt;p&gt;```
+vrrp_script check_dtm {
+    script “/etc/keepalived/check_dtm.sh”
+    interval 1
+    weight -5
+    fall 3
+}&lt;/p&gt;
+
+&lt;p&gt;vrrp_instance VI_1 {
+    state MASTER
+    interface eth0
+    virtual_router_id 51
+    priority 100
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 1111
+    }
+    virtual_ipaddress {
+    }
+    track_script {
+       check_dtm
+    }
+}
+```&lt;/p&gt;
+
+&lt;p&gt;如上配置，对VI_1实例配置track脚本，每秒检测一次，实际检测的脚本是check_dtm.sh。
+由于我们只是使用keepalived的check功能，所以virtual_address和virtual_server的功能都不需要，相关配置全部删除。&lt;/p&gt;
+
+&lt;h3 id=&quot;checkdtmsh&quot;&gt;3、配置检测脚本&lt;code class=&quot;highlighter-rouge&quot;&gt;check_dtm.sh&lt;/code&gt;&lt;/h3&gt;
+&lt;p&gt;```
+#!/bin/bash
+ps aux|grep dtmonitor|grep java&lt;/p&gt;
+
+&lt;p&gt;if [ $? != 0 ] ; then
+    echo “dtmonitor is down, try to restart.”
+    bash /opt/dtmonitor/monitor/start.sh
+fi
+```&lt;/p&gt;
+
+&lt;p&gt;真正做到重启的地方。简单来说，检查进程是否还在（当然可以做的粒度更准确一些，例如定时写一些文件之类），如果进程没了，则调用采集进程的启动脚本，尝试重启。&lt;/p&gt;
+
+&lt;h3 id=&quot;section&quot;&gt;4、采集进程的启动脚本。&lt;/h3&gt;
+&lt;p&gt;在采集进程的目录中（即/opt/dtmonitor/monitor/）编辑start.sh文件：&lt;/p&gt;
+
+&lt;p&gt;```
+#!/bin/bash&lt;/p&gt;
+
+&lt;p&gt;CURDIR=”&lt;code class=&quot;highlighter-rouge&quot;&gt;dirname $0&lt;/code&gt;”
+java -jar $CURDIR/dtmonitor.jar &amp;amp;
+echo “dtmonitor is started.”
+```&lt;/p&gt;
+
+&lt;p&gt;注意当前目录的切换。&lt;/p&gt;
+
+&lt;p&gt;如上，启动keepalived服务后，杀死dtmonitor进程，可以观察到1s左右dtmonitor进程被keepalived服务重启了。&lt;/p&gt;
+
+</description>
+        <pubDate>Wed, 11 Nov 2015 21:52:06 +0800</pubDate>
+        <link>http://silenceshell.gitcafe.io/tech/2015/11/11/task-restart.html</link>
+        <guid isPermaLink="true">http://silenceshell.gitcafe.io/tech/2015/11/11/task-restart.html</guid>
+        
+        <category>linux,</category>
+        
+        <category>keepalived</category>
+        
+        
+        <category>tech</category>
+        
+      </item>
+    
+      <item>
+        <title>HBase系列（一）</title>
+        <description>&lt;p&gt;最近由于工作关系，需要了解HBase，随手记录一些内容，以供查阅。&lt;/p&gt;
+
+&lt;h3 id=&quot;nosql&quot;&gt;NoSQL&lt;/h3&gt;
+&lt;p&gt;在刚接触Hadoop的时候，对Hive和HBase这两个组件总是不算特别清楚，都跟数据库有点关系，Hive又跟HBase有依赖，扯不太清楚。
+如果要简单的说二者的区别，可以这样理解：可以把Hive理解为一个SQL Parser，其目的是为了方便那些会使用SQL编程的数据科学家们，但真正在跑的，是Hive翻译出来的Map Reduce程序。所以Hive的用处仍然是离线批量计算。
+而HBase本质上是一个NoSQL数据库。那么问题来了，NoSQL又是什么鬼？说白了，NoSQL(Not Only SQL)也是一种数据库；但它区别于Oracle、MySQL这种会提供一个便捷的SQL编程语言的关系型数据库。NoSQL通常是列式数据库，不支持事务，不提供行的修改，其访问接口与SQL完全不同，例如HBase的接口是这样的:&lt;/p&gt;
+
+&lt;p&gt;```bash
+hbase(main):001:0&amp;gt; create ‘test’, ‘cf’
+0 row(s) in 0.4170 seconds&lt;/p&gt;
+
+&lt;p&gt;=&amp;gt; Hbase::Table - test
+hbase(main):002:0&amp;gt; list ‘test’
+TABLE
+test
+1 row(s) in 0.0180 seconds&lt;/p&gt;
+
+&lt;p&gt;=&amp;gt; [“test”]
+```&lt;/p&gt;
+
+&lt;p&gt;显然这与SQL是不兼容的。当然了，这样做是不是合适也见仁见智。与SQL不兼容，必然造成用户原有业务系统不能方便的迁移到HBase上来，需要做较多的改造。但话说回来，由于NoSQL不能完整支持RDBMS的众多方便的功能，与其削足适履，不如干脆重开一片新天地。
+如果您的业务想在HBase基础上开发一款新产品，可能做一套方便的SQL接口是个不错的方法。&lt;/p&gt;
+
+&lt;h3 id=&quot;hbase&quot;&gt;HBase&lt;/h3&gt;
+&lt;p&gt;从技术上来说，HBase应该叫做分布式“数仓”（Data Store），而不是数据库，因为它没有数据库的各种特点，例如列的类型，二级索引，触发器等。
+HBase的特点如下：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;支持读写一致性。	这跟一些NoSQL数据库不太一样。&lt;/li&gt;
+  &lt;li&gt;自动碎片化。HBase通过region实现分布式，region自动分片，并且随着数据的增长，会自动重新分布式。&lt;/li&gt;
+  &lt;li&gt;Region Server支持故障恢复&lt;/li&gt;
+  &lt;li&gt;集成HDFS，因此也就拥有了超大的存储空间&lt;/li&gt;
+  &lt;li&gt;支持MR大数据量并发处理的源或目的&lt;/li&gt;
+  &lt;li&gt;提供JAVA API（再也不用写Hibernate了）&lt;/li&gt;
+  &lt;li&gt;对于非JAVA程序，HBase也提供Thrift/REST API&lt;/li&gt;
+  &lt;li&gt;支持块存储和Bloom Filters&lt;/li&gt;
+  &lt;li&gt;内置WEB化管理界面(呵呵)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;section&quot;&gt;快速开始&lt;/h3&gt;
+&lt;p&gt;我们先在本地stand alone的状态启动一个HBase的环境（没有集成HDFS，只是体验用）。官方说明，只要10分钟就能搞定。这个例子会帮助我们对HBase有个比较感性的认识。&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;JDK
+由于版权的问题，以后我们都会只用openjdk。如下分别安装JRE和JDK。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+# yum install java-1.8.0-openjdk
+# yum install java-1.8.0-openjdk-devel
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;去官网或者&lt;a href=&quot;http://www.apache.org/dyn/closer.lua/hbase/&quot;&gt;镜像&lt;/a&gt;下载stable bin，解压。&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;从 0.98.5 开始要求设置JAVA_HOME环境变量。
+有两种做法：
+一是设置全局的JAVA_HOME，这样所有的hadoop组件都可以得到满足，但是如果你想支持多套JDK环境就没法应付了。
+二是在hbase_env.sh中单独设置本组件的JAVA_HOME，精细化管理。我们采用的是这个做法。编辑./conf/hbase_env.sh文件：&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;bash
+# The java implementation to use.  Java 1.7+ required.
+export JAVA_HOME=/usr/
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;如果你的环境跟我不一样也没关系，只是要注意从上面给出的路径直接走到&lt;code class=&quot;highlighter-rouge&quot;&gt;./bin&lt;/code&gt;可以找到javac。&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;设置hbase的使用的目录。
+还记得我们是standalone模式安装吗？这种情况实际我们数据是存储在本地的某个目录的（对应集群则存储在HDFS）。在&lt;code class=&quot;highlighter-rouge&quot;&gt;conf/hbase-site.xml&lt;/code&gt;中新增如下：&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;```xml&lt;/p&gt;
+&lt;configuration&gt;
+  &lt;property&gt;
+    &lt;name&gt;hbase.rootdir&lt;/name&gt;
+    &lt;value&gt;file:///home/testuser/hbase&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;hbase.zookeeper.property.dataDir&lt;/name&gt;
+    &lt;value&gt;/home/testuser/zookeeper&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+&lt;p&gt;```&lt;/p&gt;
+
+&lt;p&gt;hbase和zookeper两个目录不需要创建。&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;启动HBase服务
+HBase提供了脚本&lt;code class=&quot;highlighter-rouge&quot;&gt;bin/start-hbase.sh &lt;/code&gt;，可以方便的启动HBase服务。启动成功后，如果你输入jps，只会看到一个HMaster的进程。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+# jps
+3030 Jps
+1997 HMaster
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;standalone模式里，HBase在一个JVM中运行了HMaster、Region Server、zookeeper三个角色。&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;进入到HBase shell交互界面：&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;```
+# ./bin/hbase shell
+2015-09-15 02:08:38,364 WARN  [main] util.NativeCodeLoader: Unable to load native-hadoop library for your platform… using builtin-java classes where applicable
+HBase Shell; enter ‘help&lt;return&gt;&#39; for list of supported commands.
+Type &quot;exit&lt;return&gt;&quot; to leave the HBase Shell
+Version 1.1.2, rcc2b70cf03e3378800661ec5cab11eb43fafe0fc, Wed Aug 26 20:11:27 PDT 2015&lt;/return&gt;&lt;/return&gt;&lt;/p&gt;
+
+&lt;p&gt;hbase(main):001:0&amp;gt; 
+```&lt;/p&gt;
+
+&lt;p&gt;在这儿你可以创建表、插入数据、查询数据等，官方网站上有，我直接搬运过来好了。唯一需要注意的是这个例子用了列族(就是cf:a, cf:b, cf:c，下一篇文章再谈)等。&lt;/p&gt;
+
+&lt;p&gt;```
+hbase(main):001:0&amp;gt; create ‘test’, ‘cf’
+hbase(main):002:0&amp;gt; list ‘test’
+TABLE
+test
+1 row(s) in 0.0180 seconds&lt;/p&gt;
+
+&lt;p&gt;=&amp;gt; [“test”]
+hbase(main):003:0&amp;gt; put ‘test’, ‘row1’, ‘cf:a’, ‘value1’
+0 row(s) in 0.0850 seconds
+hbase(main):004:0&amp;gt; put ‘test’, ‘row2’, ‘cf:b’, ‘value2’
+0 row(s) in 0.0110 seconds
+hbase(main):005:0&amp;gt; put ‘test’, ‘row3’, ‘cf:c’, ‘value3’
+0 row(s) in 0.0100 seconds
+hbase(main):006:0&amp;gt; scan ‘test’
+ROW                                      COLUMN+CELL
+ row1                                    column=cf:a, timestamp=1421762485768, value=value1
+ row2                                    column=cf:b, timestamp=1421762491785, value=value2
+ row3                                    column=cf:c, timestamp=1421762496210, value=value3
+3 row(s) in 0.0230 seconds
+hbase(main):007:0&amp;gt; get ‘test’, ‘row1’
+COLUMN                                   CELL
+ cf:a                                    timestamp=1421762485768, value=value1
+1 row(s) in 0.0350 seconds
+hbase(main):008:0&amp;gt; disable ‘test’
+0 row(s) in 1.1820 seconds
+hbase(main):011:0&amp;gt; drop ‘test’
+0 row(s) in 0.1370 seconds
+```&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;http://hbase.apache.org/book.html#quickstart&quot;&gt;HBase 官方链接&lt;/a&gt;&lt;/p&gt;
+</description>
+        <pubDate>Wed, 16 Sep 2015 18:57:04 +0800</pubDate>
+        <link>http://silenceshell.gitcafe.io/tech/2015/09/16/hbase-1.html</link>
+        <guid isPermaLink="true">http://silenceshell.gitcafe.io/tech/2015/09/16/hbase-1.html</guid>
+        
+        <category>hbase</category>
+        
+        
+        <category>tech</category>
+        
+      </item>
+    
+  </channel>
+</rss>

@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html>
+
+	<script>
+	var _hmt = _hmt || [];
+	(function() {
+	  var hm = document.createElement("script");
+	  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+	  var s = document.getElementsByTagName("script")[0]; 
+	  s.parentNode.insertBefore(hm, s);
+	})();
+	</script>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>hadoop分布式环境搭建</title>
+  <meta name="description" content="1、 环境使用版本：centos6.5虚机安装在workstation 11上，使用hadoop2.6.0、jdk-7u15-linux-x64。本文介绍手工安装hadoop的方法，有关自动化部署（如ambari、cloudera management）的方法请见后续文章。##2、 安装name node### ...">
+  
+  <meta name="author" content="伊布">
+  <meta name="copyright" content="&copy; 伊布 2016">
+  
+
+  <!-- External libraries -->
+  <!--<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"> -->
+  <link href="//cdn.bootcss.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/styles/solarized-dark.min.css">
+  <!--<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/styles/monokai_sublime.min.css">-->
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/css/lightbox.css">
+
+  <!-- Favicon and other icons (made with http://www.favicon-generator.org/) -->
+  <link rel="shortcut icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" sizes="57x57" href="/assets/icons/apple-icon-57x57.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="/assets/icons/apple-icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="/assets/icons/apple-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="/assets/icons/apple-icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="/assets/icons/apple-icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/assets/icons/apple-icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="/assets/icons/apple-icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/apple-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-icon-180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192"  href="/assets/icons/android-icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/assets/icons/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+  <link rel="manifest" href="/assets/icons/manifest.json">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="msapplication-TileImage" content="/assets/icons/ms-icon-144x144.png">
+  <meta name="theme-color" content="#ffffff">
+
+  
+  <!-- Facebook OGP cards -->
+  <meta property="og:description" content="1、 环境使用版本：centos6.5虚机安装在workstation 11上，使用hadoop2.6.0、jdk-7u15-linux-x64。本文介绍手工安装hadoop的方法，有关自动化部署（如ambari、cloudera management）的方法请见后续文章。##2、 安装name node### ..." />
+  <meta property="og:url" content="http://silenceshell.gitcafe.io" />
+  <meta property="og:site_name" content="Zlatan Eevee" />
+  <meta property="og:title" content="hadoop分布式环境搭建" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="http://silenceshell.gitcafe.io/assets/instacode.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="612" />
+  <meta property="og:image:height" content="605" />
+  
+
+  
+  <!-- Twitter: card tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="hadoop分布式环境搭建">
+  <meta name="twitter:description" content="1、 环境使用版本：centos6.5虚机安装在workstation 11上，使用hadoop2.6.0、jdk-7u15-linux-x64。本文介绍手工安装hadoop的方法，有关自动化部署（如ambari、cloudera management）的方法请见后续文章。##2、 安装name node### ...">
+  <meta name="twitter:image" content="http://silenceshell.gitcafe.io/assets/instacode.png">
+  <meta name="twitter:url" content="http://silenceshell.gitcafe.io">
+  
+
+  
+
+  <!-- Site styles -->
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://silenceshell.gitcafe.io/tech/2015/04/24/hadoop-setup.html">
+  <link rel="alternate" type="application/rss+xml" title="Zlatan Eevee" href="http://silenceshell.gitcafe.io/feed.xml" />
+</head>
+
+
+  <body>
+
+    <header class="navigation" role="banner">
+  <div class="navigation-wrapper">
+    <a href="/" class="logo">
+      
+      <img src="/assets/logo.png" alt="Zlatan Eevee">
+      
+    </a>
+    <a href="javascript:void(0)" class="navigation-menu-button" id="js-mobile-menu">
+      <i class="fa fa-bars"></i>
+    </a>
+    <nav role="navigation">
+      <ul id="js-navigation-menu" class="navigation-menu show">
+        
+          
+          <li class="nav-link"><a href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+          <li class="nav-link"><a href="/posts/">Posts</a>
+          
+        
+          
+          <li class="nav-link"><a href="/typography/">Typography</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+        <div class="post">
+
+<div class="post-header-container has-cover" style="background-image: url(/assets/instacode.png);">
+  <div class="scrim has-cover">
+    <header class="post-header">
+      <h1 class="title">hadoop分布式环境搭建</h1>
+      <p class="info">by <strong>伊布</strong></p>
+    </header>
+  </div>
+</div>
+
+<div class="wrapper">
+
+
+
+<section class="post-meta">
+  <div class="post-date">April 24, 2015</div>
+  <div class="post-categories">
+  in 
+    
+    <a href="/category/tech">Tech</a>
+    
+  
+  </div>
+</section>  
+
+<article class="post-content">
+  <h2 id="section">1、 环境</h2>
+<p>使用版本：centos6.5虚机安装在workstation 11上，使用hadoop2.6.0、jdk-7u15-linux-x64。本文介绍手工安装hadoop的方法，有关自动化部署（如ambari、cloudera management）的方法请见后续文章。
+##2、 安装name node
+### 2.1 安装centos6.5
+#### 2.1.1 配置网卡
+vmware默认安装即可，直接创建hadoop用户，建议配置2个网卡，如下。
+安装时指定网卡eth0使用NAT模式，用来直接连接网络，后面编译的时候maven需要下载。
+系统启动后，再增加一个网卡eth1，模式为<strong>桥接模式</strong>，选上<strong><em>复制物理网络连接状态</em></strong>。
+如果你的PC跟我一样有多个网卡，可能桥接到的物理网卡不是你想要的，所以需要编辑为自己需要的网卡：
+<em>编辑</em>-&gt;<em>虚拟网络编辑器</em>-&gt;<em>更改设置</em>，桥接模式使用的是vmnet0，选定后修改<code class="highlighter-rouge">桥接到</code>为准备要用的网卡。
+配置完毕后，进到centos里<code class="highlighter-rouge">ifconfig</code>，可以看到新的网卡，我的环境里是叫做eth1（如果你用的是centos7以上的版本，可能叫做enp0s8之类奇怪的名字）。在我的环境里没有配置dhcp服务，需要设置为静态地址：</p>
+
+<p><code class="highlighter-rouge">bash
+$ cd /etc/sysconfig/network-scripts/
+$ vi ifcfg-eth1  #地址、掩码、MAC需要改为实际值
+DEVICE="eth1"
+BOOTPROTO="static"
+IPADDR=192.168.5.29
+NETMASK=255.255.0.0
+HWADDR="00:0C:29:64:09:88"
+IPV6INIT="yes"
+NM_CONTROLLED="yes"
+ONBOOT="yes"
+TYPE="Ethernet"
+</code></p>
+
+<h4 id="iptables">2.1.2 配置iptables</h4>
+<p>由于hadoop需要使用多个地址，而centos默认只开了几个端口，其他的都会被reject掉，所以需要改一下iptables。
+我这里就粗暴的把iptables关闭了：<code class="highlighter-rouge">service iptables stop</code>。当然这样做有些风险，后面可以重新添加下iptables的规则。</p>
+
+<h4 id="ssh">2.1.3 配置本机ssh免密码登陆</h4>
+<p>hadoop启动、停止脚本是通过ssh来控制相关进程的，并且name node与data node通信时使用的是ssh，需要设置免密码登陆。
+1. 生成公钥、私钥
+<code class="highlighter-rouge">ssh-keygen -t rsa</code>
+全部默认，执行完成后会在~/.ssh/生成2个文件：id_rsa(私钥)、id_rsa.pub(公钥)。尽量不要手动创建.ssh目录。</p>
+
+<ol>
+  <li>将公钥复制到相同目录下的authorized_keys文件中
+<code class="highlighter-rouge">cat id_rsa.pub &gt;&gt; authorized_keys</code></li>
+</ol>
+
+<blockquote>
+  <p><strong><em>注意，一定要保证.ssh目录和authorized_keys的权限为600，否则免密码访问会失败。</em></strong></p>
+</blockquote>
+
+<p>配置完毕后切为root重启ssh服务器(service sshd restart)，然后切回hadoop用户ssh localhost，可以看到不再需要密码。</p>
+
+<h4 id="hostname">2.1.3 修改hostname</h4>
+<p>分布式环境上要求各机器的名称是不一样的。我这里简单的把master节点命名为master，各slave节点命名为slave1、slave2、slave3。</p>
+
+<p><code class="highlighter-rouge">bash
+vim /etc/sysconfig/network
+NETWORKING=yes
+HOSTNAME=master
+</code></p>
+
+<p><strong>注意这里不要加<code class="highlighter-rouge">.localdomain</code>，否则dfs的web页面上查看datanodes时，会只能看到一个mailitciberia.com的节点，但实际上3个节点都已经注册OK了，fs的Configured Capacity也显示3个节点的总容量。</strong></p>
+
+<h3 id="jdkmaven">2.2 安装JDK和maven</h3>
+<p>#### 2.2.1 JDK
+下载jdk-7u15-linux-x64.tar.gz，解压到<code class="highlighter-rouge">/opt</code>目录下，配置环境变量：</p>
+
+<p><code class="highlighter-rouge">bash
+$ vi /etc/bashrc  #别写到/etc/profile，这个文件只对root生效(我也不知道为啥)
+export JAVA_HOME=/opt/jdk1.7.0_15
+export CLASSPATH=:$JAVA_HOME/lib.tools.jar
+export PATH=$JAVA_HOME/bin:$PATH
+</code></p>
+
+<h4 id="maven">2.2.2 maven</h4>
+<p>下载apache-maven-3.3.1-bin.tar.gz，解压到<code class="highlighter-rouge">/opt</code>目录下，配置环境变量：</p>
+
+<p><code class="highlighter-rouge">bash
+export MAVEN_HOME=/opt/apache-maven-3.3.1
+export PATH=$MAVEN_HOME/bin:$PATH
+</code></p>
+
+<p>用户退出后重新登录，检查下<code class="highlighter-rouge">java</code>、<code class="highlighter-rouge">mvn</code>命令是不是都好用了。maven是为了后面编译代码用，如果只是部署hadoop，可以不安装。
+### 2.3 安装hadoop
+下载hadoop二进制版本hadoop-2.6.0.tar.gz，解压到<code class="highlighter-rouge">/opt</code>目录下。
+配置文件基本都在<code class="highlighter-rouge">/opt/hadoop-2.6.0/etc/hadoop</code>里。</p>
+
+<h4 id="section-1">2.3.1 设置环境变量</h4>
+<p>只需要配置JAVA_HOME。前面已经在bash里设置了，这里不需要再修改。
+涉及到的文件：hadoop-env.sh、yarn-env.sh</p>
+
+<p><code class="highlighter-rouge">bash
+# The java implementation to use.
+export JAVA_HOME=${JAVA_HOME}
+</code></p>
+
+<h4 id="mapred-sitexml">2.3.2 设置mapred-site.xml</h4>
+<p>设置mapred使用YARN资源框架</p>
+
+<p>```xml
+$ cp mapred-site.xml.template mapred-site.xml
+$ vi mapred-site.xml</p>
+<configuration>
+  <property>  #增加此property
+    <name>mapreduce.framework.name</name>
+    <value>yarn</value>
+  </property>
+</configuration>
+<p>```</p>
+
+<h4 id="mapred-sitexml-1">2.3.3 修改mapred-site.xml</h4>
+<p>设置fs使用hdfs，设置hadoop临时文件存放地址（这里设置为hadoop用户目录下的tmp），并创建该目录tmp。</p>
+
+<p>```xml
+$ vi core-site.xml</p>
+<configuration>
+  <property>
+    <name>fs.defaultFS</name>
+    <value>hdfs://master:9000</value>
+    <final>true</final>
+  </property>
+
+  <property>
+    <name>hadoop.tmp.dir</name>
+    <value>/home/hadoop/tmp</value>
+  </property>
+</configuration>
+<p>```</p>
+
+<h4 id="hdfs-sitexml">2.3.4 配置hdfs-site.xml</h4>
+<p>设置hdfs的name、data节点使用的目录，并创建；设置hdfs的数据块副本个数为3，即一份数据块存3份。
+<strong>需要注意</strong>，如果自己搭的环境里节点数不到3个，这里要设置为实际的个数。</p>
+
+<p>```xml</p>
+<configuration>
+  <property>
+    <name>dfs.namenode.name.dir</name>
+    <value>file:/opt/hadoop-2.6.0/dfs/name</value>
+    <final>true</final>
+  </property>
+
+  <property>
+    <name>dfs.datanode.data.dir</name>
+    <value>file:/opt/hadoop-2.6.0/dfs/data</value>
+    <final>true</final>
+  </property>
+
+  <property>
+    <name>dfs.replication</name>
+    <value>3</value>
+  </property>
+
+  <property>
+    <name>dfs.webhdfs.enabled</name>
+    <value>true</value>
+  </property>
+</configuration>
+<p>```</p>
+
+<h4 id="yarn-sitexml">2.3.5 配置yarn-site.xml</h4>
+<p>为了运行MR，需要让YARN的各Node Manager启动的时候加载shuffle server，Reduce Task通过该server从各个Node Manager上获取Map Task的中间结果。
+<em>有的资料还配置了YARN Resource各功能的监听端口，这儿我们用默认的即可。</em>
+&gt; 上面这句话是错误的!！必须要配置，否则slaves找不到要连接的resource manager。</p>
+
+<p>```xml</p>
+<configuration>
+
+<!-- Site specific YARN configuration properties -->
+  <property>
+    <name>yarn.nodemanager.aux-services</name>
+    <value>mapreduce_shuffle</value>
+  </property>
+
+  <property>
+    <name>yarn.nodemanager.aux-services.mapreduce.shuffle.class</name>
+    <value>org.apache.hadoop.mapred.ShuffleHandler</value>
+  </property>
+
+  <property>
+    <name>yarn.resourcemanager.address</name>
+    <value>192.168.5.29:8032</value>
+  </property>
+
+  <property>
+    <name>yarn.resourcemanager.scheduler.address</name>
+    <value>192.168.5.29:8030</value>
+  </property>
+
+  <property>
+    <name>yarn.resourcemanager.resource-tracker.address</name>
+    <value>192.168.5.29:8031</value>
+  </property>
+
+  <property>
+    <name>yarn.resourcemanager.admin.address</name>
+    <value>192.168.5.29:8033</value>
+  </property>
+
+  <property>
+    <name>yarn.resourcemanager.webapp.address</name>
+    <value>192.168.5.29:8088</value>
+  </property>
+</configuration>
+<p>```</p>
+
+<h4 id="slave">2.3.6 配置slave</h4>
+<p>需要设置slaves的域名或者地址。这儿先用地址。</p>
+
+<p><code class="highlighter-rouge">
+192.168.5.101
+192.168.5.102
+192.168.5.103
+</code></p>
+
+<h2 id="data-node">3、 安装data node</h2>
+<p>说明：hadoop的分布式主要体现在hdfs上，name node下面管理了多个data node，data node可以有比较好的横向扩展性；
+对yarn来说，也是存在resource manager下面管理多个node manager的情景，也是分布式。
+由于这里用的是workstation，没有ESXi那种比较高级的功能，可以先把虚拟机关闭，然后拷贝出来一份，启动的时候选择“复制”。</p>
+
+<p>启动后，新的node还需要再做下面几件事：
+1 修改eth1配置中的IP地址和MAC地址
+2 配置本机免密码登陆
+3 修改hostname
+另，集群环境上，master访问各slave节点也需要ssh免密码登陆。
+配置master到slave免密码登陆的方法有很多，本质上就是把master的~/.ssh/authorized_keys里的public key添加到slaves的同一个文件里。我这里是直接2个窗口拷贝粘贴了。
+配置后，从master访问slave也不再需要密码</p>
+
+<h2 id="hadoop">4、启动hadoop</h2>
+<p>hadoop的操作只需要在master上操作，master会ssh到各slaves上去启动对应的进程。
+### 4.1 启动hdfs
+启动前需要先format：</p>
+
+<p><code class="highlighter-rouge">bash
+$ ./bin/hdfs namenode -format
+</code></p>
+
+<p>之后分别启动hdfs和yarn：</p>
+
+<p><code class="highlighter-rouge">bash
+./sbin/start-dfs.sh
+./sbin/start-yarn.sh
+</code></p>
+
+<p>jps命令查看hdfs和yarn在master、slaves上都启动了哪些应用：</p>
+
+<p>````bash
+[hadoop@master hadoop-2.6.0]$ jps
+7244 NameNode          #hdfs
+7590 ResourceManager   #yarn
+7942 Jps
+7429 SecondaryNameNode #hdfs
+—
+[hadoop@slave1 hadoop]$ jps
+3929 NodeManager       #yarn
+3836 DataNode          #hdfs
+4111 Jps
+```</p>
+
+<p>简单操作一下hdfs：
+$ ./bin/hadoop  fs -mkdir /test
+$ ./bin/hadoop  fs -ls /
+$ bin/hadoop fs -put
+$ ./bin/hadoop  fs -ls /test</p>
+
+<p>web访问：
+http://master:8088
+查看yarn所有的slave节点:
+![yarn slave]](http://7xir15.com1.z0.glb.clouddn.com/yarn_nodes.png)</p>
+
+<p>http://master:50070
+查看hdfs所有的slave节点：
+<img src="http://7xir15.com1.z0.glb.clouddn.com/hdfs_allnode.png" alt="hdfs_slave" /></p>
+
+<h2 id="slave-1">5、已有环境上新增一个slave节点</h2>
+<p><strong>slave</strong></p>
+
+<p>1、打包master的/opt下所有文件，拷贝到新的slave节点下的/opt解压；
+2、修改slave节点的/etc/sysconfig/networking中的hostname，重启
+3、修改slave节点的/etc/hosts，添加</p>
+
+<p><code class="highlighter-rouge">bash
+192.168.2.2 slave_r2_s1
+192.168.5.29 master
+</code></p>
+
+<p>4、配置ssh本地、远程免密码登陆
+5、检查hdfs的data目录下是否为空，若否，则清空
+6、创建tmp目录，如/home/hadoop/tmp。</p>
+
+<p><strong>master</strong>
+1、修改master节点的/etc/hosts，添加新增的slave节点
+2、修改master节点的$hadoop/etc/hadoop/slaves，添加新增的slave节点地址</p>
+
+<h2 id="master">6、已有环境上新增一个master节点</h2>
+<blockquote>
+  <p>todo..</p>
+</blockquote>
+
+
+</article>
+
+
+
+<section class="tags">
+  <strong>Tags:</strong> <a href="/tag/hadoop">hadoop</a>
+</section>
+
+
+
+<section class="rss">
+  <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+</section>
+
+<section class="share">
+  <span>Share: </span>
+  
+    
+    
+      <a href="//twitter.com/share?text=hadoop%E5%88%86%E5%B8%83%E5%BC%8F%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA&url=http://silenceshell.gitcafe.io/tech/2015/04/24/hadoop-setup.html&via=瓶子"
+        onclick="window.open(this.href, 'twitter-share', 'width=550,height=255');return false;">
+        <i class="fa fa-twitter-square fa-lg"></i>
+      </a>
+    
+    
+    
+    
+    
+  
+    
+    
+    
+    
+    
+    
+  
+</section>
+
+
+
+</div>
+</div>
+
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h3 class="footer-heading">Zlatan Eevee</h3>
+
+    <div class="site-navigation">
+      
+      <p><strong>Site Map</strong></p>
+      <ul class="pages">
+        
+        
+          <li class="nav-link"><a href="/about/">About</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+          <li class="nav-link"><a href="/posts/">Posts</a>
+        
+        
+        
+          <li class="nav-link"><a href="/typography/">Typography</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+      </ul>
+    </div>
+
+    <div class="site-contact">
+
+      <p><strong>Contact</strong></p>
+      <ul class="social-media-list">
+        <li>
+          <a href="mailto:hubottle@gmail.com">
+            <i class="fa fa-envelope-o"></i>
+            <span class="username">hubottle@gmail.com</span>
+          </a>
+        </li>
+
+        
+          
+          <li>
+            <a href="https://twitter.com/hubottle" title="Follow me on Twitter">
+              <i class="fa fa-twitter"></i>
+              <span class="username">瓶子</span>
+            </a>
+          </li>
+          
+        
+          
+          <li>
+            <a href="https://github.com/silenceshell" title="Fork me on GitHub">
+              <i class="fa fa-github"></i>
+              <span class="username">silenceshell</span>
+            </a>
+          </li>
+          
+        
+
+      </ul>
+    </div>
+
+    <div class="site-signature">
+      <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+      <p class="text"></p>
+    </div>
+
+  </div>
+
+</footer>
+
+<!-- Scripts -->
+<script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/highlight.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/js/lightbox.min.js"></script>
+<script>
+
+$(document).ready(function() {
+
+  // Syntax highlighting
+  hljs.initHighlightingOnLoad();
+
+  // Header
+  var menuToggle = $('#js-mobile-menu').unbind();
+  $('#js-navigation-menu').removeClass("show");
+  menuToggle.on('click', function(e) {
+    e.preventDefault();
+    $('#js-navigation-menu').slideToggle(function(){
+      if($('#js-navigation-menu').is(':hidden')) {
+        $('#js-navigation-menu').removeAttr('style');
+      }
+    });
+  });
+
+
+});
+
+</script>
+
+
+
+
+  </body>
+
+</html>

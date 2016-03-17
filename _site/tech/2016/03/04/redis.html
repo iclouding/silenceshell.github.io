@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html>
+
+	<script>
+	var _hmt = _hmt || [];
+	(function() {
+	  var hm = document.createElement("script");
+	  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+	  var s = document.getElementsByTagName("script")[0]; 
+	  s.parentNode.insertBefore(hm, s);
+	})();
+	</script>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Redis简介</title>
+  <meta name="description" content="接触到Redis是因为某天同事告诉说我的某集群里的一台服务器的redis服务有未授权漏洞，可以直接访问redis服务，甚至将自己的公钥写入该用户的~/.ssh/authorized_keys中，直接登录到该服务器上。这个漏洞其实是很早之前就有，具体可以参照阿里云上的介绍。介绍Redis的几个特点：  内存key-...">
+  
+  <meta name="author" content="伊布">
+  <meta name="copyright" content="&copy; 伊布 2016">
+  
+
+  <!-- External libraries -->
+  <!--<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"> -->
+  <link href="//cdn.bootcss.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/styles/solarized-dark.min.css">
+  <!--<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/styles/monokai_sublime.min.css">-->
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/css/lightbox.css">
+
+  <!-- Favicon and other icons (made with http://www.favicon-generator.org/) -->
+  <link rel="shortcut icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" sizes="57x57" href="/assets/icons/apple-icon-57x57.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="/assets/icons/apple-icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="/assets/icons/apple-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="/assets/icons/apple-icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="/assets/icons/apple-icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/assets/icons/apple-icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="/assets/icons/apple-icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/apple-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-icon-180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192"  href="/assets/icons/android-icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/assets/icons/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+  <link rel="manifest" href="/assets/icons/manifest.json">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="msapplication-TileImage" content="/assets/icons/ms-icon-144x144.png">
+  <meta name="theme-color" content="#ffffff">
+
+  
+  <!-- Facebook OGP cards -->
+  <meta property="og:description" content="接触到Redis是因为某天同事告诉说我的某集群里的一台服务器的redis服务有未授权漏洞，可以直接访问redis服务，甚至将自己的公钥写入该用户的~/.ssh/authorized_keys中，直接登录到该服务器上。这个漏洞其实是很早之前就有，具体可以参照阿里云上的介绍。介绍Redis的几个特点：  内存key-..." />
+  <meta property="og:url" content="http://silenceshell.gitcafe.io" />
+  <meta property="og:site_name" content="Zlatan Eevee" />
+  <meta property="og:title" content="Redis简介" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="http://silenceshell.gitcafe.io/assets/instacode.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="612" />
+  <meta property="og:image:height" content="605" />
+  
+
+  
+  <!-- Twitter: card tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Redis简介">
+  <meta name="twitter:description" content="接触到Redis是因为某天同事告诉说我的某集群里的一台服务器的redis服务有未授权漏洞，可以直接访问redis服务，甚至将自己的公钥写入该用户的~/.ssh/authorized_keys中，直接登录到该服务器上。这个漏洞其实是很早之前就有，具体可以参照阿里云上的介绍。介绍Redis的几个特点：  内存key-...">
+  <meta name="twitter:image" content="http://silenceshell.gitcafe.io/assets/instacode.png">
+  <meta name="twitter:url" content="http://silenceshell.gitcafe.io">
+  
+
+  
+
+  <!-- Site styles -->
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://silenceshell.gitcafe.io/tech/2016/03/04/redis.html">
+  <link rel="alternate" type="application/rss+xml" title="Zlatan Eevee" href="http://silenceshell.gitcafe.io/feed.xml" />
+</head>
+
+
+  <body>
+
+    <header class="navigation" role="banner">
+  <div class="navigation-wrapper">
+    <a href="/" class="logo">
+      
+      <img src="/assets/logo.png" alt="Zlatan Eevee">
+      
+    </a>
+    <a href="javascript:void(0)" class="navigation-menu-button" id="js-mobile-menu">
+      <i class="fa fa-bars"></i>
+    </a>
+    <nav role="navigation">
+      <ul id="js-navigation-menu" class="navigation-menu show">
+        
+          
+          <li class="nav-link"><a href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+          <li class="nav-link"><a href="/posts/">Posts</a>
+          
+        
+          
+          <li class="nav-link"><a href="/typography/">Typography</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+        <div class="post">
+
+<div class="post-header-container has-cover" style="background-image: url(/assets/instacode.png);">
+  <div class="scrim has-cover">
+    <header class="post-header">
+      <h1 class="title">Redis简介</h1>
+      <p class="info">by <strong>伊布</strong></p>
+    </header>
+  </div>
+</div>
+
+<div class="wrapper">
+
+
+
+<section class="post-meta">
+  <div class="post-date">March 4, 2016</div>
+  <div class="post-categories">
+  in 
+    
+    <a href="/category/tech">Tech</a>
+    
+  
+  </div>
+</section>  
+
+<article class="post-content">
+  <p>接触到Redis是因为某天同事告诉说我的某集群里的一台服务器的redis服务有未授权漏洞，可以直接访问redis服务，甚至将自己的公钥写入该用户的<code class="highlighter-rouge">~/.ssh/authorized_keys</code>中，直接登录到该服务器上。
+这个漏洞其实是很早之前就有，具体可以参照<a href="https://help.aliyun.com/knowledge_detail/5988808.html">阿里云上的介绍</a>。</p>
+
+<h3 id="section">介绍</h3>
+
+<p>Redis的几个特点：</p>
+
+<ul>
+  <li>内存key-value数据库，性能很好；也可以将数据持久化到磁盘中，不过想来不会太美</li>
+  <li>开源，使用c编码，总共40K+</li>
+  <li>数据可以复制到任意数量的从服务器中，可以做分布式</li>
+  <li>支持的数据类型丰富，如字符串、Hash、集合、列表、有序列表、<strong>地理空间</strong>、<strong>订阅</strong></li>
+  <li>原子操作，支持事务</li>
+  <li>支持lua脚本</li>
+</ul>
+
+<p>Redis可以用做数据库、缓存、消息队列。</p>
+
+<h3 id="section-1">安装</h3>
+<p>ubuntu可以直接apt-get安装，centos6上还需要源码安装，比较简单。Redis比较特别的一点是它不会拷贝redis.conf到/etc/下，要手工拷贝，并且默认配置是不开认证的。</p>
+
+<h3 id="section-2">使用</h3>
+<p>类似mysql，Redis以Daemon形式提供服务，用户可以使用redis-cli命令行工具，或者桌面的Redis Desktop Manager登录到Redis服务上来操作数据。
+下面贴几行Redis操作的例子。</p>
+
+<p>```bash
+#String
+redis 127.0.0.1:6379&gt; SET mykey “heihei”
+OK
+redis 127.0.0.1:6379&gt; GET mykey
+“heihei”</p>
+
+<h1 id="hash">hash</h1>
+<p>redis 127.0.0.1:6379&gt; HMSET myhash name “xiaoming” age 8 gen male
+OK
+redis 127.0.0.1:6379&gt; HMGET myhash name
+1) “xiaoming”</p>
+
+<h1 id="section-3">集合</h1>
+<p>redis 127.0.0.1:6379&gt; SADD myset aaa
+(integer) 1
+redis 127.0.0.1:6379&gt; SADD myset bbb
+(integer) 1
+redis 127.0.0.1:6379&gt; SADD myset aaa
+(integer) 0
+redis 127.0.0.1:6379&gt; SADD myset ccc
+(integer) 1
+redis 127.0.0.1:6379&gt; SMEMBERS myset
+1) “bbb”
+2) “ccc”
+3) “aaa”
+```</p>
+
+<p>感受下就好了，还有其他的类型。Redis没有表的概念，但是可以分为多个DB。</p>
+
+<h3 id="section-4">编码</h3>
+<p>Java开发者可以使用Jedis包来操作Redis。</p>
+
+<hr />
+
+<p>以上详细内容都可以比较方便的Google到，就不在这做搬运工了。</p>
+
+<p><em>越来越水，我都不能原谅自己了</em></p>
+
+
+</article>
+
+
+
+<section class="tags">
+  <strong>Tags:</strong> <a href="/tag/redis">redis</a>
+</section>
+
+
+
+<section class="rss">
+  <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+</section>
+
+<section class="share">
+  <span>Share: </span>
+  
+    
+    
+      <a href="//twitter.com/share?text=Redis%E7%AE%80%E4%BB%8B&url=http://silenceshell.gitcafe.io/tech/2016/03/04/redis.html&via=瓶子"
+        onclick="window.open(this.href, 'twitter-share', 'width=550,height=255');return false;">
+        <i class="fa fa-twitter-square fa-lg"></i>
+      </a>
+    
+    
+    
+    
+    
+  
+    
+    
+    
+    
+    
+    
+  
+</section>
+
+
+
+</div>
+</div>
+
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h3 class="footer-heading">Zlatan Eevee</h3>
+
+    <div class="site-navigation">
+      
+      <p><strong>Site Map</strong></p>
+      <ul class="pages">
+        
+        
+          <li class="nav-link"><a href="/about/">About</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+          <li class="nav-link"><a href="/posts/">Posts</a>
+        
+        
+        
+          <li class="nav-link"><a href="/typography/">Typography</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+      </ul>
+    </div>
+
+    <div class="site-contact">
+
+      <p><strong>Contact</strong></p>
+      <ul class="social-media-list">
+        <li>
+          <a href="mailto:hubottle@gmail.com">
+            <i class="fa fa-envelope-o"></i>
+            <span class="username">hubottle@gmail.com</span>
+          </a>
+        </li>
+
+        
+          
+          <li>
+            <a href="https://twitter.com/hubottle" title="Follow me on Twitter">
+              <i class="fa fa-twitter"></i>
+              <span class="username">瓶子</span>
+            </a>
+          </li>
+          
+        
+          
+          <li>
+            <a href="https://github.com/silenceshell" title="Fork me on GitHub">
+              <i class="fa fa-github"></i>
+              <span class="username">silenceshell</span>
+            </a>
+          </li>
+          
+        
+
+      </ul>
+    </div>
+
+    <div class="site-signature">
+      <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+      <p class="text"></p>
+    </div>
+
+  </div>
+
+</footer>
+
+<!-- Scripts -->
+<script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/highlight.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/js/lightbox.min.js"></script>
+<script>
+
+$(document).ready(function() {
+
+  // Syntax highlighting
+  hljs.initHighlightingOnLoad();
+
+  // Header
+  var menuToggle = $('#js-mobile-menu').unbind();
+  $('#js-navigation-menu').removeClass("show");
+  menuToggle.on('click', function(e) {
+    e.preventDefault();
+    $('#js-navigation-menu').slideToggle(function(){
+      if($('#js-navigation-menu').is(':hidden')) {
+        $('#js-navigation-menu').removeAttr('style');
+      }
+    });
+  });
+
+
+});
+
+</script>
+
+
+
+
+  </body>
+
+</html>

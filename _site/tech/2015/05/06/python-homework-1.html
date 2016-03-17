@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html>
+
+	<script>
+	var _hmt = _hmt || [];
+	(function() {
+	  var hm = document.createElement("script");
+	  hm.src = "//hm.baidu.com/hm.js?28bfa356a7c60e170822a01142cf208e";
+	  var s = document.getElementsByTagName("script")[0]; 
+	  s.parentNode.insertBefore(hm, s);
+	})();
+	</script>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>python学习作业（一）</title>
+  <meta name="description" content="这个系列记录Python小组学习过程中完成的作业，python用的很不熟，希望做作业的过程中有进步。本次作业题目：            代码      城市                  CHXX0008      北京              CHXX0044      杭州              ...">
+  
+  <meta name="author" content="伊布">
+  <meta name="copyright" content="&copy; 伊布 2016">
+  
+
+  <!-- External libraries -->
+  <!--<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"> -->
+  <link href="//cdn.bootcss.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/styles/solarized-dark.min.css">
+  <!--<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/styles/monokai_sublime.min.css">-->
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/css/lightbox.css">
+
+  <!-- Favicon and other icons (made with http://www.favicon-generator.org/) -->
+  <link rel="shortcut icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" sizes="57x57" href="/assets/icons/apple-icon-57x57.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="/assets/icons/apple-icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="/assets/icons/apple-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="/assets/icons/apple-icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="/assets/icons/apple-icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/assets/icons/apple-icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="/assets/icons/apple-icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/apple-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-icon-180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192"  href="/assets/icons/android-icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/assets/icons/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+  <link rel="manifest" href="/assets/icons/manifest.json">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="msapplication-TileImage" content="/assets/icons/ms-icon-144x144.png">
+  <meta name="theme-color" content="#ffffff">
+
+  
+  <!-- Facebook OGP cards -->
+  <meta property="og:description" content="这个系列记录Python小组学习过程中完成的作业，python用的很不熟，希望做作业的过程中有进步。本次作业题目：            代码      城市                  CHXX0008      北京              CHXX0044      杭州              ..." />
+  <meta property="og:url" content="http://silenceshell.gitcafe.io" />
+  <meta property="og:site_name" content="Zlatan Eevee" />
+  <meta property="og:title" content="python学习作业（一）" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="http://silenceshell.gitcafe.io/assets/instacode.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="612" />
+  <meta property="og:image:height" content="605" />
+  
+
+  
+  <!-- Twitter: card tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="python学习作业（一）">
+  <meta name="twitter:description" content="这个系列记录Python小组学习过程中完成的作业，python用的很不熟，希望做作业的过程中有进步。本次作业题目：            代码      城市                  CHXX0008      北京              CHXX0044      杭州              ...">
+  <meta name="twitter:image" content="http://silenceshell.gitcafe.io/assets/instacode.png">
+  <meta name="twitter:url" content="http://silenceshell.gitcafe.io">
+  
+
+  
+
+  <!-- Site styles -->
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://silenceshell.gitcafe.io/tech/2015/05/06/python-homework-1.html">
+  <link rel="alternate" type="application/rss+xml" title="Zlatan Eevee" href="http://silenceshell.gitcafe.io/feed.xml" />
+</head>
+
+
+  <body>
+
+    <header class="navigation" role="banner">
+  <div class="navigation-wrapper">
+    <a href="/" class="logo">
+      
+      <img src="/assets/logo.png" alt="Zlatan Eevee">
+      
+    </a>
+    <a href="javascript:void(0)" class="navigation-menu-button" id="js-mobile-menu">
+      <i class="fa fa-bars"></i>
+    </a>
+    <nav role="navigation">
+      <ul id="js-navigation-menu" class="navigation-menu show">
+        
+          
+          <li class="nav-link"><a href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+          <li class="nav-link"><a href="/posts/">Posts</a>
+          
+        
+          
+          <li class="nav-link"><a href="/typography/">Typography</a>
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+        <div class="post">
+
+<div class="post-header-container has-cover" style="background-image: url(/assets/instacode.png);">
+  <div class="scrim has-cover">
+    <header class="post-header">
+      <h1 class="title">python学习作业（一）</h1>
+      <p class="info">by <strong>伊布</strong></p>
+    </header>
+  </div>
+</div>
+
+<div class="wrapper">
+
+
+
+<section class="post-meta">
+  <div class="post-date">May 6, 2015</div>
+  <div class="post-categories">
+  in 
+    
+    <a href="/category/tech">Tech</a>
+    
+  
+  </div>
+</section>  
+
+<article class="post-content">
+  <p>这个系列记录Python小组学习过程中完成的作业，python用的很不熟，希望做作业的过程中有进步。</p>
+
+<p>本次作业题目：</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>代码</th>
+      <th>城市</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>CHXX0008</td>
+      <td>北京</td>
+    </tr>
+    <tr>
+      <td>CHXX0044</td>
+      <td>杭州</td>
+    </tr>
+    <tr>
+      <td>CHXX0116</td>
+      <td>上海</td>
+    </tr>
+    <tr>
+      <td>CHXX0502</td>
+      <td>海口</td>
+    </tr>
+    <tr>
+      <td>CHXX0037</td>
+      <td>广州</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>任意输入上表内的城市名字，与今天的时间差(明天、后天、大后天)），输出中文天气情况。
+天气数据从yahoo网站获取，不同城市输入不同代码，如杭州从这个网址获取：
+http://xml.weather.yahoo.com/forecastrss?u=c&amp;p=CHXX0044</p>
+
+<p>用到的几个点：</p>
+
+<ul>
+  <li>使用requests库读取网页</li>
+  <li>使用beatifulSoup解析（正则表达式）</li>
+  <li>使用有道翻译的API做英译中。API需要注册一下:<a href="http://fanyi.youdao.com/openapi?path=data-mode">注册地址</a>
+申请成功后会提供API key和keyfroom，也会提示url的使用方法。我这里的doctype使用了json。
+API key：12345678
+keyfrom：dtdream</li>
+  <li>使用json解析有道翻译的返回结果</li>
+</ul>
+
+<p>中文编码出了点问题，可以通过<code class="highlighter-rouge">#coding=utf-8</code>搞定。
+代码如下：</p>
+
+<p>```python
+#!/usr/bin/env python
+#coding=utf-8</p>
+
+<p>import re
+import requests
+import bs4
+import json
+import urllib</p>
+
+<p>citycodeArr = {‘北京’ : ‘CHXX0008’, ‘杭州’ : ‘CHXX0044’, ‘上海’ : ‘CHXX0116’, ‘海口’ : ‘CHXX0502’, ‘广州’ : ‘CHXX0037’, ‘唐&gt;山’ : ‘CHXX0131’}</p>
+
+<p>def trans(string):
+  url = ‘http://fanyi.youdao.com/openapi.do?keyfrom=dtdream&amp;key=1972884851&amp;type=data&amp;doctype=json&amp;version=1.1&amp;q=’+string
+  try:
+    page = urllib.urlopen(url)
+    jsonStr = page.read()
+    trans_res = json.loads(jsonStr)
+    new = trans_res[u”translation”]
+    print(new[0])
+  except Error:
+    print(“出错了”)</p>
+
+<p>def checkWeather():
+  city = raw_input(“城市? “)
+  after =input(“几天后? “)</p>
+
+<p>if (city not in citycodeArr) or (after &gt; 4):
+    print(“超出预报范围”)
+    return -1
+  citycode = citycodeArr[city]
+  reqUrl = “http://xml.weather.yahoo.com/forecastrss?u=c&amp;p=” + citycode</p>
+
+<p>response = requests.get(reqUrl)
+  soup = bs4.BeautifulSoup(response.text)
+  weatherAll = soup.find_all(re.compile(“yweather:forecast”))
+  trans(weatherAll[after].get(‘text’))
+  return 0</p>
+
+<p>if <strong>name</strong> == ‘<strong>main</strong>’:
+  checkWeather()
+```</p>
+
+
+</article>
+
+
+
+<section class="tags">
+  <strong>Tags:</strong> <a href="/tag/python">python</a>
+</section>
+
+
+
+<section class="rss">
+  <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+</section>
+
+<section class="share">
+  <span>Share: </span>
+  
+    
+    
+      <a href="//twitter.com/share?text=python%E5%AD%A6%E4%B9%A0%E4%BD%9C%E4%B8%9A%EF%BC%88%E4%B8%80%EF%BC%89&url=http://silenceshell.gitcafe.io/tech/2015/05/06/python-homework-1.html&via=瓶子"
+        onclick="window.open(this.href, 'twitter-share', 'width=550,height=255');return false;">
+        <i class="fa fa-twitter-square fa-lg"></i>
+      </a>
+    
+    
+    
+    
+    
+  
+    
+    
+    
+    
+    
+    
+  
+</section>
+
+
+
+</div>
+</div>
+
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h3 class="footer-heading">Zlatan Eevee</h3>
+
+    <div class="site-navigation">
+      
+      <p><strong>Site Map</strong></p>
+      <ul class="pages">
+        
+        
+          <li class="nav-link"><a href="/about/">About</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+          <li class="nav-link"><a href="/posts/">Posts</a>
+        
+        
+        
+          <li class="nav-link"><a href="/typography/">Typography</a>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+      </ul>
+    </div>
+
+    <div class="site-contact">
+
+      <p><strong>Contact</strong></p>
+      <ul class="social-media-list">
+        <li>
+          <a href="mailto:hubottle@gmail.com">
+            <i class="fa fa-envelope-o"></i>
+            <span class="username">hubottle@gmail.com</span>
+          </a>
+        </li>
+
+        
+          
+          <li>
+            <a href="https://twitter.com/hubottle" title="Follow me on Twitter">
+              <i class="fa fa-twitter"></i>
+              <span class="username">瓶子</span>
+            </a>
+          </li>
+          
+        
+          
+          <li>
+            <a href="https://github.com/silenceshell" title="Fork me on GitHub">
+              <i class="fa fa-github"></i>
+              <span class="username">silenceshell</span>
+            </a>
+          </li>
+          
+        
+
+      </ul>
+    </div>
+
+    <div class="site-signature">
+      <p class="rss-subscribe text"><strong>Subscribe <a href="/feed.xml">via RSS</a></strong></p>
+      <p class="text"></p>
+    </div>
+
+  </div>
+
+</footer>
+
+<!-- Scripts -->
+<script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/highlight.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/lightbox2/2.7.1/js/lightbox.min.js"></script>
+<script>
+
+$(document).ready(function() {
+
+  // Syntax highlighting
+  hljs.initHighlightingOnLoad();
+
+  // Header
+  var menuToggle = $('#js-mobile-menu').unbind();
+  $('#js-navigation-menu').removeClass("show");
+  menuToggle.on('click', function(e) {
+    e.preventDefault();
+    $('#js-navigation-menu').slideToggle(function(){
+      if($('#js-navigation-menu').is(':hidden')) {
+        $('#js-navigation-menu').removeAttr('style');
+      }
+    });
+  });
+
+
+});
+
+</script>
+
+
+
+
+  </body>
+
+</html>
