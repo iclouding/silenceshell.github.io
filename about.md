@@ -6,7 +6,8 @@ permalink: /about/
 
 <!--<img src="{{ site.baseurl }}/assets/profile.jpg" title="Profile Picture" class="profile">-->
 
-<center> 三十而立以上，四十不惑未满 </center >
+<center> 已然三十而立，希望四十不惑 </center >
+
 <center> 英超主队：MU </center>
 <center> 西超主队：RM </center>
 <center> 西甲主队：ATM </center>
