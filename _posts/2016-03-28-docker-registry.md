@@ -60,7 +60,7 @@ CMD ["/etc/docker/registry/config.yml"]
 
 由于Dockerfile定义了ENTRYPOINT，所以在run的时候不需要再指定其要执行的程序。
 
-```
+```bash
 # docker images
 REPOSITORY                   TAG                 IMAGE ID            CREATED             SIZE
 <none>                       <none>              35edc4804da9        5 seconds ago       825.7 MB
@@ -70,7 +70,6 @@ tcp6       0      0 :::5000                 :::*                    LISTEN      
 # docker ps
 CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                    NAMES
 5cab3904ae94        35edc4804da9        "registry /etc/docker"   2 seconds ago       Up 2 seconds        0.0.0.0:5000->5000/tcp   big_darwin
-
 # docker exec -ti 5cab3904ae94 /bin/bash
 root@5cab3904ae94:/go/src/github.com/docker/distribution#which registry
 /go/bin/registry
@@ -83,8 +82,8 @@ root@5cab3904ae94:/go/src/github.com/docker/distribution#which registry
 #### 2.1 检查私有registry服务是否正常
 使用curl命令检查registry能提供哪些repositories。
 
-```
-curl "http://192.168.103.88:5000/v2/_catalog"
+```bash
+# curl "http://192.168.103.88:5000/v2/_catalog"
 {"repositories":[]}
 ```
 
@@ -94,7 +93,7 @@ curl "http://192.168.103.88:5000/v2/_catalog"
 把本地的ubuntu:14.04镜像push到私有registry中。
 
 
-```
+```bash
 # docker images
 REPOSITORY                   TAG                 IMAGE ID            CREATED             SIZE
 <none>                       <none>              35edc4804da9        20 minutes ago      825.7 MB
@@ -121,7 +120,7 @@ db6b2d84f3c6: Pushed
 
 ```
 
-#### 2.3 使用私有registry
+#### 2.3 从私有registry里拖镜像
 
 pull时加上私有registry的地址端口号即可。
 
