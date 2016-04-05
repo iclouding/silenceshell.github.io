@@ -9,15 +9,15 @@ cover:  "/assets/instacode.png"
 ---
 
 
-###1 介绍
+### 1 介绍
 Spark是一个快速、通用的集群计算系统，提供JAVA/Scala/Python API，以及一系列的高级工具：Spark SQL/MLib/GrapyX/Spark Streaming.
 Spark的编程语言是scala，同样采用scala的还有kafka。
 
-###2 安装
+### 2 安装
 我的环境使用的是CDH版本，安装时选上了Spark，手动安装请参考官网。
 如果将Spark安装到hadoop上，需要注意其版本依赖关系。如果你的Spark底层使用了HDFS做存储，而Spark的版本与默认的hadoop一定要不同的话，需要自行编译，改脚本没用。
 
-###3 核心：RDD
+### 3 核心：RDD
 RDD(Resilient Distributed Datasets，弹性分布式数据集)模型的出现主要为了解决下面两个场景：
 
 - 迭代计算
@@ -36,7 +36,7 @@ RDD支持两种操作：
 RDD还支持缓存，主要用在迭代计算中，转换时不用*再次计算*，用户可以用persist/cache等方法使中间结果的RDD数据集缓存在内存或磁盘中。
 有关RDD的详细研究，可以参考CSDN的[这篇文章](http://blog.csdn.net/wwwxxdddx/article/details/45647761)。
 
-###4 基本架构
+### 4 基本架构
 
 Spark会将一个应用程序转为一组任务，分布在多个节点并行计算，并提供一个共享变量在这些并行任务间、任务与驱动程序间共享。
 每个应用程序一套运行时环境，其生命周期如下：
@@ -46,9 +46,9 @@ Spark会将一个应用程序转为一组任务，分布在多个节点并行计
 - 根据调度依赖关系执行DAG图。优化：数据本地性、推测执行。
 - 销毁运行时环境
 
-###5 Quick start
+### 5 Quick start
 下面基本是参照[spark官网示例](http://spark.apache.org/docs/latest/quick-start.html)来的。
-####5.1 spark shell
+#### 5.1 spark shell
 spark shell可以交互式的运行spark程序，可以查看中间运行结果，是个学习框架的好方法。
 
 ```
@@ -93,7 +93,7 @@ scala> linesWithSpark.count()
 res17: Long = 2
 ```
 
-####5.2 Self-Contained Applications
+#### 5.2 Self-Contained Applications
 实际生产环境中不可能像上面这样交互式运行，还是要自包含的应用程序。下面我们举一个源代码里python的例子，scala和java需要配合sbt和maven，具体请参照官网。
 
 ```python
