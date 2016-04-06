@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "spark（二）：standalone集群部署"
+title: "Spark（二）：Standalone集群部署"
 date: 2016-04-05 08:11:11
 author: 伊布
 categories: tech
