@@ -148,11 +148,30 @@ master的启动跟之前是一样的，slave有不同：
 
 简要说明下。3台master启动后，在WEB UI上能看到其状态，我这里的情况是2台ALIVE(例如spark1和spark11)，1台STANDBY（spark12）；spark2启动后，只有1台master上（例如spark11）可以看到其计算资源，其他2台看不到；将spark11关闭，过一两分钟后可以看到spark1上拿到了计算资源，查看spark2的日志，能看到重连的过程。
 
+
 实际上，spark的master HA机制做的非常优秀的一点是，master的切换是由新master来通知之前注册过的slaves的。因此，standby master并不要求一开始就部署上去，slave启动的时候，也不需要像上面这样指定3个spark url。
-上面的过程可以做个小优化，即仍然在spark1上start-all，然后再将spark11/spark12加入到集群的master中。这样即使spark1故障关闭了，新的master仍然可以接管计算资源。
+**上面的过程可以做个小优化，即仍然在spark1上start-all，然后再将spark11/spark12加入到集群的master中。这样即使spark1故障关闭了，新的master仍然可以接管计算资源。**
 
 不过美中不足的是，集群切换的时间有点长，官方说法是1-2分钟，不知道是不是跟故障发现的频率太低有关系。
 
+### 4 Spark on YARN
+
+我理解现在的spark on yarn 也只是说spark的任务跑在yarn上，这样区别于standalone方式，可以有一个公共的资源管理模块来提供服务。
+
+配置YARN略去不谈，可以参考[这篇文章](http://www.alexjf.net/blog/distributed-systems/hadoop-yarn-installation-definitive-guide/#single-node-test)。
+
+YARN配置好后，还需要设置环境变量来指定HADDOP/YARN的配置文件，SPARK启动的时候会去这个目录中找YARN的配置文件，用来向YARN提交任务。
+
+```
+export YARN_CONF_DIR=/home/dtdream/hadoop/hadoop-2.6.3/etc/hadoop
+export HADOOP_CONF_DIR=/home/dtdream/hadoop/hadoop-2.6.3/etc/hadoop
+```
+
+启动SPARK任务的命令行，指定的--master与以前不一样，例如启动thriftserver：
+
+`./sbin/start-thriftserver.sh --master yarn`
+
+这样就可以在YARN上有一个常驻的JDBC server，使用beeline就可以开心的连上去做SQL操作了。
 
 
 [Reference](http://spark.apache.org/docs/latest/spark-standalone.html)
