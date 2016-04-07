@@ -9,7 +9,7 @@ cover:  "/assets/instacode.png"
 ---
 
 
-###1 设计理念和基本架构
+### 1 设计理念和基本架构
 
 编程模型（API）、数据引擎(Map Task, Reduce Task)、运行时环境(Job Tracker--Task Trackers)
 MRv2修改了运行时环境，将资源管理调度与作业控制分离，YARN就是分离出来的资源管理模块（具体应用程序的作业控制由ApplicationMaster负责）。
@@ -33,7 +33,7 @@ YARN仍然为主从模型，Resource Manager负责对各个Node Manager上的资
 "$bin"/yarn-daemons.sh --config $YARN_CONF_DIR  start nodemanager
 ```
 
-####1.1基本组成
+#### 1.1基本组成
 
 ResourceManager(Resource Scheduler+Applications Manager)、Application Master、Node Manager、container
 
@@ -52,11 +52,11 @@ ASM管理AM，AM管理Task。
 
 
 
-####1.2 通信协议
+#### 1.2 通信协议
 RPC。典型的C/S架构，Server主要由ResourceManager启动，jobclient/node manager/application master/admin发起连接。
 `proto buffer`  **序列化框架**
 
-####1.3 工作流程
+#### 1.3 工作流程
 短应用程序、长应用程序(Storm/HBase)
 
 1. 提交应用程序(AM/运行参数等)
