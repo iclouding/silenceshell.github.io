@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Spark（二）：Standalone集群部署"
+title: "Spark（二）：Standalone和YARN方式部署集群"
 date: 2016-04-05 08:11:11
 author: 伊布
 categories: tech
@@ -15,7 +15,7 @@ Spark有三种集群部署方式：
 - mesos
 - yarn
 
-其中standalone方式部署最为简单，下面做一下简单的记录。
+其中standalone方式部署最为简单，下面做一下简单的记录。后面我还补充了YARN的方式。
 
 
 ### 1 环境
