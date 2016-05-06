@@ -87,6 +87,7 @@ ip_map.registerTempTable("ip2region")
 ```
 
 可以点击下执行，不过由于这里都是transform，所以实际没做啥。
+
 > **插一下**
 
 由于我们是把Zeppelin直接提交到spark集群上的，所以在spark的页面上，可以看到Zeppelin的Application，这个app可以被kill掉（灰色的kill）。
@@ -116,15 +117,15 @@ select distinct country, count(1) as sum from ip2region group by country order b
 
 ![zeppelin_spark-sql](http://7xir15.com1.z0.glb.clouddn.com/zeppelin_spark-sql.png)
 
-虽然我对CN分配的IP地址段会比较少做好了心理准备，但跟美国差距这么大，还是没想到的。
+右上角的点是美国，左下高亮的点是中国。虽然我对CN分配的IP地址段会比较少做好了心理准备，但跟美国差距这么大，还是没想到的。当然总的来说我们的IP地址还是挺多的。
 
 
 ### 其他功能
 
-1. Zeppelin默认没有用户隔离，多个浏览器看到的是一样的（勉强认为具备了协同开发的能力吧。。）
+1. Zeppelin默认没有用户隔离，多个浏览器看到的是一样的（勉强认为具备了协同开发的能力吧）
 2. 可以将note保存成json串归档为文件，其他集群将该文件导入后，可以恢复note
 3. 可以根据note的URL来导入（how？）
-4. 可以定时执行note。由于定时执行时，note各部分是有执行顺序的，可以勉强认为具备了*工作流*的能力 XD
+4. 可以定时执行note。由于定时执行时，note各部分是有执行顺序的，可以勉强认为具备了**工作流**的能力 XD
 
 ...
 
