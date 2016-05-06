@@ -21,7 +21,8 @@ name: 伊布
 baseurl:  # the subpath of your site, e.g. /blog/
 url: "http://silenceshell.github.io" # the base hostname & protocol for your site
 #url: "http://bencentra.github.io" # the base hostname & protocol for your site
-cover: "/assets/header_image.jpg"
+#cover: "/assets/header_image.jpg"
+cover: "/assets/instacode.png"
 logo: "/assets/logo.png"
 
 # Build settings
