@@ -121,10 +121,11 @@ select distinct country, count(1) as sum from ip2region group by country order b
 
 ### 其他功能
 
-1、Zeppelin默认没有用户隔离，多个浏览器看到的是一样的（勉强认为具备了协同开发的能力吧。。）
-2、可以将note保存成json串归档为文件，其他集群将该文件导入后，可以恢复note
-3、可以根据note的URL来导入（how？）
-4、可以定时执行note。由于定时执行时，note各部分是有执行顺序的，可以勉强认为具备了*工作流*的能力 XD
+1. Zeppelin默认没有用户隔离，多个浏览器看到的是一样的（勉强认为具备了协同开发的能力吧。。）
+2. 可以将note保存成json串归档为文件，其他集群将该文件导入后，可以恢复note
+3. 可以根据note的URL来导入（how？）
+4. 可以定时执行note。由于定时执行时，note各部分是有执行顺序的，可以勉强认为具备了*工作流*的能力 XD
+
 ...
 
 
