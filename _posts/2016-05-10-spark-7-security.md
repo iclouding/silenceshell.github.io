@@ -1,12 +1,10 @@
 ---
 layout: post
 title: "Spark（七）：Hive的授权"
-date: 2016-05-10 08:11:11
+date: 2016-05-10 08:11:12
 author: 伊布
 categories: tech
-tags:
-- hive
-- spark
+tags: spark
 cover:  "/assets/instacode.png"
 ---
 
