@@ -35,7 +35,7 @@ redcarpet:
 paginate: 10
 paginate_path: "/page:num/"
 excerpt_separator: "\n\n\n"
-safe: false
+#safe: false
 
 # Archive settings (see https://github.com/jekyll/jekyll-archives/)
 jekyll-archives: 
