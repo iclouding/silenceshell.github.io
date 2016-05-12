@@ -101,6 +101,6 @@ Error: java.lang.RuntimeException: Cannot create staging directory 'hdfs://spark
 参考：
 [hive官方资料](https://cwiki.apache.org/confluence/display/Hive/LanguageManual+Authorization)
 
-
+[UBER多租户](https://www.youtube.com/watch?v=vdwot545LKA&index=5&list=PL-x35fyliRwjSJ3D50uXcvJc_lFOTkfLS)
 
 
