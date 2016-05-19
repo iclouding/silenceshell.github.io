@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Spark（八）：Thrift Server的用户认证"
+title: "Spark（九）：Thrift Server的用户认证"
 date: 2016-05-18 08:11:12
 author: 伊布
 categories: tech
