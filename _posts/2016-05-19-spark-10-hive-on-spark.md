@@ -76,7 +76,7 @@ export SPARK_HOME=/home/dtdream/spark/spark-1.6.1-bin-hadoop2.6
 ### 过程分析及集群角色划分
 
 
-![总体结构](http://7xir15.com1.z0.glb.clouddn.com/hive-on-spark-1.png)
+![总体结构](http://7xir15.com1.z0.glb.clouddn.com/hive-on-spark-2.png)
 
 
 1、hiveserver2启动，指定engine=spark
