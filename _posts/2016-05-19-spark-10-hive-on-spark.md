@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Spark（十）：Hive on Spark配置"
-date: 2016-05-18 08:11:12
+date: 2016-05-19 08:11:12
 author: 伊布
 categories: tech
 tags: spark
