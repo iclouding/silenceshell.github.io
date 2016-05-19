@@ -8,13 +8,7 @@ tags: spark
 cover:  "/assets/instacode.png"
 ---
 
-### 1、SQL隔离
-
-我们的SQL语句在studio中做保护，通过不同的workspace隔离。需要注意，由于workspace跟DB是一一对应的，useA将数据共享给userB的时候，userB只能在另一workspace，否则userB将看到userA的所有SQL。
-
-### 2、UDF隔离
-
-和SQL一样，通过studio的workspace隔离。
+> 1、2谈的是SQL和UDF隔离，对于开源来说，zeppelin或者Hue可能是个选择，但其并不支持多租户。国内像美团在之上做了增量开发，支持了多租户，这样就做到了SQL和UDF的隔离。我司有自行开发的data studio产品，其功能跟开源的Hue对标，支持多租户。
 
 ### 3、数据隔离
 
