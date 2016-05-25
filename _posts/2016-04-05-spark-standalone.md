@@ -17,6 +17,7 @@ Spark有三种集群部署方式：
 
 其中standalone方式部署最为简单，下面做一下简单的记录。后面我还补充了YARN的方式。
 
+> 其实最简单的是local方式，单机。
 
 ### 1 环境
 我在一台服务器上安装了ESXi来管理虚拟机，多个虚拟机组成spark集群。虚拟机软件配置如下：
@@ -28,6 +29,7 @@ Spark有三种集群部署方式：
 - 安装pssh
 
 配置无密码sudo方法如下。
+
 ```
 root@spark1:/etc# chmod u+w sudoers
 root@spark1:/etc# echo "%dtdream ALL=(ALL) NOPASSWD: ALL" > sudoers

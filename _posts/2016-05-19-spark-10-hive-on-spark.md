@@ -111,7 +111,7 @@ Container(即spark excutor):
 
 
 
-遇到的一些错误，记录在这：
+### 遇到的一些错误
 
 1、spark的excutor启动时，提示找不到HADOOP_HOME，但实际已经设置了。
 这个问题没解决，目前不影响使用。

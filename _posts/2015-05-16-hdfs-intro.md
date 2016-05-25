@@ -9,7 +9,7 @@ cover:  "/assets/instacode.png"
 ---
 
 
-###1 概述
+### 1 概述
 HDFS应用场景：存储超大型流式处理数据（Terabytes和Petabytes级别）。
 总的来说，HDFS的特点有这么几个：
 
@@ -25,7 +25,7 @@ HDFS应用场景：存储超大型流式处理数据（Terabytes和Petabytes级�
 - 多用户写入，任意修改文件。只支持一个writer，且只能写到文件的最后（流式处理）。
 - 随机数据访问。
 
-###2 架构
+### 2 架构
 
 - name node：管理文件系统命名空间和访问权限，记录了data node的数据块的位置（注意是在内存里，不保存，每次data node加入时重建）。
 - data node：将数据作为块存储在文件里。
@@ -33,13 +33,13 @@ HDFS应用场景：存储超大型流式处理数据（Terabytes和Petabytes级�
 ![](http://www.ibm.com/developerworks/cn/web/wa-introhdfs/fig1.gif)
 HDFS架构如上图。name node可以识别data node的机架ID，从而优化data node之间的通信，减少跨机架的通信，因为通常这比同一机架的通信要慢。
 
-####块
+#### 块
 类似传统文件系统，HDFS也有**块**的概念，默认为64MB，但通常会被设置为128MB（跟硬盘读写速度相关）。数据存储到块文件里去。
 块如此之大的原因：HDFS读取的吞吐率取决于2个方面：寻址的速度、块读取的速度。块设计的大一些，可以最小化寻址开销，尽可能接近硬盘的读取速度（极限情况：设计为只有一块，完全是硬盘的读取速度）。但不能将块设置太大，否则数据块的个数变少，会造成Map任务并发不够。
 att：如果块存放的数据比块要小，实际并没有完全占用块。
 使用块的优点：可以支持超大文件（经历过1080P拷贝到FAT32移动硬盘的同学会懂其中的痛）；相对管理文件来说，管理块更简单；可以做容错、负载分担。
 
-####文件访问权限
+#### 文件访问权限
 如下例，hdfs跟POSIX非常像。hdfs的用户，实际就是远程客户端操作时候的用户，比如下面我用test上传了一个文件上去，其用户就是test，不管其他节点上是否也有test用户。hdfs的'x'权限，只是表示”该目录可进入“，没有”执行“这个概念。
 
 ```bash
@@ -53,14 +53,14 @@ drwxrwxrwx   - hdfs   supergroup          0 2015-05-11 22:28 /tmp/.cloudera_heal
 
 新版本的hadoop使用了kerberos来做认证。
 
-###3 文件读取
-####3.1 访问接口
+### 3 文件读取
+#### 3.1 访问接口
 hdfs提供了多种访问方式。
 方式一：我们在客户端使用`hadoop fs -ls /`的操作，实际就是一个应用程序调用hdfs的java api接口实现的。
 方式二：hdfs还提供了一个libhdfs的C语言库，可以通过JNI来访问；其他一些语言，例如c++, ruby, python等等可以通过[thrift](http://dongxicheng.org/search-engine/thrift-framework-intro/)代理来访问。thrift是个比较神奇的东西，后面可以好好玩一下。
 方式三：hdfs提供了web浏览服务，下文提到的distcp就是利用了这一方式，其优势在于没有版本兼容的顾虑。
 
-####3.2 客户端读取HDFS过程
+#### 3.2 客户端读取HDFS过程
 ![](http://upload.news.cecb2b.com/2014/1108/1415426527715.jpg?_=42872)
 这个过程中，name node负责处理block位置的请求，客户端获得位置信息后，直接与data node联系，避免name node称为瓶颈。读取有下面两个特点
 
@@ -69,7 +69,7 @@ hdfs提供了多种访问方式。
 
 那么距离是怎么定义的呢？可以将网络看成一棵树，两个节点的距离就是他们到最近的共同祖先的距离之和。根据数据中心、机架、节点，可以定义不同层级；对于复杂的网络，需要用户帮助hadoop来定义其拓扑。
 
-###4 文件写入
+### 4 文件写入
 参考下面的代码：
 
 ```java
@@ -83,6 +83,7 @@ hdfs提供了多种访问方式。
 然后，数据被分为一个个数据包，一次性写入“数据队列”；数据队列的处理器会向name node请求得到一组data node作为一个“管道”；数据流式写入管道的第一个data node，然后再由这个节点同步给其他data node。
 ![](http://upload.news.cecb2b.com/2014/1108/1415426527902.jpg?_=6898)
 只要有一个datanode写入成功就可以，集群会自行异步复制到其他节点。
+
 > 问题：“管道”申请是每文件，还是每block？
 
 name node是怎么选择data node来做副本写入呢？布局策略有很多，默认策略是这样的：先在写入数据的客户端本地存储一份（如果客户端不在HDFS集群上，则随机选择一个集群节点），然后在其他另一机架上选择2个节点各存储一份，再有副本就随机选择了。**只要写入一个data node成功，写操作就会成功，客户端调用只需要等待最小量的复制。**
@@ -133,11 +134,11 @@ hadoop 2.x版本比较好的解决了name node的单点故障。
 
 据说只要几十秒就可以完成倒换。
 
-###6 Fedoration
+### 6 Fedoration
 引入了”域“的概念，允许集群不止有一个name node，但不同的name node共享同一个data node集群。
 Fedoration可以解决集群变大时，name node成为瓶颈的问题，但是name node仍然存在单点故障，应属于一个过渡方案。不过Fedoration引入域以后，意外的获得了多租户的特性。
 
-###7 小文件解决方案
+### 7 小文件解决方案
 **归档工具**
 archive可以克服大量小文件给namenode带来的内存压力，并且还能获得文件的透明访问。archive实际也是一个mr任务，需要hadoop集群。
 [hdfs@master conf]$  hadoop archive -archiveName aaa.har -p /user/hdfs /user/hdfs
@@ -146,7 +147,7 @@ archive可以克服大量小文件给namenode带来的内存压力，并且还�
 由一系列KV组成，key为文件名，value为文件内容，将大批kv组成一个大文件。
 这两种方案都需要用户应用程序干预，hdfs不会干预。
 
-###8 distcp
+### 8 distcp
 distcp是一个分布式并行的拷贝工具，实质是一个只有map的MR任务。通过制定map任务数(-m)，可以并行的将源文件拷贝到目标文件中。
 相同版本的hdfs，distcp可以直接RPC拷贝；不同版本，则只能在目标hadoop上，通过http协议访问源dfs来并行的读取写入。
 *数据平衡性*：如果distcp -m 1，当文件很大的时候，由于只有一个map任务，那么写入的时候总是会写入该map任务所在的节点，这就带来不均衡，所以尽量选择更多的map任务。
