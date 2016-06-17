@@ -4,7 +4,7 @@ title: "Databricks cloud初探"
 date: 2016-06-15 00:11:11
 author: 伊布
 categories: tech
-tags: kerberos
+tags: databricks
 cover:  "/assets/instacode.png"
 ---
 
