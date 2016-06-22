@@ -17,6 +17,10 @@
           <li class="nav-link"><a href="{{ page.url | prepend: site.baseurl }}">{{ page.title }}</a>
           {% endif %}
         {% endfor %}
+
+                <form action="/search.html" class="navbar-search pull-right">
+                <input type="text" placeholder="Google" class="search-query input-medium" name="q">
+                </form>
       </ul>
     </nav>
   </div>
