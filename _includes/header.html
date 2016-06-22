@@ -7,6 +7,9 @@
       <span>{{ site.title }}</span>
       {% endif %}
     </a>
+                <form action="/search.html" class="navbar-search pull-right">
+                <input type="text" placeholder="Google" class="search-query input-medium" name="q">
+                </form>
     <a href="javascript:void(0)" class="navigation-menu-button" id="js-mobile-menu">
       <i class="fa fa-bars"></i>
     </a>
@@ -18,9 +21,6 @@
           {% endif %}
         {% endfor %}
 
-                <form action="/search.html" class="navbar-search pull-right">
-                <input type="text" placeholder="Google" class="search-query input-medium" name="q">
-                </form>
       </ul>
     </nav>
   </div>
