@@ -8,7 +8,7 @@ categories: tech
 cover:  "/assets/instacode.png"
 ---
 
-###1 简介
+### 1 简介
 sqoop可以用来在hdfs和关系型数据（如mysql, Oracle, PostgreSQL）之间交换数据，也可以作为异构数据库之间同步使用。
 sqoop通过JDBC（Java Data Base Connectivity,java数据库连接）与数据库交互，整合了Hive/HBase和oozie，核心是MapReduce。从下面的几个实验来看，应该只是用到了Map。
 
@@ -28,8 +28,8 @@ Warning: /opt/cloudera/parcels/CDH-5.4.0-1.cdh5.4.0.p0.27/bin/../lib/sqoop/../ac
 Please set $ACCUMULO_HOME to the root of your Accumulo installation.
 ```
 
-###2 工具
-####2.1 直接查看数据库、表
+### 2 工具
+#### 2.1 直接查看数据库、表
 可以直接用sqoop查看mysql的库、表等。
 下面的示例我们用sqoop跟mysql之间进行数据传输。安装mysql后默认会有3个database，我们这里的示例用test库。
 
@@ -49,7 +49,7 @@ $ sqoop list-tables --connect jdbc:mysql://127.0.0.1/test   --username root
 t1
 ```
 
-####2.2 将数据库导入import到hdfs
+#### 2.2 将数据库导入import到hdfs
 
 - 支持导入为文本文件、avro、sequence file。例如import时指定`--as-avrodatafile`，写入到hdfs的文件就是avro格式的。
 - 支持并发Map，通过-m参数指定
@@ -116,7 +116,7 @@ mysql> select * from exTable1;
 
 ```
 
-####2.4 生成代码
+#### 2.4 生成代码
 可以使用codegen来生成针对此数据库的代码。
 ![](http://7xir15.com1.z0.glb.clouddn.com/t1_class.PNG)
 

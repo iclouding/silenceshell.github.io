@@ -9,14 +9,14 @@ cover:  "/assets/instacode.png"
 ---
 
 
-###1 背景：MR的问题
+### 1 背景：MR的问题
 - 启动时间长。多采用pull模型，没有JVM缓存池
 - 调度开销大
 - 中间数据写磁盘
 
 storm的出现，可以比较好的解决上面的问题。
 
-###2 Storm的优势
+### 2 Storm的优势
 实时计算、流式计算。水管不停的产生数据，流向中间的螺栓(处理逻辑)。
 ![stom模型](http://tech.uc.cn/wp-content/uploads/2013/09/topology%E4%BE%8B%E5%AD%902.jpg)
 Storm出现之前的解决方法：消息队列，读取消息队列，更新数据库，通知其他消息队列，存在缺点：自动化、健壮性、伸缩性。可以参考知乎的一个[问答](http://www.zhihu.com/question/20028515)：
@@ -31,7 +31,7 @@ Storm出现之前的解决方法：消息队列，读取消息队列，更新数
 - 无数据丢失：ack消息追踪记录
 - 多语言编程接口：貌似还是以java为主
 
-###3 编程模型
+### 3 编程模型
 Tuple：数据表示模型，数据库中的一行记录，可以为integer、long，也可以自定义的序列化。
 Stream：消息流。每个Tuple认为是一个消息，消息流就是Tuple队列。
 Topology：应用程序处理逻辑，不会终止的MR作业。
@@ -42,7 +42,7 @@ Stream Grouping：消息分发策略，7种：随机、按字段、广播等。
 如下图：
 ![Storm各组件](http://7xir15.com1.z0.glb.clouddn.com/storm组件.PNG)
 
-####3.1 wordcount示例
+#### 3.1 wordcount示例
 还是以wordcount为例，代码在github上：[点这里](https://github.com/apache/storm/tree/master/examples/storm-starter)
 wordcount分为1个Spout和2个Bolt，流程很简单:
 RandomSentenceSpout->SplitSentence->WordCount
@@ -129,7 +129,7 @@ SplitSentenceBolt().run()
     }
 ```
 
-###4 基本架构
+### 4 基本架构
 Storm仍然为M/S架构，通过zookeeper通信。主要由下面几个组件构成：
 
 - 控制节点：Nimbus，类似job tracker，分发代码、工作任务
@@ -144,7 +144,7 @@ Numbus和SupervisorNumbus和Supervisor不直接交互，状态都保存在zookee
 Worker之间使用MQ传递消息。
 ![nimbus and Supervisor](http://tech.uc.cn/wp-content/uploads/2013/09/%E6%95%B0%E6%8D%AE%E6%B5%81%E5%9B%BE.png)
 
-###5 记录级容错
+### 5 记录级容错
 所谓记录级，指的是一条tuple被所有应该走到的节点处理完毕。Storm的记录级容错使用了这样一个数学原理：
 A xor A = 0.
 A xor B…xor B xor A = 0，其中每一个操作数出现且仅出现两次。

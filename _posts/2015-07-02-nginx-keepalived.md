@@ -15,7 +15,7 @@ cover:  "/assets/instacode.png"
 整体结构图
 ![](http://7xir15.com1.z0.glb.clouddn.com/nginx反向代理.png)
 
-##1、设置nginx.repo：
+### 1、设置nginx.repo：
 我用的操作系统是centos6.5，如下：
 
 ```bash
@@ -36,7 +36,7 @@ gpgcheck=0
 enabled=1
 ```
 
-##2、安装nginx、keepalived
+### 2、安装nginx、keepalived
 
 ```bash
 $ yum install nginx
@@ -52,7 +52,7 @@ $ chkconfig  keepalived on
 
 nginx启动后，默认会有一个http server，例如我这里访问的地址是`http://192.168.80.165`和`http://192.168.80.166`，两台服务器的地址。但实际上我不需要这俩web服务器，而是需要让nginx做反向代理，将http请求导引到我的RESTful API服务器上，配置下面会有提到。
 
-##3、修改keepalived的配置文件
+### 3、修改keepalived的配置文件
 配置文件的路径是`/etc/keepalived/keepalived.conf`。
 master：
 
@@ -104,7 +104,7 @@ vrrp_instance VI_1 {
     inet 192.168.80.111/32 scope global eth2
 ```
 
-##4、使用脚本检测nginx服务
+### 4、使用脚本检测nginx服务
 上面的配置可以保证keepalived关闭（例如服务器故障）时，虚IP自动切换；但有的时候可能只是web服务故障了，我们希望的是keepalived检测服务的状态，并且能够自动切换。这种情况可以用脚本来检测nginx服务状态，根据检测结果调高或调低vrrp的优先级，达到虚IP切换的目的。
 新建一个探测脚本：check_nginx.sh
 
@@ -140,10 +140,11 @@ vrrp_instance VI_1 {
 据说探测成功或失败了以后只会改一次优先级，所以不要担心不停探测优先级一直增长的问题。
 简单说明下，上面的脚本简单的检查了nginx是不是还在监听端口，如果发现不是（例如主的nginx被stop），则priority-5，vrrp通告出去后，备发现自己的优先级更高，vrrp切换，备抢占虚IP，此时访问的nginx就是备上的了；等到主nginx重新启动后，脚本检查端口已在监听，则priority+5，vrrp切换，主会重新抢占虚IP，达到HA的目的。
 
-##5、配置nginx
+### 5、配置nginx
 上面配置完keepalived后，HA的功能完成了，但是用户只能访问一个服务器，对于有多个web容器的情况就无能为力了，这时候需要nginx出马。
 nginx在我们的组网里实际是一个loadbalance的角色，将用户的请求分发给不同的server（即upstream）。由于我们后端服务器监听的是8443 ssl端口，所以步骤稍微复杂一点。
-###5.1 配置nginx
+
+#### 5.1 配置nginx
 CENTOS6.5的nginx配置是在`/etc/nginx/conf.d/default`，我直接给出配置（基本是照抄了以升的说明）：
 
 ```bash
@@ -181,7 +182,7 @@ server {
 }
 ```
 
-###5.2 配置ssl需要的server.crt、server.key
+#### 5.2 配置ssl需要的server.crt、server.key
 使用ssl还需要两个证书文件，这里也按照以升给出的方法生成。
 
 ```bash
@@ -195,9 +196,11 @@ server {
 
 配置后重启nginx，浏览器访问`https://192.168.80.111:443/api/`，应该可以看到restapi的信息了。
 
-###5.3 坑
+#### 5.3 坑
 ！！但是这里有个坑，如果你跟我一样也是用的centos6.5，会发现浏览器返回的是这样的：
+
 ![nginx错误信息](http://7xir15.com1.z0.glb.clouddn.com/nginx错误.png)
+
 说明还停留在nginx上，反向代理失败了。
 去查nginx的日志`/var/log/nginx/error.log`，看到下面的信息：
 
@@ -214,6 +217,7 @@ openssl-1.0.1e-30.el6.11.x86_64
 ```
 
 升级完毕后再重启一下nginx，现在访问虚IP，就能看到restapi的信息了。如果你用POSTMAN这种restapi客户端打几次请求，从rest server日志里可以看到是轮询访问不同的rest server。
+
 ![](http://7xir15.com1.z0.glb.clouddn.com/虚IP.png)
 
 ----

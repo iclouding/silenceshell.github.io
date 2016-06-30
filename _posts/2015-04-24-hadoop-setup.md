@@ -10,11 +10,11 @@ cover:  "/assets/instacode.png"
 
 
 
-##1、 环境
+### 1、 环境
 使用版本：centos6.5虚机安装在workstation 11上，使用hadoop2.6.0、jdk-7u15-linux-x64。本文介绍手工安装hadoop的方法，有关自动化部署（如ambari、cloudera management）的方法请见后续文章。
-##2、 安装name node
-### 2.1 安装centos6.5
-#### 2.1.1 配置网卡
+### 2、 安装name node
+####  2.1 安装centos6.5
+#####  2.1.1 配置网卡
 vmware默认安装即可，直接创建hadoop用户，建议配置2个网卡，如下。
 安装时指定网卡eth0使用NAT模式，用来直接连接网络，后面编译的时候maven需要下载。
 系统启动后，再增加一个网卡eth1，模式为**桥接模式**，选上***复制物理网络连接状态***。
@@ -37,11 +37,11 @@ TYPE="Ethernet"
 ```
 
 
-#### 2.1.2 配置iptables
+#####  2.1.2 配置iptables
 由于hadoop需要使用多个地址，而centos默认只开了几个端口，其他的都会被reject掉，所以需要改一下iptables。
 我这里就粗暴的把iptables关闭了：`service iptables stop`。当然这样做有些风险，后面可以重新添加下iptables的规则。
 
-#### 2.1.3 配置本机ssh免密码登陆
+#####  2.1.3 配置本机ssh免密码登陆
 hadoop启动、停止脚本是通过ssh来控制相关进程的，并且name node与data node通信时使用的是ssh，需要设置免密码登陆。
 1. 生成公钥、私钥
 `ssh-keygen -t rsa`
@@ -54,7 +54,7 @@ hadoop启动、停止脚本是通过ssh来控制相关进程的，并且name nod
 
 配置完毕后切为root重启ssh服务器(service sshd restart)，然后切回hadoop用户ssh localhost，可以看到不再需要密码。
 
-#### 2.1.3 修改hostname
+#####  2.1.3 修改hostname
 分布式环境上要求各机器的名称是不一样的。我这里简单的把master节点命名为master，各slave节点命名为slave1、slave2、slave3。
 
 ```bash
@@ -65,8 +65,8 @@ HOSTNAME=master
 
 **注意这里不要加`.localdomain`，否则dfs的web页面上查看datanodes时，会只能看到一个mailitciberia.com的节点，但实际上3个节点都已经注册OK了，fs的Configured Capacity也显示3个节点的总容量。**
 
-### 2.2 安装JDK和maven
-#### 2.2.1 JDK
+####  2.2 安装JDK和maven
+#####  2.2.1 JDK
 下载jdk-7u15-linux-x64.tar.gz，解压到`/opt`目录下，配置环境变量：
 
 ```bash
@@ -76,7 +76,7 @@ export CLASSPATH=:$JAVA_HOME/lib.tools.jar
 export PATH=$JAVA_HOME/bin:$PATH
 ```
 
-#### 2.2.2 maven
+#####  2.2.2 maven
 下载apache-maven-3.3.1-bin.tar.gz，解压到`/opt`目录下，配置环境变量：
 
 ```bash
@@ -85,11 +85,11 @@ export PATH=$MAVEN_HOME/bin:$PATH
 ```
 
 用户退出后重新登录，检查下`java`、`mvn`命令是不是都好用了。maven是为了后面编译代码用，如果只是部署hadoop，可以不安装。
-### 2.3 安装hadoop
+####  2.3 安装hadoop
 下载hadoop二进制版本hadoop-2.6.0.tar.gz，解压到`/opt`目录下。
 配置文件基本都在`/opt/hadoop-2.6.0/etc/hadoop`里。
 
-#### 2.3.1 设置环境变量
+#####  2.3.1 设置环境变量
 只需要配置JAVA_HOME。前面已经在bash里设置了，这里不需要再修改。
 涉及到的文件：hadoop-env.sh、yarn-env.sh
 
@@ -98,7 +98,7 @@ export PATH=$MAVEN_HOME/bin:$PATH
 export JAVA_HOME=${JAVA_HOME}
 ```
 
-#### 2.3.2 设置mapred-site.xml
+#####  2.3.2 设置mapred-site.xml
 设置mapred使用YARN资源框架
 
 ```xml
@@ -112,7 +112,7 @@ $ vi mapred-site.xml
 </configuration>
 ```
 
-#### 2.3.3 修改mapred-site.xml
+#####  2.3.3 修改mapred-site.xml
 设置fs使用hdfs，设置hadoop临时文件存放地址（这里设置为hadoop用户目录下的tmp），并创建该目录tmp。
 
 ```xml
@@ -131,7 +131,7 @@ $ vi core-site.xml
 </configuration>
 ```
 
-#### 2.3.4 配置hdfs-site.xml
+#####  2.3.4 配置hdfs-site.xml
 设置hdfs的name、data节点使用的目录，并创建；设置hdfs的数据块副本个数为3，即一份数据块存3份。
 **需要注意**，如果自己搭的环境里节点数不到3个，这里要设置为实际的个数。
 
@@ -161,7 +161,7 @@ $ vi core-site.xml
 </configuration>
 ```
 
-#### 2.3.5 配置yarn-site.xml
+#####  2.3.5 配置yarn-site.xml
 为了运行MR，需要让YARN的各Node Manager启动的时候加载shuffle server，Reduce Task通过该server从各个Node Manager上获取Map Task的中间结果。
 *有的资料还配置了YARN Resource各功能的监听端口，这儿我们用默认的即可。*
 > 上面这句话是错误的!！必须要配置，否则slaves找不到要连接的resource manager。
@@ -207,7 +207,7 @@ $ vi core-site.xml
 </configuration>
 ```
 
-#### 2.3.6 配置slave
+#####  2.3.6 配置slave
 需要设置slaves的域名或者地址。这儿先用地址。
 
 ```
@@ -217,7 +217,7 @@ $ vi core-site.xml
 ```
 
 
-##3、 安装data node
+### 3、 安装data node
 说明：hadoop的分布式主要体现在hdfs上，name node下面管理了多个data node，data node可以有比较好的横向扩展性；
 对yarn来说，也是存在resource manager下面管理多个node manager的情景，也是分布式。
 由于这里用的是workstation，没有ESXi那种比较高级的功能，可以先把虚拟机关闭，然后拷贝出来一份，启动的时候选择“复制”。
@@ -231,9 +231,9 @@ $ vi core-site.xml
 配置后，从master访问slave也不再需要密码
 
 
-## 4、启动hadoop
+###  4、启动hadoop
 hadoop的操作只需要在master上操作，master会ssh到各slaves上去启动对应的进程。
-### 4.1 启动hdfs
+####  4.1 启动hdfs
 启动前需要先format：
 
 ```bash
@@ -277,7 +277,7 @@ http://master:50070
 查看hdfs所有的slave节点：
 ![hdfs_slave](http://7xir15.com1.z0.glb.clouddn.com/hdfs_allnode.png)
 
-## 5、已有环境上新增一个slave节点
+###  5、已有环境上新增一个slave节点
 **slave**
 
 1、打包master的/opt下所有文件，拷贝到新的slave节点下的/opt解压；

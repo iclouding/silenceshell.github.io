@@ -24,13 +24,13 @@ CREATE TABLE `student` (
 ) ;
 ```
 
-###1、创建工程，导入Hibernate库。
+### 1、创建工程，导入Hibernate库。
 我下载的版本是4.3.10，从[官方网站](http://hibernate.org/orm/downloads/)上下载下来的是Hibernate ORM（hibernate-release-4.3.10.Final.zip）。要导入的lib文件在`.\hibernate-release-4.3.10.Final\lib\required\`，其他的先不管（我也不知道干啥用的）。
 想不起来当时怎么把lib导入到IDEA了，现在导入没有图标了。
 
-###2、建立包`com.xxx.hibernatest`
+### 2、建立包`com.xxx.hibernatest`
 
-###3、建立实体类的映射
+### 3、建立实体类的映射
 在hibernatest包里新建Student.hbm.xml文件，编写对象关系映射文件，把对象关系映射的逻辑放在此处，这个文件包括表和字段的对象关系，当操作对象时，该文件通过java反射机制产生的方法，会把对象的方法转为关系的方法。
 
 ```xml
@@ -52,7 +52,7 @@ CREATE TABLE `student` (
 </hibernate-mapping>
 ```
 
-###4、对象类定义。
+### 4、对象类定义。
 在hibernatest包里新建Student.java。它对应于数据库的一个具体的表，需要定义数据库的列、列方法等，实际就是用Java来描述表。
 
 ```java
@@ -83,7 +83,7 @@ public class Student {
 }
 ```
 
-###5、main入口
+### 5、main入口
 这里可以看到Hibernate简单的用法，代码看一看很清楚，就不多说了，名字随便起。
 
 ```java
@@ -112,7 +112,7 @@ public class StudentTest {
 }
 ```
 
-###6、Hibernate主配置
+### 6、Hibernate主配置
 前面我们有了数据库操作主流程，有了对象关系映射文件，有了表的对象，表在前面也创建了，那么就剩下怎么访问数据库了：地址、端口号、数据库名、driver。
 这里提供一个`hibernate.cfg.xml`的数据库配置文件。配置文件放到工程的根目录，不要放到包里。
 Hibernate实际是封装了JDBC，需要对应数据库的driver lib，对端数据库用的是mysql，所以需要把mysql-connector-java-5.1.35-bin也加到project的lib库里。

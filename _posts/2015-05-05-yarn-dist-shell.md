@@ -12,7 +12,7 @@ cover:  "/assets/instacode.png"
 hadoop源码中，使用yarn的应用程序除了MR以外，还有2个示例程序，我们先来分析distributedShell，顺带介绍YARN应用程序设计方法。
 以下代码基于2.6.0版本。
 
-###一 示例执行
+### 一 示例执行
 我使用ambari安装的hadoop环境，jar包在`/usr/lib/hadoop-yarn`中。
 执行命令：
 
@@ -32,7 +32,7 @@ org.apache.hadoop.security.AccessControlException: Permission denied: user=root,
 原因是本地hdfs上的`/user`目录只对hdfs用户开放了写权限，root不可写。cloudera安装的时候可以选择*所有服务使用同一个账户*，不会存在权限的问题（但据说会造成安装变复杂）。
 执行完后提示信息请见文章最后。
 
-###二 Client解析
+### 二 Client解析
 distShell主要有2个类组成，Client和ApplicationMaster。两个类都带有main入口。Client的主要工作是启动AM，真正要做的任务由AM来调度。
 Client的简化框架如下。
 
@@ -56,7 +56,7 @@ Client的简化框架如下。
   }
 ```
 
-####1 创建Client对象
+#### 1 创建Client对象
 创建时会指定本Client要用到的AM。
 创建yarnClient。yarn将client与RM的交互抽象出了编程库YarnClient，用以应用程序提交、状态查询和控制等，简化应用程序。
 
@@ -77,7 +77,7 @@ Client的简化框架如下。
 ```
 
 
-####2 初始化
+#### 2 初始化
 init会解析命令行传入的参数，例如使用的jar包、内存大小、cpu个数等。
 代码里使用GnuParser解析：init时定义所有的参数opts（可以认为是一个模板），然后将opts和实际的args传入解析后得到一个CommnadLine对象，后面查询选项直接操作该CommnadLine对象即可，如`cliParser.hasOption("help")`和`cliParser.getOptionValue("jar")`。
 
@@ -142,6 +142,7 @@ $JAVA_HOME/bin/java -Xmx10m org.apache.hadoop.yarn.applications.distributedshell
 ```
 - 提交AM（即appContext），并启动监控。
 Client只关心自己提交到RM的AM是否正常运行，而AM内部的多个task，由AM管理。如果Client要查询应用程序的任务信息，需要自己设计与AM的交互。
+
 ```java
     yarnClient.submitApplication(appContext);   //客户端提交AM到RM
     return monitorApplication(appId);
@@ -150,7 +151,7 @@ Client只关心自己提交到RM的AM是否正常运行，而AM内部的多个ta
 总的来说，Client做的事情比较简单，即建立与RM的连接，提交AM，监控AM运行状态。
 > 有个疑问，走读代码没有看到jar包是怎么送到NM上去的。
 
-###三 Application Master解析
+### 三 Application Master解析
 
 AM简化框架如下：
 
@@ -165,7 +166,7 @@ AM简化框架如下：
 
 yarn抽象了两个编程库，AMRMClient和NMClient(AM和RM都可以用)，简化AM编程。
 
-####1 设置RM、NM消息的异步处理方法
+#### 1 设置RM、NM消息的异步处理方法
 
 ```java
     AMRMClientAsync.CallbackHandler allocListener = new RMCallbackHandler();
@@ -179,14 +180,14 @@ yarn抽象了两个编程库，AMRMClient和NMClient(AM和RM都可以用)，简�
     nmClientAsync.start();
 ```
 
-####2 向RM注册
+#### 2 向RM注册
 
 ```java
     RegisterApplicationMasterResponse response = amRMClient.registerApplicationMaster(appMasterHostname,
         appMasterRpcPort, appMasterTrackingUrl);
 ```
 
-####3 计算需要的Container，向RM发起请求
+#### 3 计算需要的Container，向RM发起请求
 
 ```java
     // Setup ask for containers from RM
@@ -211,7 +212,7 @@ yarn抽象了两个编程库，AMRMClient和NMClient(AM和RM都可以用)，简�
 好吧，先假设上面的`addContainerRequest`会向RM发送请求。对于AM来说，接下来就是等待RM回消息告知分配的Container。
 > Q：注释里说这里会一直循环，怎么理解？按说发起Container请求以后，异步等待RM的应答，在相应的处理中加载任务（前面已经注册了AMRM的回调方法）就行了。
 
-####4 RM分配Container给AM，AM启动任务
+#### 4 RM分配Container给AM，AM启动任务
 **RMCallbackHandler**
 RM消息的响应，由`RMCallbackHandler`处理。示例中主要对前两种消息进行了处理。
 
@@ -293,7 +294,7 @@ NM消息的响应，由`NMCallbackHandler`处理。
 
 总的来说，AM做的事就是向RM/NM注册回调函数，然后请求Container；得到Container后提交任务，并跟踪这些任务的执行情况，如果失败了则重新提交，直到全部任务完成。
 
-###四 UnmanagedAM
+### 四 UnmanagedAM
 distShell的Client提交AM到RM后，由RM将AM分配到某一个NM上的Container，这样给AM调试带来了困难。yarn提供了一个参数，Client可以设置为Unmanaged，提交AM后，会在客户端本地起一个单独的进程来运行AM。
 
 ```java
