@@ -31,6 +31,8 @@ cover:  "/assets/instacode.png"
 
 这一层也可以再分两层，第一小层是Pool（资源池）间的公平调度，第二小层是Pool内的。注意哦，**Pool内部调度默认是FIFO的**，需要设置{spark_base_dir}/conf/fairscheduler.xml，针对具体的Pool设置调度规则。所以前面说TaskSet间调度不准确，应该是先Pool间，再Pool内。
 
+下面配置default队列为FAIR调度。
+
 ```xml
 <allocations>
   <pool name="default">
