@@ -79,11 +79,11 @@ export SPARK_HOME=/home/dtdream/spark/spark-1.6.1-bin-hadoop2.6
 ![总体结构](http://7xir15.com1.z0.glb.clouddn.com/hive-on-spark-2.png)
 
 
-1、hiveserver2启动，指定engine=spark
-2、beenline登录到hiveserver2上，可以查看DB、表、scan表。此时无任何Spark计算。
-3、查询select count(*) from xxx，hiveserver2向yarn提交任务，在spark1(master)上可以看到SparkSubmit任务
-4、YARN选择在一个node manager上启动Container，运行YARN ApplicationMaster；也是这个Container，运行Spark Driver（SparkContext），二者在同一个进程中。
-5、AppMaster向YARN提交新Excutor请求，在这个Excutor中执行Spark Task（参考下图）。
+1. hiveserver2启动，指定engine=spark
+2. beenline登录到hiveserver2上，可以查看DB、表、scan表。此时无任何Spark计算。
+3. 查询select count(*) from xxx，hiveserver2向yarn提交任务，在spark1(master)上可以看到SparkSubmit任务
+4. YARN选择在一个node manager上启动Container，运行YARN ApplicationMaster；也是这个Container，运行Spark Driver（SparkContext），二者在同一个进程中。
+5. AppMaster向YARN提交新Excutor请求，在这个Excutor中执行Spark Task（参考下图）。
 
 ![](http://blog.cloudera.com/wp-content/uploads/2014/05/spark-yarn-f1.png)
 

@@ -23,13 +23,13 @@ cover:  "/assets/instacode.png"
     </property>
 ```
 
-第二层，Spark应用内（同一个sparkContext），可以配置一个应用内的多个TaskSet间调度为FIFO还是FAIR。以Spark的Thrift Server为例，考虑一个问题，用户a的作业很大，需要处理上T的数据，且SQL也非常复杂，而用户b的作业很简单，可能只是Select查看前面几条数据而已。由于用户a、b都在同一个SparkContext里，所以其调度完全由Spark决定；如果按先入先出的原则，可能用户b要等好一会，才能从用户a的牙缝里扣出一点计算资源完成自己的这个作业，这样对用户b就不是那么友好了。
+第二层，Spark应用内（同一个sparkContext），可以配置一个应用内的多个TaskSetManager间调度为FIFO还是FAIR。以Spark的Thrift Server为例，考虑一个问题，用户a的作业很大，需要处理上T的数据，且SQL也非常复杂，而用户b的作业很简单，可能只是Select查看前面几条数据而已。由于用户a、b都在同一个SparkContext里，所以其调度完全由Spark决定；如果按先入先出的原则，可能用户b要等好一会，才能从用户a的牙缝里扣出一点计算资源完成自己的这个作业，这样对用户b就不是那么友好了。
 
-比较好的做法是配置Spark应用内各个TaskSet的调度算法为Fair，不需要等待用户a的资源，用户b的作业可以尽快得到执行。这里需要注意，FIFO并不是说用户b只能等待用户a所有Task执行完毕才能执行，而只是执行的很迟，并且不可预料。从实测情况来看，配置为FIFO，用户b完成时间不一定，一般是4-6s左右；而配置为FAIR，用户b完成时间几乎是不变的，几百毫秒。
+比较好的做法是配置Spark应用内各个TaskSetManager的调度算法为Fair，不需要等待用户a的资源，用户b的作业可以尽快得到执行。这里需要注意，FIFO并不是说用户b只能等待用户a所有Task执行完毕才能执行，而只是执行的很迟，并且不可预料。从实测情况来看，配置为FIFO，用户b完成时间不一定，一般是4-6s左右；而配置为FAIR，用户b完成时间几乎是不变的，几百毫秒。
 
 应用内调度的配置项在{spark_base_dir}/conf/spark_default.conf：`spark.scheduler.mode FAIR`。
 
-这一层也可以再分两层，第一小层是Pool（资源池）间的公平调度，第二小层是Pool内的。注意哦，**Pool内部调度默认是FIFO的**，需要设置{spark_base_dir}/conf/fairscheduler.xml，针对具体的Pool设置调度规则。所以前面说TaskSet间调度不准确，应该是先Pool间，再Pool内。
+这一层也可以再分两层，第一小层是Pool（资源池）间的公平调度，第二小层是Pool内的。注意哦，**Pool内部调度默认是FIFO的**，需要设置{spark_base_dir}/conf/fairscheduler.xml，针对具体的Pool设置调度规则。所以前面说TaskSetManager间调度不准确，应该是先Pool间，再Pool内。
 
 下面配置default队列为FAIR调度。
 
