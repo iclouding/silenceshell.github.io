@@ -226,7 +226,7 @@ nmcli connection up team0
 
 很完美对吧。但是实际装机后发现，重启以后，centos7的/etc/sysconfig/network-scripts里压根就没有nmcli生成的配置文件，但/root/ks-post.log里又的确记录了nmcli成功执行的记录。
 
-这里就需要说说kickstart装机的过程了。kickstart时运行的操作系统看到的实际是一个内存文件系统，而重启后进入的centos7的文件系统会挂载在/mnt/sysimage下（可以在kickstart的时候接上显示器进到shell去看）。所以上面可能的原因是nmcli生成的配置文件写到了内存文件系统中，重启后在centos7上自然就看不到了。
+这里就需要说说kickstart装机的过程了。kickstart时运行的操作系统看到的实际是一个内存文件系统，而重启后进入的centos7的文件系统在kickstart装机时会挂载在/mnt/sysimage下（可以在kickstart的时候接上显示器进到shell去看）。所以上面的原因是nmcli生成的配置文件只写到了内存文件系统中，重启后在centos7上自然就看不到了。
 
 但这里是有疑问的。%post不带参数，kickstart会chroot到centos7的目录下（即/mnt/sysimage），我在这里试过将ip信息echo到/root/info里，重启后是可以看到的，那么nmcli是否也应该只看到chroot以后的centos7的文件系统？从现象上来看nmcli还是突破了chroot的限制，那么chroot还怎么保证文件系统的安全性呢？后面有时间可以再看看chroot。
 
@@ -250,11 +250,12 @@ cp -f /etc/sysconfig/network-scripts/ifcfg-* /mnt/sysimage/etc/sysconfig/network
 %end
 ```
 
-看上去又很完美了。但是实际装机后发现，两个网口的配置文件并不一样。我们是用nmcli来生成的，正常来说除了网口的名字、UUID以外，配置应该是一样的，出现不同应该是在%post之后还有一个步骤修改了网络的配置。
+看上去很完美了。但是实际装机后发现，两个网口的配置文件并不一样。我们是用nmcli来生成的，正常来说除了网口的名字、UUID以外，配置应该是一样的，出现不同应该是在%post之后还有一个步骤修改了网络的配置。
 
 接上显示器，观察下%post之后kickstart打的日志信息，可以在post install日志后看到这么一段：
 
 ```
+xx post install xx
 ..
 Writing network configuration
 ..
@@ -277,7 +278,7 @@ network --bootproto=dhcp --onboot=off
 
 测试通过。
 
-是不是真的完美了吗？其实并没有。细心的同学会发现snservice中其实我是有写hostname的，希望装机以后hostname直接生效。但是即使我在%post过程中将配置写到了/etc/hostname中，但是anaconda之后在处理Network information的时候，还是会用localhost覆盖掉hostname，没有找到合适的解决办法，如果您有方案，请告诉我。
+是不是真的完美了吗？其实并没有。细心的同学会发现snservice中其实我是有写hostname的，我希望装机以后hostname直接生效。但是即使在%post过程中将配置写到了/etc/hostname中，anaconda之后在处理Network information的时候，还是会用localhost覆盖掉hostname，没有找到合适的解决办法，如果您有方案，请告诉我。
 
 
 
