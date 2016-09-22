@@ -8,7 +8,10 @@ tags: Guice
 cover:  "/assets/instacode.png"
 ---
 
-原文地址: [Google Guice Motivation](https://github.com/google/guice/wiki/Motivation)。这篇文章捋了下Google Guice造轮子的思路，举了一个很具体的例子，~~九浅一深~~深入浅出，对理解为什么要有依赖注入很有帮助。
+原文地址: [Google Guice Motivation](https://github.com/google/guice/wiki/Motivation)。
+
+这篇文章捋了下Google Guice造轮子的思路，举了一个很具体的例子，深入浅出，对理解为什么要有依赖注入很有帮助。
+
 Google Guice是一个类似Spring的DI框架，优点是简单，轻量级，快。Google Guice和Spring的对比可以参考[SpringComparison](https://github.com/google/guice/wiki/SpringComparison)和[这篇文章](http://blog.csdn.net/derekjiang/article/details/7213829)。
 
 
@@ -16,7 +19,7 @@ Google Guice是一个类似Spring的DI框架，优点是简单，轻量级，快
 
 ### 动机
 
-应用开发时，所有代码都堆在一起是很乏味的。数据、服务、展示类之间的互联，有多种方式。为了对比，我们写一个披萨订购网站的计费代码。
+应用开发时，所有代码都堆在一起是很乏味的，通常会分开。而其中数据、服务、展示类之间的互联，有多种方式。为了对比这几种方式，我们写一个披萨订购网站的计费代码。
 
 ```java
 public interface BillingService {
