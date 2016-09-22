@@ -8,7 +8,7 @@ tags: Guice
 cover:  "/assets/instacode.png"
 ---
 
-原文地址: [Google Guice Motivation](https://github.com/google/guice/wiki/Motivation)。
+原文地址: [Google Guice Motivation](https://github.com/google/guice/wiki/Motivation)
 
 这篇文章捋了下Google Guice造轮子的思路，举了一个很具体的例子，深入浅出，对理解为什么要有依赖注入很有帮助。
 
