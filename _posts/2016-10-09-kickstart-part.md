@@ -23,7 +23,7 @@ ignoredisk --only-use=sda
 
 但实际使用时，发现很多组件的默认日志路径是/var/log/xxx，实际是占用跟分区的空间的，而有的开源组件的日志大小/个数默认无上限，在系统震荡时很容易会将根分区写满（即使不震荡，天长日久也会慢慢写满），而根分区写满是很可怕的事情，会导致很多问题。
 
-不过这个问题可以通过修改日志路径到home分区的方式是解决，真正导致下决心不用autopart的稻草是其默认文件系统为xfs（从centos7开始，Redhat将默认的文件系统改为了xfs）。
+不过这个问题可以通过修改日志路径到home分区的方式来解决，真正导致下决心不用autopart的稻草是其默认文件系统为xfs（从centos7开始，Redhat将默认的文件系统改为了xfs）。
 
 我们在客户处有一个spark集群，国庆节前反馈SQL执行速度极慢，但从cpu/内存/io/网络来看，使用率都很低，但是top显示系统负载有800多(一般闲置状态0.0x)。但查看系统进程时发现有大量crond发起的重复进程，其中某些进程的状态为D（uninterrupted），推测可能是这些进程影响了系统调度，spark任务的进程得不到时间片，因此执行比较慢。
 
@@ -129,7 +129,7 @@ autopart不行，只能手工part了。
 
 下面直接贴：
 
-```
+```bash
 part biosboot --fstype=biosboot --size=1
 part /boot --fstype ext4 --size=500
 part swap --size=4096
