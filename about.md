@@ -5,9 +5,6 @@ permalink: /about/
 ---
 
 <!--<img src="{{ site.baseurl }}/assets/profile.jpg" title="Profile Picture" class="profile">-->
-<center> 已然三十而立，希望四十不惑 </center >
-
-<br>
 
 <font size="20px">
 <center> We are hiring! </center>
