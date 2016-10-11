@@ -12,12 +12,11 @@ permalink: /about/
 <center> 西超主队：RM </center>
 <center> 西甲主队：ATM </center>
 <center> 意甲主队：INTER </center>
-
 <br>
 <center>
- We are hiring!    坐标: <A href="http://www.dtdream.com/pub/msite/2016/campus/default.html#zw">杭州数梦工场科技有限公司</A>
-</center >
-
+ We are hiring!      坐标: <A href="http://www.dtdream.com/pub/msite/2016/campus/default.html#zw">杭州数梦工场科技有限公司</A>
+</center>
+<br>
 
 [centrarium]: https://github.com/bencentra/centrarium
 [bencentra]: http://bencentra.com
