@@ -13,18 +13,19 @@ cover:  "/assets/instacode.png"
 [zeppelin官网](https://zeppelin.apache.org/docs/0.6.2/interpreter/spark.html)只是说明要修改spark interpreter的master为yarn-client，但还有些其他问题。
 
 Q1：使用root启动zeppelin，提示无hdfs写入权限
+
 A：切到hdfs，进入/home/hdfs，解压zeppelin压缩包。HDP版本不同组件分角色，以HDFS为例，只有hdfs用户有权限，而root在HDFS这里就是个渣渣，没有权限。
 
 Q2：提示${hdp.version} bad substitution
 
 ```
-:/usr/hdp/${hdp.version}/hadoop/lib/hadoop-lzo-0.6.0.${hdp.version}.jar:/etc/hadoop/conf/secure: bad substitution
+/usr/hdp/${hdp.version}/hadoop/lib/hadoop-lzo-0.6.0.${hdp.version}.jar:/etc/hadoop/conf/secure: bad substitution
 at org.apache.hadoop.util.Shell.runCommand(Shell.java:576)
 at org.apache.hadoop.util.Shell.run(Shell.java:487)
 at org.apache.hadoop.util.Shell$ShellCommandExecutor.execute(Shell.java:753)
 ```
 
-A：原因是HDP版本要求spark-commit的时候，需要-Dhdp.version=2.4.2.0-258（[参见](http://stackoverflow.com/questions/32341709/bad-substitution-when-submitting-spark-job-to-yarn-cluster)）。我们的集群已经改了spark的配置，但还需要在zeppelin这里加一下spark-submit的参数。需要修改zeppelin-env.sh：
+A：原因是HDP版本要求spark-commit的时候，需要-Dhdp.version=2.4.2.0-258（参见[stackoverflow](http://stackoverflow.com/questions/32341709/bad-substitution-when-submitting-spark-job-to-yarn-cluster)）。我们的集群已经改了spark的配置，但还需要在zeppelin这里加一下spark-submit的参数。需要修改zeppelin-env.sh：
 
 ```
 export SPARK_SUBMIT_OPTIONS="--driver-memory 1G --executor-memory 2G --driver-java-options -Dhdp.version=2.4.2.0-258"
