@@ -15,8 +15,25 @@ permalink: /about/
 </center>
 
 <center>
- 坐标: <A href="http://www.dtdream.com/pub/msite/2016/campus/default.html#zw">杭州数梦工场科技有限公司</A>
+ 坐标: <A href="http://www.dtdream.com">杭州数梦工场科技有限公司</A> ，位于杭州市西湖区
 </center>
+
+<br>
+<center>
+郑总的要求：
+有分布式系统开发经验，对开源系统如YARN/HDFS/Spark/Mesos有足够了解;
+有丰富的系统调优经验，有Linux系统/内核经验者优先；
+口才便给，动手能力强，能够输出高质量文档；
+至少会以下编程语言中的两种: c/java/python/scala;
+强壮的身体！
+以及，对技术的好奇心
+</center>
+
+<br>
+<center>
+请投递简历到我的邮箱：hubt##dtdream.com
+</center>
+
 <br>
 <br>
 
