@@ -44,7 +44,7 @@ permalink: /about/
 -->
 
 
-<font size="6px">
+<font size="3px">
 <center> 已然三十而立，希望四十不惑 </center>
 </font>
 
