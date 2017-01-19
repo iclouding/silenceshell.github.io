@@ -6,6 +6,8 @@ permalink: /about/
 
 <!--<img src="{{ site.baseurl }}/assets/profile.jpg" title="Profile Picture" class="profile">-->
 
+
+<!--
 <font size="18px">
 <center> We are hiring! </center>
 </font>
@@ -39,6 +41,14 @@ permalink: /about/
 <center>
 简历投递address：hubt##dtdream.com
 </center>
+-->
+
+
+<font size="15px">
+<center> 已然三十而立，希望四十不惑 </center>
+</font>
+
+
 
 <br>
 <br>
