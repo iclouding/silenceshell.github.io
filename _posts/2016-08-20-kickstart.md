@@ -14,7 +14,7 @@ U盘安装？古老的光盘安装？一两台还可以勉强接受，机器一�
 
 ![pxe+kickstart](http://www.centoscn.com/uploads/allimg/141215/012025B01-1.jpg)
 
-实战中我们可以使用cobbler做集中管理，对cobbler的搭建感兴趣可以参考[Setup PXE Boot Environment Using Cobbler On CentOS 6.5](https://www.unixmen.com/setup-pxe-boot-environment-using-cobbler-centos-6-5/)，相对来说比较容易。
+实战中我们可以使用cobbler做集中管理，对cobbler的搭建感兴趣可以参考[Setup PXE Boot Environment Using Cobbler On CentOS 6.5](https://www.unixmen.com/setup-pxe-boot-environment-using-cobbler-centos-6-5/)，如果是centos7的话，参考[Cobbler Setup on CentOS7](https://www.olindata.com/blog/2015/07/cobbler-setup-centos7)，相对来说比较容易。推荐后一篇文章，讲的更翔实。
 
 但这里有个问题。每台机器的网卡地址是DHCP分配的，那么我无法知道到底哪台服务器对应哪个IP地址，一旦有服务器发生了故障，没办法快速找到它。当然如果管理网络配置好了的话可以在PC上一个个远程看过去，但还是比较繁琐。
 
