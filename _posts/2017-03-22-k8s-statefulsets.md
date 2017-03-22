@@ -8,21 +8,12 @@ tags: kubernets
 cover:  "/assets/instacode.png"
 ---
 
-[原文](https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/)
+[原文](https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/)。部分涉及到PV的地方做了修改。
 
 
 ### Objectives
 
-StatefulSets are intended to be used with stateful applications and distributed systems. However, the administration of stateful applications and distributed systems on Kubernetes is a broad, complex topic. In order to demonstrate the basic features of a StatefulSet, and to not conflate the former topic with the latter, you will deploy a simple web application using StatefulSets.
-
 StatefulSets是为了有状态的应用和分布式系统设计的。然而有状态应用、分布式系统的管理是一个宽泛、复杂的主题。为了演示StatefulSet的基础特性，以及避免混淆前后主题，你会使用StatefulSets部署一个简单的web应用。
-
-After this tutorial, you will be familiar with the following.
-How to create a StatefulSet
-How a StatefulSet manages its Pods
-How to delete a StatefulSet
-How to scale a StatefulSet
-How to update the container image of a StatefulSet’s Pods
 
 完成这个教程后，你会熟悉：
 
@@ -34,8 +25,6 @@ How to update the container image of a StatefulSet’s Pods
 
 ### Before you begin
 
-Before you begin this tutorial, you should familiarize yourself with the following Kubernetes concepts.
-
 开始教程之前，你需要熟悉如下k8s概念：
 
 - Pods
@@ -46,13 +35,27 @@ Before you begin this tutorial, you should familiarize yourself with the followi
 - StatefulSets
 - kubectl CLI
 
-This tutorial assumes that your cluster is configured to dynamically provision PersistentVolumes. If your cluster is not configured to do so, you will have to manually provision five 1 GiB volumes prior to starting this tutorial.
 
 本教程假设你的集群能够动态提供持久化存储。否则，你需要在开始教程之前手动提供5个1GB的卷。
 
-### Creating a StatefulSet
+【注】Headless Service的说明见[这里](http://www.datastart.cn/tech/2017/03/22/k8s-headless-service.html)
 
-Begin by creating a StatefulSet using the example below. It is similar to the example presented in the StatefulSets concept. It creates a Headless Service, nginx, to control the domain of the StatefulSet, web.
+```
+# kubectl describe  service nginx
+Name:                   nginx
+Namespace:              default
+Labels:                 app=nginx
+Selector:               app=nginx
+Type:                   ClusterIP
+IP:                     None
+Port:                   web     80/TCP
+Endpoints:              10.244.2.17:80,10.244.2.18:80
+Session Affinity:       None
+No events.
+```
+
+
+### Creating a StatefulSet
 
 用下面的例子来创建一个StatefulSet。它创建了一个名为nginx的Headless Service，用以控制StatefulSet web的域。
 
@@ -100,16 +103,11 @@ spec:
 
 【注】：可能你跟我一样，没有一个PersistVolume，所以我贴心的把原文里的持久化存储，改为了普通的volume。当然你需要在宿主机的/mydir里放一个index.html，里面随便写点什么都可以。另外要求的image我也从grc.io的nginx-slim改为了docker hub的nginx:1.11。
 
-Download the example above, and save it to a file named web.yaml
-You will need to use two terminal windows. In the first terminal, use kubectl get to watch the creation of the StatefulSet’s Pods.
-
 下载并保存。你需要2个terminal。在第一个terminal里，用kubectl来观察StatefulSets的容器的创建过程：
 
 ```
 kubectl get pods -w -l app=nginx
 ```
-
-In the second terminal, use kubectl create to create the Headless Service and StatefulSet defined in web.yaml.
 
 在第二个terminal里，用kubectl create来创建web.yml里定义的Headless Service和StatefulSets。
 
@@ -118,8 +116,6 @@ kubectl create -f web.yaml
 service "nginx" created
 statefulset "web" created
 ```
-
-The command above creates two Pods, each running an NGINX webserver. Get the nginx Service and the web StatefulSet to verify that they were created successfully.
 
 上面的命令会创建2个Pods，每个Pods中都运行着一个NGINX webserver。查看下nginx Service和 web SatatefulSets是否已经创建成功了。
 
@@ -134,8 +130,6 @@ web       2         1         20s
 ```
 
 **Ordered Pod Creation**
-
-For a StatefulSet with N replicas, when Pods are being deployed, they are created sequentially, in order from {0..N-1}. Examine the output of the kubectl get command in the first terminal. Eventually, the output will look like the example below.
 
 对于一个N副本的StatefulSet，其Pods在部署时是以{0..N-1}的顺序依次创建的。这一点可以从第一个窗口的输出信息里来验证。
 
@@ -153,13 +147,10 @@ web-1     0/1       ContainerCreating   0         0s
 web-1     1/1       Running   0         18s
 ```
 
-Notice that the web-0 Pod is launched and set to Pending prior to launching web-1. In fact, web-1 is not launched until web-0 is Running and Ready.
-
 注意，直到web-0状态启动后达到Running状态之后，web-1才开始启动。
 
 ### Pods in a StatefulSet
 
-Unlike Pods in other controllers, the Pods in a StatefulSet have a unique ordinal index and a stable network identity.
 和其他控制器中的Pods不一样，StatefulSets中的Pods具有唯一的原生索引，以及稳定的网络标识。
 
 **Examining the Pod’s Ordinal Index**
@@ -188,8 +179,6 @@ for i in 0 1; do kubectl exec web-$i -- sh -c 'hostname'; done
 web-0
 web-1
 ```
-
-Use kubectl run to execute a container that provides the nslookup command from the dnsutils package. Using nslookup on the Pods’ hostnames, you can examine their in-cluster DNS addresses.
 
 用kubectl run启动一个容器，通过容器提供的nslookup命令来查询Pods的名字，可以查询各Pods在集群内的DNS地址。
 
@@ -299,12 +288,12 @@ web-1
 
 Note, if you instead see 403 Forbidden responses for the above curl command, you will need to fix the permissions of the directory mounted by the volumeMounts (due to a bug when using hostPath volumes) with:
 
+如果遇到403 Forbidden，说明目录权限有问题的，设置下就好了。
+
 ```
 for i in 0 1; do kubectl exec web-$i -- chmod 755 /usr/share/nginx/html; done
 before retrying the curl command above.
 ```
-
-如果遇到403 Forbidden，说明目录权限有问题的，设置下就好了。
 
 In one terminal, watch the StatefulSet’s Pods.
 
@@ -350,8 +339,11 @@ Event though web-0 and web-1 were rescheduled, they continue to serve their host
 【注】还是因为没有PV，但是通过hostPath+nodeSelector可以达到同样的结果。
 
 ### Scaling a StatefulSet
+
 ### Updating Containers
+
 ### Deleting StatefulSets
+
 暂时没有需求，就不翻了。
 
 
