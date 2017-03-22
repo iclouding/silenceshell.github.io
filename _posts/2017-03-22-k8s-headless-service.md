@@ -16,10 +16,10 @@ Headless Service也是一种Service，但不同的是会定义spec:clusterIP: No
 还记得Service的Cluster IP是做什么的吗？对，一个Service可能对应多个EndPoint(Pod)，client访问的是Cluster IP，通过iptables规则转到Real Server，从而达到负载均衡的效果（实现原理请见[这里](http://www.datastart.cn/tech/2017/01/20/k8s-service.html)）。如下：
 
 ```
-# kubectl get service
+kubectl get service
 NAME                      CLUSTER-IP       EXTERNAL-IP       PORT(S)           AGE
 nginx-service             10.107.124.218   192.168.128.158   80/TCP,443/TCP    1d
-# kubectl describe  service nginx-service    
+kubectl describe  service nginx-service    
 Name:                   nginx-service
 Namespace:              default
 Labels:                 <none>
@@ -33,7 +33,7 @@ Port:                   nginx-https     443/TCP
 Endpoints:              10.244.2.9:443
 Session Affinity:       None
 No events.
-# nslookup nginx-service.default.svc.cluster.local  10.96.0.10
+nslookup nginx-service.default.svc.cluster.local  10.96.0.10
 Server:         10.96.0.10
 Address:        10.96.0.10#53
 
@@ -46,10 +46,10 @@ Address: 10.107.124.218
 那么Headless Service的效果呢？
 
 ```
-# kubectl get service
+kubectl get service
 NAME                      CLUSTER-IP       EXTERNAL-IP       PORT(S)    AGE
 nginx                     None             <none>            80/TCP     1h
-# kubectl describe  service nginx
+kubectl describe  service nginx
 Name:                   nginx
 Namespace:              default
 Labels:                 app=nginx
@@ -60,7 +60,7 @@ Port:                   web     80/TCP
 Endpoints:              10.244.2.17:80,10.244.2.18:80
 Session Affinity:       None
 No events.
-# nslookup nginx.default.svc.cluster.local 10.96.0.10
+nslookup nginx.default.svc.cluster.local 10.96.0.10
 Server:         10.96.0.10
 Address:        10.96.0.10#53
 
@@ -77,13 +77,13 @@ dns查询会如实的返回2个真实的endpoint。
 另外，Headless Services还有一个用处。Headless Service的对应的每一个Endpoints，即每一个Pod，都会有对应的DNS域名；这样Pod之间就可以互相访问。我们还是看上面的这个例子。
 
 ```
-# kubectl get statefulsets web
+kubectl get statefulsets web
 NAME      DESIRED   CURRENT   AGE
 web       2         2         1h
-# kubectl get pods
+kubectl get pods
 web-0                       1/1       Running   0          1h
 web-1                       1/1       Running   0          1h
-# nslookup nginx.default.svc.cluster.local 10.96.0.10
+nslookup nginx.default.svc.cluster.local 10.96.0.10
 Server:         10.96.0.10
 Address:        10.96.0.10#53
 
@@ -92,14 +92,14 @@ Address: 10.244.2.17
 Name:   nginx.default.svc.cluster.local
 Address: 10.244.2.18
 
-# nslookup web-1.nginx.default.svc.cluster.local 10.96.0.10
+nslookup web-1.nginx.default.svc.cluster.local 10.96.0.10
 Server:         10.96.0.10
 Address:        10.96.0.10#53
 
 Name:   web-1.nginx.default.svc.cluster.local
 Address: 10.244.2.18
 
-# nslookup web-0.nginx.default.svc.cluster.local 10.96.0.10
+nslookup web-0.nginx.default.svc.cluster.local 10.96.0.10
 Server:         10.96.0.10
 Address:        10.96.0.10#53
 
@@ -107,7 +107,7 @@ Name:   web-0.nginx.default.svc.cluster.local
 Address: 10.244.2.17
 ```
 
-如上，web为我们创建的StatefulSets，对应的pod的域名为web-1， web-2。
+如上，web为我们创建的StatefulSets，对应的pod的域名为web-0，web-1，他们之间可以互相访问，这样对于一些集群类型的应用就可以解决互相之间身份识别的问题了。
 
 完整示例：
 
