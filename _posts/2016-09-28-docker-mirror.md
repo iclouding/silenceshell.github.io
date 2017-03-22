@@ -31,19 +31,31 @@ yum/apt的mirror又有点不一样，它其实是把官方的库文件整个拖�
 ### 选择零：网易163 docker镜像
 
 ```
-$ sudo echo "DOCKER_OPTS=\"\$DOCKER_OPTS --registry-mirror=http://hub-mirror.c.163.com\"" >> /etc/default/docker
+$ sudo echo "DOCKER_OPTS=\"--registry-mirror=http://hub-mirror.c.163.com\"" >> /etc/default/docker
 $ service docker restart
 ```
 
-一般来说，网易的猪肉比市场上的猪肉好吃。
+一般来说，网易的猪肉比市场上的猪肉好吃。但从我的体验来看，有时会pull失败的情况出现，并且重试不好使。
+
+推荐程度： ★★☆☆☆
 
 ### 选择一：ustc的镜像
 
-ustc是老牌的linux镜像服务提供者了，还在遥远的ubuntu 5.04版本的时候就在用。之前在blog里有提到可以用ustc的docker仓库镜像，使用方法参考[ustc docker 镜像使用帮助](https://lug.ustc.edu.cn/wiki/mirrors/help/docker)。
+ustc是老牌的linux镜像服务提供者了，还在遥远的ubuntu 5.04版本的时候就在用。之前在blog里有提到可以用ustc的docker仓库镜像，使用方法参考[ustc docker 镜像使用帮助](https://lug.ustc.edu.cn/wiki/mirrors/help/docker)，你要是懒得看，可以两条命令搞定（ubuntu亲测）：
 
-ustc的docker镜像速度不错，一直用的挺happy。但是今天发现不好使了，可能跟[这件事](https://servers.blog.ustc.edu.cn/2016/09/mirrors-down-during-raid-rebuilding/)有关系吧，今天尝试去pull ubuntu，非常慢，应该是直接去docker hub上去拉了，基本没有加速效果。
+
+```
+$ sudo echo "DOCKER_OPTS=\"--registry-mirror=https://docker.mirrors.ustc.edu.cn\"" >> /etc/default/docker
+$ sudo service docker restart
+```
+
+ustc的docker镜像速度不错，一直用的挺happy。~~但是今天发现不好使了，可能跟[这件事](https://servers.blog.ustc.edu.cn/2016/09/mirrors-down-during-raid-rebuilding/)有关系吧，今天尝试去pull ubuntu，非常慢，应该是直接去docker hub上去拉了，基本没有加速效果。~~
 
 ustc docker mirror的优势之一是，不需要注册，公共服务(这才是我熟悉的ustc嘛)。
+
+> 2017-03-21 更新：最近使用了下，服务已经恢复了，加速效果非常不错。
+
+推荐程度： ★★★★★
 
 ### 选择二：daocloud
 
@@ -67,9 +79,11 @@ systemctl enable docker; systemctl daemon-reload ; systemctl restart docker
 
 但是！今天使用DaoCloud的docker加速器体验非常差，加速效果基本没感觉，果断放弃。
 
+推荐程度： ★☆☆☆☆
+
 ### 选择三：alicloud
 
-阿里云也提供了docker加速器，不过比ustc更麻烦：不光要注册为阿里云的用户，还得加入开发者平台。不过捏着鼻子昨晚这些以后，它的服务还真是不错，基本1MB/s的pull速度(部分原因可能是因为我也在杭州吧)。配置方法跟daocloud类似，也是开通加速器以后给一个url。
+阿里云也提供了docker加速器，不过比ustc更麻烦：不光要注册为阿里云的用户，还得加入开发者平台。不过捏着鼻子做完这些以后，它的服务还真是不错，基本1MB/s的pull速度(部分原因可能是因为我也在杭州吧)。配置方法跟daocloud类似，也是开通加速器以后给一个url。
 
 我直接去改/usr/lib/systemd/system/docker.service了：
 
@@ -99,6 +113,10 @@ Digest: sha256:28d4c5234db8d5a634d5e621c363d900f8f241240ee0a6a978784c978fe9c737
 Status: Downloaded newer image for docker.io/ubuntu:latest
 ```
 
+推荐程度： ★★★☆☆
+
 ----
 
-综上，虽然aliyun docker mirror有这样那样的不爽，但的确是目前最好的服务。当然，等ustc恢复正常了，我还是会切到ustc的。
+~~综上，虽然aliyun docker mirror有这样那样的不爽，但的确是目前最好的服务。当然，等ustc恢复正常了，我还是会切到ustc的。~~
+
+ustc已经恢复了，就用ustc了～

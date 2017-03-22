@@ -14,7 +14,7 @@ U盘安装？古老的光盘安装？一两台还可以勉强接受，机器一�
 
 ![pxe+kickstart](http://www.centoscn.com/uploads/allimg/141215/012025B01-1.jpg)
 
-实战中我们可以使用cobbler做集中管理，对cobbler的搭建感兴趣可以参考[Setup PXE Boot Environment Using Cobbler On CentOS 6.5](https://www.unixmen.com/setup-pxe-boot-environment-using-cobbler-centos-6-5/)，相对来说比较容易。
+实战中我们可以使用cobbler做集中管理，对cobbler的搭建感兴趣可以参考[Setup PXE Boot Environment Using Cobbler On CentOS 6.5](https://www.unixmen.com/setup-pxe-boot-environment-using-cobbler-centos-6-5/)，如果是centos7的话，参考[Cobbler Setup on CentOS7](https://www.olindata.com/blog/2015/07/cobbler-setup-centos7)，相对来说比较容易。推荐后一篇文章，讲的更翔实。
 
 但这里有个问题。每台机器的网卡地址是DHCP分配的，那么我无法知道到底哪台服务器对应哪个IP地址，一旦有服务器发生了故障，没办法快速找到它。当然如果管理网络配置好了的话可以在PC上一个个远程看过去，但还是比较繁琐。
 
@@ -211,6 +211,11 @@ _curl="http://{snservice ip}:8080/api/v1/servers/"$SN
 json=`curl $_curl`
 IP=`grep -o "\"ip\"\s*:\s*\"\([0-9]\{1,3\}\.\)\{3\}[0-9]\{1,3\}\+\"\?" <<<"$json" | sed -n -e 's/"//gp' | awk -F':' '{print $2}'`
 GW=`grep -o "\"gw\"\s*:\s*\"\([0-9]\{1,3\}\.\)\{3\}[0-9]\{1,3\}\+\"\?" <<<"$json" | sed -n -e 's/"//gp' | awk -F':' '{print $2}'`
+key=netmask
+NETMASK=`grep -o "\"$key\"\s*:\s*\"\([0-9]\{1,3\}\)" <<<"$json" | sed -n -e 's/"//gp' | sed -n -e 's/ //gp' | awk -F':' '{print $2}'`
+
+HOSTNAME=`grep -Po '(?<="hostname": ")[^"]*' <<<"$json"`
+echo $HOSTNAME > /root/hostname
 
 ETH1=`nmcli d s |awk '{print $1}' | sed -n '2p'`
 ETH2=`nmcli d s |awk '{print $1}' | sed -n '3p'`
@@ -218,7 +223,7 @@ nmcli connection add type team con-name team0 ifname team0 config '{"runner":{"n
 nmcli connection add type team-slave con-name team0-port1 ifname $ETH1 master team0
 nmcli connection add type team-slave con-name team0-port2 ifname $ETH2 master team0
 
-nmcli connection modify team0 ipv4.addresses $IP/24 ipv4.gateway $GW
+nmcli connection modify team0 ipv4.addresses $IP/$NETMASK ipv4.gateway $GW
 nmcli connection modify team0 ipv4.method manual
 nmcli connection up team0
 %end
@@ -280,11 +285,19 @@ network --bootproto=dhcp --onboot=off
 
 是不是真的完美了吗？其实并没有。细心的同学会发现snservice中其实我是有写hostname的，我希望装机以后hostname直接生效。但是即使在%post过程中将配置写到了/etc/hostname中，anaconda之后在处理Network information的时候，还是会用localhost覆盖掉hostname，没有找到合适的解决办法，如果您有方案，请告诉我。
 
+2017-03-17 10:52:57
+最近重新看了下ks文件，发现当时在%post --nochroot里拷贝hostname文件时路径错了，正确的应该是：
 
+```
+%post
+...
+echo $HOSTNAME > /root/hostname
 
+%post --nochroot
+...
+mv -f /mnt/sysimage/root/hostname /mnt/sysimage/etc/
+```
 
+即，在%post阶段先拷贝到新OS的/root/hostname，然后在nochroot阶段再拷贝到/etc/下去。
 
-
-
-
-
+---
