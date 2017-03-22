@@ -82,10 +82,19 @@ layout: default
   {% endfor %}
 </section>
 
-<!-- 多说评论框 start -->
+<div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
+<script>
+  var cloudTieConfig = {
+url: document.location.href, 
+sourceId: "",
+productKey: "2b07134cbf6f477eb01f81c4c826d8bd",
+target: "cloud-tie-wrapper"
+    };
+</script>
+<script src="https://img1.cache.netease.com/f2e/tie/yun/sdk/loader.js"></script>
+
+<!-- 多说评论框 start
     <div class="ds-thread" data-thread-key="{{ page.id }}" data-title="{{ page.title }}" data-url="www.datastart.cn/{{ page.url }}"></div>
-    <!-- 多说评论框 end -->
-    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
     <script type="text/javascript">
         var duoshuoQuery = {short_name:"datastart"};
         (function() {
@@ -97,7 +106,7 @@ layout: default
         || document.getElementsByTagName('body')[0]).appendChild(ds);
         })();
     </script>
-<!-- 多说公共JS代码 end -->
+多说公共JS代码 end -->
 
 {% if site.disqus_shortname %}
 {% unless page.disqus_disabled %}
