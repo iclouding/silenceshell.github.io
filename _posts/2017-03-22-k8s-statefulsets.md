@@ -8,7 +8,7 @@ tags: kubernets
 cover:  "/assets/instacode.png"
 ---
 
-[原文](https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/)。部分涉及到PV的地方做了修改。
+[原文在这](https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/)。部分涉及到PV的地方做了修改。
 
 
 ### Objectives
