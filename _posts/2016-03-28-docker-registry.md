@@ -8,6 +8,11 @@ tags: docker
 cover:  "/assets/instacode.png"
 ---
 
+
+> 2017-04-07：推荐使用VMWare的[Harbor](https://vmware.github.io/harbor/index_cn.html)，方便易用，基本可以获得跟Docker Hub接近的体验，例如一个可以查询的Dashboard，多用户，多namespace等。
+
+---
+
 由于docker没有CDN加速，所以我们在国内使用docker的时候，会感觉速度非常慢；另一方面，对于一些企业级应用来说，将自家应用放到Docker Hub中，总归是不太放心的。因此，需要做一个docker私有仓库，自己当家做主。
 
 Docker私有仓库是[docker/distribution](https://github.com/docker/distribution)这个项目实现的。实际使用时，registry是以docker 容器的方式运行的，所以我们第一步就是怎么获得容器的镜像。有三个办法。
@@ -127,7 +132,3 @@ pull时加上私有registry的地址端口号即可。
 ```
 docker pull 192.168.103.88:5000/ubuntu:14.04
 ```
-
-
-
-
