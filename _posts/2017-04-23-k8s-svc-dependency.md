@@ -57,6 +57,11 @@ Readiness+initContainer，算是Kubernetes为服务依赖给出的一个解决�
 
 我理解，这可能是k8s作为一个微服务的框架，不希望引入“服务依赖”，而是希望应用能够处理这种情况。毕竟，服务依赖带来一个问题：解决了应用启动时依赖的问题，那么应用运行过程中，所依赖的服务又故障了怎么办呢？
 
+---
+然而，现实情况没这么美。我给mysql集群前加的keepalived集群，希望不要老是重启，使用了上面的这个方法。
 
+创建时的确是可以阻塞keepalived直到mysql集群ready；但在整集群重启的时候，initContainer由于之前已经complete了，所以集群重启时并不会再去拉起initContainer，所以也就不存在这个阻塞点了，因此服务依赖失败。
+
+不过tiny-tools提供了一个fish shell很不错，可以试试。
 
 ---
