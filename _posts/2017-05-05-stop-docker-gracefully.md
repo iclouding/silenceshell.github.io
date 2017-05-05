@@ -93,6 +93,7 @@ while true; do :; done
 ```
 
 然后是Dockerfile。
+
 ```
 FROM ubuntu:trusty
 COPY loop.sh /
@@ -144,7 +145,9 @@ root         6  0.0  0.0  15580  2032 ?        Rs   05:36   0:00 ps aux
 tail -f /var/log/yum.log
 ```
 
-entry-point.sh脚本的确是pid=1了，但keepalived进程的pid并不是1，因为它和上面的```CMD command```一样，是bash -c方式以entry-point.sh的子进程的身份执行的。正确的做法是什么呢？要exec，不要fork：
+entry-point.sh脚本的确是pid=1了，但keepalived进程的pid并不是1，因为它和上面的```CMD command```一样，是bash -c方式以entry-point.sh的子进程的身份执行的。正确的做法是什么呢？
+
+要exec，不要fork：
 
 ```
 #!/bin/bash -x
@@ -169,7 +172,9 @@ root        24  0.0  0.0  35884  1456 ?        Rs   13:48   0:00 ps aux
 
 
 Ref:
+
 [Gracefully Stopping Docker Containers](https://www.ctl.io/developers/blog/post/gracefully-stopping-docker-containers/)
+
 [LVS + Keepalived](https://www.server-world.info/en/note?os=CentOS_7&p=lvs&f=2)
 
 ---
