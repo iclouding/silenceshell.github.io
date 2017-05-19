@@ -8,11 +8,8 @@
       
       <p><strong>Site Map</strong></p>
       <ul class="pages">
-        {% for page in site.pages %}
-        {% if page.title == "Post" or page.title == "About" %}
-          <li class="nav-link"><a href="{{ page.url | prepend: site.baseurl }}">{{ page.title }}</a>
-        {% endif %}
-        {% endfor %}
+          <li class="nav-link"><a href="http://www.datastart.cn/about/">About</a>
+          <li class="nav-link"><a href="http://www.datastart.cn/posts/">Posts</a>
       </ul>
     </div>
     <div class="site-contact">
