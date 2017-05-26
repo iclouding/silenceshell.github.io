@@ -28,6 +28,9 @@ ul.default {
 }
 
 code {
+    width: 200px;
+    word-break: break-all;
+    white-space: normal;
 	background-color: #eee;
 	display: inline-block;
 	border-radius: 3px;
