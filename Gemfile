@@ -1,7 +1,7 @@
 # A sample Gemfile
 source "https://rubygems.org"
 
-
+gem "jekyll-seo-tag", "~>2.2.3"
 gem "jekyll", "~>3.4.3"
 gem "jekyll-archives", "~>2.1.1"
 gem "jekyll-sitemap", "~>1.1.1"
