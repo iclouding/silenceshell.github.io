@@ -44,10 +44,18 @@ jekyll-archives:
   enabled: 
     - categories
     - tags
-  layout: 'archive'
+    - year
+    - month
+  layouts:
+    year: year-archive
+    month: month-archive
+    tag: tag-archive-layout
+  #layout: 'archive'
   permalinks:
     category: '/category/:name/'
     tag: '/tag/:name/'
+    year: '/archives/year/:year/'
+    month: '/archives/month/:year-:month/'
 
 # Disqus comments
 #disqus_shortname: silenceshell
