@@ -9,8 +9,6 @@ cover:  "/assets/instacode.png"
 ---
 
 
-[TOC]
-
 最近和屈总伯温一起看linux协议栈，正好回忆了下14-15赛季做FTCP的时候看的一些linux network kernel的代码，找到了这篇文章，写的很好。原文为[Anatomy of the Linux networking stack, From sockets to device drivers](http://140.120.7.21/LinuxRef/Network/LinuxNetworkStack.html)，最早应该是在IBM的Developerworks上的，但现在原始链接已经失效了。
 
 本文是在Google翻译的基础上做的修正。Google翻译实际已经比一般水平的翻译者要靠谱的多，只是某些特定用法需要调整下（例如call, function）。另外我会在文中补充一部分代码，帮助理解。
@@ -151,7 +149,7 @@ static struct inet_protosw inetsw_array[] =
 	},
 ```
 
-您可以通过`linux/net/ipv4/``中的文件`tcp_ipv4.c`，`udp.c`和`raw.c`中的proto结构来了解各自的协议。这些协议的proto结构体都按照类型和协议映射到`inetsw_array`，将内部协议映射到对应的操作(which maps the built-in protocols to their operations.)。结构体`inetsw_array`及其关系如图3所示。该数组中的每个协议都在初始化`inetsw`时，通过在`inet_init`调用`inet_register_protosw`来初始化。函数`inet_init`还初始化各种inet模块，如ARP，ICMP，IP模块，TCP和UDP模块。
+您可以通过`linux/net/ipv4/`中的文件`tcp_ipv4.c`，`udp.c`和`raw.c`中的proto结构来了解各自的协议。这些协议的proto结构体都按照类型和协议映射到`inetsw_array`，将内部协议映射到对应的操作(which maps the built-in protocols to their operations.)。结构体`inetsw_array`及其关系如图3所示。该数组中的每个协议都在初始化`inetsw`时，通过在`inet_init`调用`inet_register_protosw`来初始化。函数`inet_init`还初始化各种inet模块，如ARP，ICMP，IP模块，TCP和UDP模块。
 
 <center>图3. Internet协议数组的结构</center>
 ![图3. Internet协议数组的结构](http://7xir15.com1.z0.glb.clouddn.com/ANS-figure3.gif)
