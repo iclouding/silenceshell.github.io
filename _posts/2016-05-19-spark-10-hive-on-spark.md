@@ -8,6 +8,9 @@ tags: spark
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 Spark与Hive有两种搭配方式，一是我们目前采用的spark thrift server读取hive metastore（Spark SQL），由spark项目组主导；二是hive on spark，即hive将其执行引擎从tez改为spark，由hive项目组主导。当然更早还有shark，不过已经没人用了。Databricks有篇文章谈到了[二者的未来](https://databricks.com/blog/2014/07/01/shark-spark-sql-hive-on-spark-and-the-future-of-sql-on-spark.html)，可以参考。
 
 从一些测试结果来看，spark sql和hive on spark的性能差距不大，而后者由于入口是hive，相对来说更成熟（使用者多，完善的权限管理等），对于现存的大量hadoop原有用户来说，吸引力更大，如果是已有hadoop的环境上，可以使用spark替换执行引擎，获取更好的性能。

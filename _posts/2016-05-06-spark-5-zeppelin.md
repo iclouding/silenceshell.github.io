@@ -8,6 +8,9 @@ tags: spark
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 ### 背景介绍
 
 Spark可以像Hadoop一样用来跑大作业，也可以像数据库一样做实时分析。对于后者，Spark的发行版中提供了spark shell、spark sql，数据科学家可以在这里面做一些分析。不过命令行的可编辑、可视化方面毕竟不友好，因此一些厂商开发了web IDE，而开源界也提供了这样的工具：Zeppelin（齐普林？）。

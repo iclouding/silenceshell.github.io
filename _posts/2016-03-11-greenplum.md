@@ -8,6 +8,9 @@ tags: greenplum
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 *搬运工又上班了！*
 
 ### 简介
@@ -82,8 +85,10 @@ GP支持为Master和Segment配置Mirror以提供高可靠性。
 #### 3. Append only table可以压缩
 
 ```
-CREATE TABLE bar (a int, b text)WITH (appendonly=true, orientation=column) DISTRIBUTED BY (a);
-CREATE TABLE foo (a int, b text)WITH (appendonly=true, compresstype=zlib, compresslevel=5);
+CREATE TABLE bar (a int, b text)
+WITH (appendonly=true, orientation=column) DISTRIBUTED BY (a);
+CREATE TABLE foo (a int, b text)
+WITH (appendonly=true, compresstype=zlib, compresslevel=5);
 ```
 
 #### 4. 分区表(partition)
@@ -91,7 +96,10 @@ CREATE TABLE foo (a int, b text)WITH (appendonly=true, compresstype=zlib, compr
 可以指定某一列的按range分区。如下例，表中2008年的数据都会根据date每天建立一个分区。
 
 ```
-CREATE TABLE sales (id int, date date, amt decimal(10,2))DISTRIBUTED BY (id)PARTITION BY RANGE (date)( START (date '2008-01-01') INCLUSIVE END (date '2009-01-01') EXCLUSIVE EVERY (INTERVAL '1 day') );
+CREATE TABLE sales (id int, date date, amt decimal(10,2))
+DISTRIBUTED BY (id)
+PARTITION BY RANGE (date)
+( START (date '2008-01-01') INCLUSIVE END (date '2009-01-01') EXCLUSIVE EVERY (INTERVAL '1 day') );
 ```
 
 这一点ADS与GP不同。以ADS为例，其一级分区与GP是类似的，是按照分区列hash到不同的节点；而二级分区不同，ADS实际是一种“指定”，上传一批数据时，额外指定其时间属性，该列并不在上传数据中。
@@ -110,7 +118,12 @@ GP会将查询分为一个一个的slice，并分配到各个segment执行。
 先创建测试表及测试数据。GP/Pg支持直接生成测试数据，不得不说这个功能实在是太暖心了，特别是在POC的时候。
 
 ```
-create table t1(id int primary key,cn int,name varchar(40)) distributed by (id);create table t2(id int primary key,cn int,name varchar(40)) distributed by (id) ;create table t3(id int primary key,cn int,name varchar(40)) distributed by (id) ;insert into t1 select generate_series(1,1000000),generate_series(1,1000000),generate_series (1,1000000);insert into t2 select generate_series(1,1000000),generate_series(1,1000000),generate_series (1,1000000);insert into t3 select generate_series(1,100),generate_series(1,100),generate_series(1,100);
+create table t1(id int primary key,cn int,name varchar(40)) distributed by (id);
+create table t2(id int primary key,cn int,name varchar(40)) distributed by (id) ;
+create table t3(id int primary key,cn int,name varchar(40)) distributed by (id) ;
+insert into t1 select generate_series(1,1000000),generate_series(1,1000000),generate_series (1,1000000);
+insert into t2 select generate_series(1,1000000),generate_series(1,1000000),generate_series (1,1000000);
+insert into t3 select generate_series(1,100),generate_series(1,100),generate_series(1,100);
 ```
 
 GP在scan、group by等基础上，增加了motion。motion是指查询过程中涉及其他segment的数据在各个节点间移动。主要有三种：

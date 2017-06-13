@@ -8,6 +8,9 @@ categories: tech
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 ### 1 简介
 sqoop可以用来在hdfs和关系型数据（如mysql, Oracle, PostgreSQL）之间交换数据，也可以作为异构数据库之间同步使用。
 sqoop通过JDBC（Java Data Base Connectivity,java数据库连接）与数据库交互，整合了Hive/HBase和oozie，核心是MapReduce。从下面的几个实验来看，应该只是用到了Map。

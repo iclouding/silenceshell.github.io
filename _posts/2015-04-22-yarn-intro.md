@@ -9,6 +9,9 @@ cover:  "/assets/instacode.png"
 ---
 
 
+* TOC
+{:toc}
+
 ### 1 设计理念和基本架构
 
 编程模型（API）、数据引擎(Map Task, Reduce Task)、运行时环境(Job Tracker--Task Trackers)

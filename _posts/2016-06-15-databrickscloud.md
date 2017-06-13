@@ -8,6 +8,9 @@ tags: databricks
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 Databricks cloud（行文方便下面简称DC）是Databricks公司提供的公有云服务，用户在上面创建自己的spark集群，进行数据处理，其建设思路类似阿里云的ODPS。下面主要关注其权限控制。
 
 ### workspace
