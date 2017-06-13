@@ -8,6 +8,8 @@ tags: kernel
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
 
 最近和屈总伯温一起看linux协议栈，正好回忆了下14-15赛季做FTCP的时候看的一些linux network kernel的代码，找到了这篇文章，写的很好。原文为[Anatomy of the Linux networking stack, From sockets to device drivers](http://140.120.7.21/LinuxRef/Network/LinuxNetworkStack.html)，最早应该是在IBM的Developerworks上的，但现在原始链接已经失效了。
 
