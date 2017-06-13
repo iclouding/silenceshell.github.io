@@ -8,6 +8,9 @@ categories: tech
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 核心需求是我们有一个RESTful API的服务集群，需要能够保证不管是web服务故障还是服务器整体故障，外部访问不会间断，并且在整体运行正常的时候，需要能够负载均衡。
 业界比较常见的几个负载均衡方案有haproxy, nginx, lvs。有关这仨的比较，可以看[这篇文章](http://www.csdn.net/article/2014-07-24/2820837)。我这里选择的方案是nginx+keepalived。nginx做反向代理，可以实现负载均衡，如果后端的web服务故障了，nginx可以实现切换；但nginx本身存在单点故障，需要通过keepalived监测实现nginx的切换。
 

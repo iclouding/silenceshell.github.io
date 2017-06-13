@@ -8,6 +8,9 @@ tags: spark
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 [Hiverserver](https://cwiki.apache.org/confluence/display/Hive/Setting+Up+HiveServer2#SettingUpHiveServer2-Authentication/SecurityConfiguration)2支持如下四种：
 
 - KERBEROSE

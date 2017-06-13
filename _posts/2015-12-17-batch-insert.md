@@ -8,6 +8,9 @@ categories: tech
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 ## 背景介绍
 
 我们需要从kettle将数据导入到ADS，但导入性能不理想，32并发线程，单个ADS接入节点，也只有最多六七千条每秒的样子。

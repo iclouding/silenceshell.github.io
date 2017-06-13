@@ -8,6 +8,9 @@ tags: hadoop  hdfs
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 
 ### 1 概述
 HDFS应用场景：存储超大型流式处理数据（Terabytes和Petabytes级别）。

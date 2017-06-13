@@ -8,6 +8,9 @@ tags: kubernets
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 原文链接[在此](https://blog.giantswarm.io/wait-for-it-using-readiness-probes-for-service-dependencies-in-kubernetes/)。写的比较通俗易懂，做个笔记，有一些是我自己的理解。
 
 在微服务的世界里，任何应用都需要注意，其所依赖的服务是会中断的。所以当应用发现某服务（如数据库）出现了故障，应该每隔一端时间去重试。而上层框架（如k8s）会检测到服务故障，并尝试恢复这个服务。

@@ -8,6 +8,9 @@ categories: tech
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 
 hadoop源码中，使用yarn的应用程序除了MR以外，还有2个示例程序，我们先来分析distributedShell，顺带介绍YARN应用程序设计方法。
 以下代码基于2.6.0版本。

@@ -8,6 +8,9 @@ categories: tech
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 
 ### 1 背景：MR的问题
 - 启动时间长。多采用pull模型，没有JVM缓存池

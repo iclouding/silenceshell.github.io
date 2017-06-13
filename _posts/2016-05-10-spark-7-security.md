@@ -8,6 +8,9 @@ tags: spark
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 用户在使用Hive的时候，需要做到数据隔离，针对DB、表对不同的用户有不同的权限，即授权(Authorization)。注意跟身份验证(Authentication)区别，前者是判断用户对资源是否具有相应的权限，后者是验证用户的身份，即是否合法用户。这里先看Authorization。
 
 

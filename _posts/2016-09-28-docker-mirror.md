@@ -9,6 +9,9 @@ cover:  "/assets/instacode.png"
 ---
 
 
+* TOC
+{:toc}
+
 
 首先，需要明确一个问题：Mirror 与 Private Registry 有什么区别？
 

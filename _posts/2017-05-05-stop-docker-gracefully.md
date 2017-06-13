@@ -8,6 +8,9 @@ tags: docker
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 ![docker banner](http://7xir15.com1.z0.glb.clouddn.com/docker-banner2.jpg)
 
 之所以会有这个主题，是因为这几天我给mysql集群前置了一个keepalived，为了方便也做成了docker镜像，丢给k8s来部署。但实际测试时发现，当停止或者删除keepalived容器后，网卡上还残余之前keepalived下发的virtual ip。

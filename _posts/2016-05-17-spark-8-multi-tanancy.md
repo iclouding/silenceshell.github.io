@@ -8,6 +8,9 @@ tags: spark
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 > 1、2谈的是SQL和UDF隔离，对于开源来说，zeppelin或者Hue可能是个选择，但其并不支持多租户。国内像美团在之上做了增量开发，支持了多租户，这样就做到了SQL和UDF的隔离。我司有自行开发的data studio产品，其功能跟开源的Hue对标，支持多租户。
 
 ### 3、数据隔离

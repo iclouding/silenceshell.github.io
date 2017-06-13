@@ -8,6 +8,9 @@ categories: tech
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 
 Hibernate是一个优秀的持久化框架，其主要功能是将内存里的瞬时状态，通过JDBC持久化到硬盘数据库上。Hibernate以面向对象的思想来解决数据库的问题，可以简化数据库的访问。
 这篇文章通过一个简单的示例，来建立Hibernate的初步认识，较水，记录用。

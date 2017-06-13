@@ -8,6 +8,9 @@ tags: kickstart
 cover:  "/assets/instacode.png"
 ---
 
+* TOC
+{:toc}
+
 如何为linux集群批量装机？
 
 U盘安装？古老的光盘安装？一两台还可以勉强接受，机器一多，时间会很长，还特别费工夫。对于服务器来说，一般考虑的方法是PXE安装，然后搭配kickstart自动装机。整个过程如下图：
